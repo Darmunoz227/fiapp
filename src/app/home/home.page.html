@@ -1,15 +1,21 @@
 <ion-header class="ion-no-border">
   <ion-toolbar color="dark" class="home-toolbar">
-    <div class="home-title-wrap" slot="start">
-      <div class="home-title-main">FiApp</div>
-      <div *ngIf="businessName" class="home-title-business">{{ businessName }}</div>
-      <div class="home-title-sub">Mi Cuaderno de Fiados</div>
+    <div class="custom-header-layout">
+      <div class="app-branding">
+        <span class="app-title">FiApp</span>
+        <span class="app-subtitle">Mi Cuaderno de Fiados</span>
+      </div>
+
+      <div class="business-name" *ngIf="businessName">{{ businessName }}</div>
+
+      <div class="header-actions">
+        <ion-buttons>
+          <ion-button (click)="irAConfiguraciones()">
+            <ion-icon name="settings-outline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </div>
     </div>
-    <ion-buttons slot="end">
-      <ion-button (click)="irAConfiguraciones()">
-        <ion-icon slot="icon-only" name="settings-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 

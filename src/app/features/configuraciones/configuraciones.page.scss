@@ -1,0 +1,79 @@
+ion-content {
+	--background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
+}
+
+.section-title {
+	font-size: 14px;
+	font-weight: 700;
+	color: #8a8f98;
+	margin: 20px 0 10px;
+	padding-left: 10px;
+	letter-spacing: 0.4px;
+}
+
+.settings-card {
+	border-radius: 16px;
+	overflow: hidden;
+	box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+	background: white;
+}
+
+.business-card {
+	margin-bottom: 18px;
+}
+
+.settings-item {
+	--background: white;
+	--padding-start: 16px;
+	--inner-padding-end: 16px;
+	--min-height: 72px;
+}
+
+.business-item {
+	--background: white;
+	--padding-start: 16px;
+	--inner-padding-end: 16px;
+	--min-height: 106px;
+}
+
+.business-label {
+	font-weight: 700;
+	color: #333;
+	margin-bottom: 8px;
+}
+
+.business-input {
+	--padding-top: 10px;
+	--padding-bottom: 10px;
+	--padding-start: 12px;
+	--padding-end: 12px;
+	--background: #f7f8fb;
+	--border-radius: 12px;
+	border: 1px solid #e3e8ef;
+	margin-top: 2px;
+}
+
+.business-help {
+	margin: 8px 0 0;
+	font-size: 12px;
+	color: #6b7280;
+	line-height: 1.35;
+}
+
+.item-title {
+	font-weight: 700;
+	color: #333;
+}
+
+.item-text {
+	font-size: 12px;
+	color: #666;
+}
+
+ion-icon[slot="start"] {
+	font-size: 20px;
+}
+
+ion-input::part(native) {
+	font-size: 15px;
+}

@@ -60,7 +60,7 @@ export class HomePage {
 
     const alert = await this.alertCtrl.create({
       header: '¡Personaliza tu App!',
-      message: '¿Cómo conocen tus clientes a tu negocio o a ti? Esto aparecerá en los mensajes de cobro.',
+      message: '¿Cómo conocen tus clientes a tu negocio o a ti? FiApp usuara ese nombre para personalizar los mensajes que les envíes por WhatsApp.',
       inputs: [
         { name: 'nombre', type: 'text', placeholder: 'Ej: Tienda La 14, El Paisa...' }
       ],

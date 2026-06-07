@@ -9,17 +9,43 @@
 
 <ion-content color="light" class="ion-padding">
 
-  <h2 style="font-size: 14px; font-weight: bold; color: #888; margin-bottom: 10px; margin-top: 20px; padding-left: 10px;">
-    GESTIÓN DE DATOS
-  </h2>
+  <h2 class="section-title">PERSONALIZACIÓN</h2>
 
-  <ion-list style="border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+  <ion-list class="settings-card business-card">
+    <ion-item lines="none" class="business-item">
+      <ion-icon slot="start" name="storefront-outline" color="primary"></ion-icon>
+      <ion-label position="stacked" class="business-label">Nombre de tu Negocio</ion-label>
+      <ion-input
+        [(ngModel)]="nombreNegocio"
+        placeholder="Ej: Tienda La 14, El Paisa..."
+        inputmode="text"
+        clearInput="true"
+        class="business-input">
+      </ion-input>
+      <p class="business-help">Este nombre se usa para personalizar los mensajes por WhatsApp.</p>
+      <ion-button expand="block" color="primary" class="save-business-button" (click)="guardarNombreNegocio()">
+        Guardar Nombre
+      </ion-button>
+    </ion-item>
+  </ion-list>
+
+  <ion-toast
+    [isOpen]="mostrarToastGuardado"
+    message="¡Nombre del negocio actualizado con éxito!"
+    duration="2000"
+    position="bottom"
+    (didDismiss)="cerrarToastGuardado()">
+  </ion-toast>
+
+  <h2 class="section-title">GESTIÓN DE DATOS</h2>
+
+  <ion-list class="settings-card">
     
-    <ion-item button="true" (click)="exportarRespaldoJSON()" lines="none" style="--background: white;">
+    <ion-item button="true" (click)="exportarRespaldoJSON()" lines="none" class="settings-item">
       <ion-icon slot="start" name="download-outline" color="primary"></ion-icon>
       <ion-label>
-        <h2 style="font-weight: bold; color: #333;">Exportar Respaldo</h2>
-        <p style="font-size: 12px; color: #666;">Descargar archivo .json con toda la información</p>
+        <h2 class="item-title">Exportar Respaldo</h2>
+        <p class="item-text">Descargar archivo .json con toda la información</p>
       </ion-label>
     </ion-item>
     

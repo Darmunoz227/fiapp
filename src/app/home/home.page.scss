@@ -3,60 +3,88 @@ ion-content {
 }
 
 .home-toolbar {
-  --min-height: 76px;
-  align-items: center;
-  padding-top: 6px;
-  padding-bottom: 6px;
-  position: relative;
+  --min-height: calc(40px + env(safe-area-inset-top));
 }
 
-.home-title-wrap {
+.custom-header-layout {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  padding: calc(env(safe-area-inset-top) + 2px) 8px 2px; /* more compact */
+  gap: 6px;
+}
+
+.app-branding {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding: 10px 0 10px 16px;
+  flex: 0 0 auto;
   min-width: 0;
+  max-width: 60%;
 }
 
-.home-title-main {
+.app-title {
   color: white;
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: 0.3px;
 }
 
-.home-title-sub {
+.app-subtitle {
   color: rgba(255, 255, 255, 0.95);
   font-size: 14px;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: 0.2px;
+  white-space: normal; /* allow wrapping so 'Fiados' doesn't get truncated */
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.business-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: rgba(255,255,255,0.95);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-align: center;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  padding: 0 8px;
+  max-width: 40%; /* ensure middle area doesn't take over */
 }
 
-.home-title-business {
-  color: rgba(255,255,255,0.95);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 1.05;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: 10px;
-  text-align: center;
-  pointer-events: none;
+.header-actions {
+  flex: 0 0 auto;
 }
 
 @media (max-width: 360px) {
-  .home-title-main {
-    font-size: 18px;
+  .home-toolbar-inner {
+    gap: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
-  .home-title-sub {
+  .home-title-wrap {
+    max-width: 38%;
+  }
+
+  .app-title {
+    font-size: 16px;
+  }
+
+  .app-subtitle {
+    font-size: 10px;
+  }
+
+  .business-name {
     font-size: 11px;
   }
 }
