@@ -12,6 +12,7 @@ import { DatabaseService } from '../../core/database/database.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { NuevaTransaccionComponent } from '../../shared/modals/nueva-transaccion/nueva-transaccion.component';
+import { formatCurrencyCOP, formatFiadoConcept } from '../../shared/utils/formatters';
 import { v4 as uuidv4 } from 'uuid'; 
 
 @Component({
@@ -62,6 +63,10 @@ export class ClienteDetallePage implements OnInit {
     }
   }
 
+  formatearMonto(monto: number): string {
+    return formatCurrencyCOP(monto);
+  }
+
   async abrirModalTransaccion(tipoRecibido: 'fiado' | 'abono') {
     const modal = await this.modalCtrl.create({
       component: NuevaTransaccionComponent,
@@ -73,12 +78,13 @@ export class ClienteDetallePage implements OnInit {
     const { data } = await modal.onWillDismiss();
 
     if (data && this.cliente) {
+      const conceptoFinal = data.concepto?.trim() ? data.concepto.trim() : (data.tipo === 'fiado' ? formatFiadoConcept() : '');
       const nuevaTransaccion: Transaccion = {
         id: uuidv4(),
         cliente_id: this.cliente.id,
         tipo: data.tipo,
         monto: data.monto,
-        concepto: data.concepto,
+        concepto: conceptoFinal,
         fecha: Date.now()
       };
       await this.dbService.crearTransaccion(nuevaTransaccion);
@@ -107,7 +113,7 @@ export class ClienteDetallePage implements OnInit {
   // --- RF-06: COBRAR (WhatsApp General) ---
   enviarCobroWhatsApp() {
     if (!this.cliente) return;
-    const mensaje = 'Hola ' + this.cliente.nombre + ', te escribo de la tienda para recordarte tu saldo actual que es de $' + this.deudaTotal + '. ¡Quedo atento, gracias!';
+    const mensaje = 'Hola ' + this.cliente.nombre + ', te escribo de la tienda para recordarte tu saldo actual que es de $' + this.formatearMonto(this.deudaTotal) + '. ¡Quedo atento, gracias!';
     const telefonoLimpio = this.cliente.telefono.replace(/\D/g,'');
     const url = 'https://wa.me/57' + telefonoLimpio + '?text=' + encodeURIComponent(mensaje);
     window.open(url, '_blank');
@@ -120,7 +126,7 @@ export class ClienteDetallePage implements OnInit {
     const conceptoTexto = t.concepto ? t.concepto : 'Sin detalle';
     
     // Armamos un mini recibo con emojis
-    const mensaje = '🧾 Recibo de Transacción\nHola ' + this.cliente.nombre + ', registramos ' + tipoTexto + ' por valor de $' + t.monto + '.\nConcepto: ' + conceptoTexto + '\n\nSaldo actual: $' + this.deudaTotal + '';
+    const mensaje = '🧾 Recibo de Transacción\nHola ' + this.cliente.nombre + ', registramos ' + tipoTexto + ' por valor de $' + this.formatearMonto(t.monto) + '.\nConcepto: ' + conceptoTexto + '\n\nSaldo actual: $' + this.formatearMonto(this.deudaTotal) + '';
     
     const telefonoLimpio = this.cliente.telefono.replace(/\D/g,'');
     const url = 'https://wa.me/57' + telefonoLimpio + '?text=' + encodeURIComponent(mensaje);

@@ -11,12 +11,37 @@
   <div style="margin-top: 10px;">
     <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
       <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Valor ($) *</ion-label>
-      <ion-input type="number" placeholder="Ej. 5000" [(ngModel)]="monto"></ion-input>
+      <ion-input
+        #montoInput
+        type="text"
+        inputmode="numeric"
+        placeholder="Ej. 5.000"
+        [(ngModel)]="montoTexto"
+        (ionInput)="onMontoInput()"
+        (ionBlur)="onMontoBlur()">
+      </ion-input>
     </ion-item>
 
     <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Concepto (Opcional)</ion-label>
-      <ion-input type="text" placeholder="Ej. 2 Panes y leche" [(ngModel)]="concepto"></ion-input>
+      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">
+        {{ tipo === 'fiado' ? 'Concepto' : 'Método de pago' }}
+      </ion-label>
+
+      <ion-input
+        *ngIf="tipo === 'fiado'"
+        type="text"
+        placeholder="Fiado del 6 de jun"
+        [(ngModel)]="concepto">
+      </ion-input>
+
+      <ion-select
+        *ngIf="tipo === 'abono'"
+        placeholder="Selecciona un método de pago"
+        [(ngModel)]="concepto">
+        <ion-select-option *ngFor="let opcion of conceptosAbono" [value]="opcion">
+          {{ opcion }}
+        </ion-select-option>
+      </ion-select>
     </ion-item>
   </div>
 
@@ -27,7 +52,12 @@
       </ion-button>
     </ion-col>
     <ion-col size="6">
-      <ion-button expand="block" [color]="tipo === 'fiado' ? 'danger' : 'success'" style="--border-radius: 12px; font-weight: bold;" (click)="guardar()" [disabled]="!monto || monto <= 0">
+      <ion-button
+        expand="block"
+        [color]="tipo === 'fiado' ? 'danger' : 'success'"
+        style="--border-radius: 12px; font-weight: bold;"
+        (click)="guardar()"
+        [disabled]="!monto || monto <= 0 || (tipo === 'abono' && !concepto)">
         Guardar
       </ion-button>
     </ion-col>

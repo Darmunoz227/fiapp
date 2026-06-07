@@ -21,7 +21,7 @@
       </ion-text>
       <ion-text color="danger">
         <h1 style="font-weight: bold; font-size: 28px; margin-top: 5px;">
-          $ {{ totalCartera | number:'1.0-0' }} <span style="font-size: 16px; color: #666;">COP</span>
+          $ {{ formatearMonto(totalCartera) }} <span style="font-size: 16px; color: #666;">COP</span>
         </h1>
       </ion-text>
     </ion-card-content>
@@ -44,7 +44,7 @@
           <h2>{{ cliente.nombre }}</h2>
         </ion-label>
         <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'danger'" class="deuda-texto">
-          $ {{ cliente.deudaTotal }}
+          $ {{ formatearMonto(cliente.deudaTotal) }}
         </ion-note>
       </ion-item>
 

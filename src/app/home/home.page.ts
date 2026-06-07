@@ -12,6 +12,7 @@ import { addIcons } from 'ionicons';
 import { add, trash, settingsOutline } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
+import { formatCurrencyCOP } from '../shared/utils/formatters';
 
 @Component({
   selector: 'app-home',
@@ -44,6 +45,10 @@ export class HomePage {
 
   ionViewWillEnter() {
     this.cargarClientesYDeudas();
+  }
+
+  formatearMonto(monto: number): string {
+    return formatCurrencyCOP(monto);
   }
 
   async cargarClientesYDeudas() {
