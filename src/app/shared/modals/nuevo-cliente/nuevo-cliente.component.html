@@ -1,0 +1,45 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="dark">
+    <ion-title class="ion-text-center" style="font-size: 16px;">NUEVO CLIENTE</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" color="light">
+  
+  <div style="margin-top: 10px;">
+    <!-- Campo Nombre -->
+    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Nombre completo *</ion-label>
+      <ion-input type="text" placeholder="Ej. Camila Vecina" [(ngModel)]="nombre"></ion-input>
+    </ion-item>
+
+    <!-- Campo Teléfono -->
+    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Teléfono (WhatsApp) *</ion-label>
+      <ion-input type="tel" placeholder="Ej. 312 000 0000" [(ngModel)]="telefono"></ion-input>
+    </ion-item>
+
+    <!-- Casilla de Habeas Data -->
+    <ion-item lines="none" style="--background: transparent; margin-bottom: 30px;">
+      <ion-checkbox slot="start" color="success" style="margin-right: 16px;" [(ngModel)]="habeasData"></ion-checkbox>
+      <ion-label style="font-size: 14px; white-space: normal; color: #333; line-height: 1.4;">
+        El cliente autoriza el registro local de sus datos (Habeas Data).
+      </ion-label>
+    </ion-item>
+  </div>
+
+  <!-- Botones movidos DENTRO del contenido para garantizar que se vean -->
+  <ion-row>
+    <ion-col size="6">
+      <ion-button expand="block" fill="outline" color="dark" style="--border-radius: 12px; font-weight: bold;" (click)="cerrarModal()">
+        Cancelar
+      </ion-button>
+    </ion-col>
+    <ion-col size="6">
+      <ion-button expand="block" color="dark" style="--border-radius: 12px; font-weight: bold;" (click)="guardarCliente()" [disabled]="!nombre || !telefono || !habeasData">
+        Guardar
+      </ion-button>
+    </ion-col>
+  </ion-row>
+
+</ion-content>

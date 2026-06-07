@@ -10,4 +10,13 @@ export const routes: Routes = [
     redirectTo: 'home',
     pathMatch: 'full',
   },
+  {
+    // Le agregamos "/:id" para que Angular sepa que esta pantalla necesita saber A QUIÉN va a mostrar
+    path: 'cliente-detalle/:id',
+    loadComponent: () => import('./features/cliente-detalle/cliente-detalle.page').then( m => m.ClienteDetallePage)
+  },
+  {
+    path: 'configuraciones',
+    loadComponent: () => import('./features/configuraciones/configuraciones.page').then( m => m.ConfiguracionesPage)
+  },
 ];

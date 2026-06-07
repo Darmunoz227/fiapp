@@ -1,0 +1,35 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" text="Atrás"></ion-back-button>
+    </ion-buttons>
+    <ion-title style="font-size: 16px;">Configuraciones</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light" class="ion-padding">
+
+  <h2 style="font-size: 14px; font-weight: bold; color: #888; margin-bottom: 10px; margin-top: 20px; padding-left: 10px;">
+    GESTIÓN DE DATOS
+  </h2>
+
+  <ion-list style="border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+    
+    <ion-item button="true" (click)="exportarRespaldoJSON()" lines="none" style="--background: white;">
+      <ion-icon slot="start" name="download-outline" color="primary"></ion-icon>
+      <ion-label>
+        <h2 style="font-weight: bold; color: #333;">Exportar Respaldo</h2>
+        <p style="font-size: 12px; color: #666;">Descargar archivo .json con toda la información</p>
+      </ion-label>
+    </ion-item>
+    
+  </ion-list>
+
+  <div style="text-align: center; margin-top: 40px;">
+    <ion-icon name="shield-checkmark-outline" color="medium" style="font-size: 40px;"></ion-icon>
+    <p style="color: #888; font-size: 12px; margin-top: 10px;">
+      Tus datos están protegidos y se guardan únicamente en la memoria local de tu dispositivo.
+    </p>
+  </div>
+
+</ion-content>

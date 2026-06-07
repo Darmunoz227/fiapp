@@ -1,0 +1,36 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar [color]="tipo === 'fiado' ? 'danger' : 'success'">
+    <ion-title class="ion-text-center" style="font-size: 16px;">
+      NUEVO {{ tipo | uppercase }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" color="light">
+  
+  <div style="margin-top: 10px;">
+    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Valor ($) *</ion-label>
+      <ion-input type="number" placeholder="Ej. 5000" [(ngModel)]="monto"></ion-input>
+    </ion-item>
+
+    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Concepto (Opcional)</ion-label>
+      <ion-input type="text" placeholder="Ej. 2 Panes y leche" [(ngModel)]="concepto"></ion-input>
+    </ion-item>
+  </div>
+
+  <ion-row>
+    <ion-col size="6">
+      <ion-button expand="block" fill="outline" color="dark" style="--border-radius: 12px; font-weight: bold;" (click)="cerrarModal()">
+        Cancelar
+      </ion-button>
+    </ion-col>
+    <ion-col size="6">
+      <ion-button expand="block" [color]="tipo === 'fiado' ? 'danger' : 'success'" style="--border-radius: 12px; font-weight: bold;" (click)="guardar()" [disabled]="!monto || monto <= 0">
+        Guardar
+      </ion-button>
+    </ion-col>
+  </ion-row>
+
+</ion-content>

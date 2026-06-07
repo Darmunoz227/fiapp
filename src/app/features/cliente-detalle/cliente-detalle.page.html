@@ -1,0 +1,82 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="dark">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" text="Atrás"></ion-back-button>
+    </ion-buttons>
+    <ion-title class="ion-text-center" style="font-size: 16px;">
+      {{ cliente?.nombre || 'Cargando...' }}
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" color="light">
+  
+  <ion-card style="margin: 10px 0 10px 0; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+    <ion-card-content class="ion-text-center" style="padding: 30px 20px;">
+      <ion-text color="medium">
+        <p style="margin: 0; font-size: 14px; font-weight: bold; letter-spacing: 1px;">DEUDA ACTUAL</p>
+      </ion-text>
+      <ion-text [color]="deudaTotal <= 0 ? 'success' : 'danger'">
+        <h1 style="margin: 10px 0 0 0; font-size: 42px; font-weight: 800;">$ {{ deudaTotal | number }}</h1>
+      </ion-text>
+    </ion-card-content>
+  </ion-card>
+
+  <div style="display: flex; gap: 8px; margin-bottom: 20px; justify-content: center;">
+    <ion-button size="small" color="success" fill="outline" style="--border-radius: 8px;" (click)="enviarCobroWhatsApp()">
+      <ion-icon slot="start" name="logo-whatsapp"></ion-icon>
+      💬 Cobrar
+    </ion-button>
+  </div>
+
+  <div style="display: flex; gap: 12px; margin-bottom: 30px;">
+    <ion-button expand="block" color="danger" style="flex: 1; --border-radius: 12px; font-weight: bold; height: 50px;" (click)="abrirModalTransaccion('fiado')">
+      <ion-icon slot="start" name="arrow-up-outline"></ion-icon>
+      Fiado
+    </ion-button>
+    <ion-button expand="block" color="success" style="flex: 1; --border-radius: 12px; font-weight: bold; height: 50px;" (click)="abrirModalTransaccion('abono')">
+      <ion-icon slot="start" name="arrow-down-outline"></ion-icon>
+      Abono
+    </ion-button>
+  </div>
+
+  <ion-text color="dark">
+    <h3 style="font-weight: bold; margin-bottom: 16px; font-size: 16px;">Historial de Movimientos</h3>
+  </ion-text>
+  
+  <div *ngIf="transacciones.length === 0" style="text-align: center; padding: 40px 20px; background: white; border-radius: 12px; border: 1px dashed #ccc;">
+    <ion-text color="medium">
+      <p style="margin: 0; font-size: 14px;">Aún no hay transacciones registradas.</p>
+    </ion-text>
+  </div>
+
+  <ion-list *ngIf="transacciones.length > 0" style="background: transparent;">
+    <ion-item-sliding *ngFor="let t of transacciones">
+      <ion-item lines="full" style="--background: white; margin-bottom: 8px; border-radius: 8px; --padding-end: 0;">
+        <ion-icon slot="start" [name]="t.tipo === 'fiado' ? 'arrow-up-outline' : 'arrow-down-outline'" 
+                  [color]="t.tipo === 'fiado' ? 'danger' : 'success'">
+        </ion-icon>
+        <ion-label>
+          <h2 style="font-weight: bold; text-transform: capitalize;">{{ t.tipo }}</h2>
+          <p style="font-size: 12px; color: #888;">{{ t.concepto || 'Sin detalle' }}</p>
+        </ion-label>
+        
+        <ion-note slot="end" [color]="t.tipo === 'fiado' ? 'danger' : 'success'" style="font-weight: bold; font-size: 16px; margin-right: 10px;">
+          {{ t.tipo === 'fiado' ? '+' : '-' }} $ {{ t.monto | number }}
+        </ion-note>
+
+        <ion-button slot="end" fill="clear" color="medium" (click)="enviarReciboWhatsApp(t)">
+          <ion-icon slot="icon-only" name="receipt-outline"></ion-icon>
+        </ion-button>
+
+      </ion-item>
+      
+      <ion-item-options side="end">
+        <ion-item-option color="danger" (click)="confirmarEliminarTransaccion(t)">
+          <ion-icon slot="icon-only" name="trash"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+    </ion-item-sliding>
+  </ion-list>
+
+</ion-content>
