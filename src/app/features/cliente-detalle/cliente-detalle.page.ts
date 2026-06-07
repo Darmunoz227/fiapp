@@ -9,10 +9,11 @@ import {
 import { addIcons } from 'ionicons';
 import { arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline } from 'ionicons/icons'; 
 import { DatabaseService } from '../../core/database/database.service';
+import { PreferencesService } from '../../core/preferences/preferences.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { NuevaTransaccionComponent } from '../../shared/modals/nueva-transaccion/nueva-transaccion.component';
-import { formatCurrencyCOP, formatFiadoConcept } from '../../shared/utils/formatters';
+import { formatCurrencyCOP, formatFiadoConcept, formatTransactionDate } from '../../shared/utils/formatters';
 import { v4 as uuidv4 } from 'uuid'; 
 
 @Component({
@@ -37,6 +38,7 @@ export class ClienteDetallePage implements OnInit {
     private dbService: DatabaseService,
     private modalCtrl: ModalController,
     private alertCtrl: AlertController
+    , private prefs: PreferencesService
   ) {
     // Cambiamos documentTextOutline por receiptOutline
     addIcons({ arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline }); 
@@ -67,6 +69,10 @@ export class ClienteDetallePage implements OnInit {
     return formatCurrencyCOP(monto);
   }
 
+  formatearFecha(fecha: number): string {
+    return formatTransactionDate(fecha);
+  }
+
   async abrirModalTransaccion(tipoRecibido: 'fiado' | 'abono') {
     const modal = await this.modalCtrl.create({
       component: NuevaTransaccionComponent,
@@ -78,7 +84,7 @@ export class ClienteDetallePage implements OnInit {
     const { data } = await modal.onWillDismiss();
 
     if (data && this.cliente) {
-      const conceptoFinal = data.concepto?.trim() ? data.concepto.trim() : (data.tipo === 'fiado' ? formatFiadoConcept() : '');
+      const conceptoFinal = data.concepto?.trim() ? data.concepto.trim() : (data.tipo === 'fiado' ? formatFiadoConcept(new Date()) : '');
       const nuevaTransaccion: Transaccion = {
         id: uuidv4(),
         cliente_id: this.cliente.id,
@@ -111,9 +117,11 @@ export class ClienteDetallePage implements OnInit {
   }
 
   // --- RF-06: COBRAR (WhatsApp General) ---
-  enviarCobroWhatsApp() {
+  async enviarCobroWhatsApp() {
     if (!this.cliente) return;
-    const mensaje = 'Hola ' + this.cliente.nombre + ', te escribo de la tienda para recordarte tu saldo actual que es de $' + this.formatearMonto(this.deudaTotal) + '. ¡Quedo atento, gracias!';
+    const nombreNegocio = await this.prefs.getNombreNegocio();
+    const origen = (nombreNegocio && nombreNegocio.trim() !== '') ? nombreNegocio : 'la tienda';
+    const mensaje = '¡Hola! Te escribo de ' + origen + ' para recordarte tu saldo actual que es de $' + this.formatearMonto(this.deudaTotal) + ', ' + this.cliente.nombre + '. ¡Quedo atento, gracias!';
     const telefonoLimpio = this.cliente.telefono.replace(/\D/g,'');
     const url = 'https://wa.me/57' + telefonoLimpio + '?text=' + encodeURIComponent(mensaje);
     window.open(url, '_blank');

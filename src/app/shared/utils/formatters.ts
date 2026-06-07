@@ -19,8 +19,18 @@ export function formatCurrencyCOP(value: string | number | null | undefined): st
   return numericValue.toLocaleString('es-CO', { maximumFractionDigits: 0 });
 }
 
-export function formatFiadoConcept(date: Date = new Date()): string {
+export function formatFiadoConcept(date: Date): string {
   const day = date.getDate();
   const month = MESES_CORTOS_ES[date.getMonth()] ?? '';
   return `Fiado del ${day} de ${month}`;
+}
+
+export function formatTransactionDate(timestamp: number): string {
+  return new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(timestamp));
 }

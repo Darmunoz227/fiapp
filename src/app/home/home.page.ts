@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
-  IonHeader, IonToolbar, IonTitle, IonContent, IonCard,
+  IonHeader, IonToolbar, IonContent, IonCard,
   IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
   IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
   ModalController, AlertController, IonItemSliding, IonItemOptions, IonItemOption,
@@ -13,6 +13,7 @@ import { add, trash, settingsOutline } from 'ionicons/icons';
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
 import { formatCurrencyCOP } from '../shared/utils/formatters';
+import { PreferencesService } from '../core/preferences/preferences.service';
 
 @Component({
   selector: 'app-home',
@@ -21,7 +22,7 @@ import { formatCurrencyCOP } from '../shared/utils/formatters';
   standalone: true,
   imports: [
     CommonModule,
-    IonHeader, IonToolbar, IonTitle, IonContent, IonCard,
+    IonHeader, IonToolbar, IonContent, IonCard,
     IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
     IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
     IonItemSliding, IonItemOptions, IonItemOption,
@@ -33,18 +34,50 @@ export class HomePage {
   totalCartera: number = 0;
   clientesActivos: any[] = [];
   clientesFiltrados: any[] = []; 
+  businessName: string | null = null;
 
   constructor(
     private modalCtrl: ModalController,
     private dbService: DatabaseService,
     private router: Router,
     private alertCtrl: AlertController 
+    , private prefs: PreferencesService
   ) {
     addIcons({ add, trash, settingsOutline }); 
   }
 
   ionViewWillEnter() {
+    this.checkNombreNegocio();
     this.cargarClientesYDeudas();
+  }
+
+  async checkNombreNegocio() {
+    const nombre = await this.prefs.getNombreNegocio();
+    if (nombre && nombre.trim() !== '') {
+      this.businessName = nombre.trim();
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: '¡Personaliza tu App!',
+      message: '¿Cómo conocen tus clientes a tu negocio o a ti? Esto aparecerá en los mensajes de cobro.',
+      inputs: [
+        { name: 'nombre', type: 'text', placeholder: 'Ej: Tienda La 14, El Paisa...' }
+      ],
+      buttons: [
+        {
+          text: 'Guardar',
+          handler: async (data: any) => {
+            const valor = (data?.nombre || '').toString().trim();
+            if (valor) {
+              await this.prefs.setNombreNegocio(valor);
+              this.businessName = valor;
+            }
+          }
+        }
+      ]
+    });
+    await alert.present();
   }
 
   formatearMonto(monto: number): string {

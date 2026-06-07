@@ -59,6 +59,7 @@
         <ion-label>
           <h2 style="font-weight: bold; text-transform: capitalize;">{{ t.tipo }}</h2>
           <p style="font-size: 12px; color: #888;">{{ t.concepto || 'Sin detalle' }}</p>
+          <p style="font-size: 11px; color: #9a9a9a; margin-top: 4px;">{{ formatearFecha(t.fecha) }}</p>
         </ion-label>
         
         <ion-note slot="end" [color]="t.tipo === 'fiado' ? 'danger' : 'success'" style="font-weight: bold; font-size: 16px; margin-right: 10px;">

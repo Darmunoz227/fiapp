@@ -105,11 +105,6 @@ export class NuevaTransaccionComponent implements OnChanges {
   }
 
   private inicializarConcepto() {
-    if (this.tipo === 'fiado') {
-      this.concepto = formatFiadoConcept();
-      return;
-    }
-
     this.concepto = '';
   }
 
@@ -172,7 +167,7 @@ export class NuevaTransaccionComponent implements OnChanges {
 
   guardar() {
     if (this.tipo === 'fiado' && !this.concepto.trim()) {
-      this.concepto = formatFiadoConcept();
+      this.concepto = formatFiadoConcept(new Date());
     }
 
     // Cuando el usuario le da a guardar, no guardamos en la base de datos aquí.

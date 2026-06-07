@@ -1,8 +1,10 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar color="dark">
-    <ion-title class="ion-text-center" style="font-weight: bold; font-size: 20px; letter-spacing: 1px;">
-      Fiapp - Mi Cuaderno de Fiados
-    </ion-title>
+  <ion-toolbar color="dark" class="home-toolbar">
+    <div class="home-title-wrap" slot="start">
+      <div class="home-title-main">FiApp</div>
+      <div *ngIf="businessName" class="home-title-business">{{ businessName }}</div>
+      <div class="home-title-sub">Mi Cuaderno de Fiados</div>
+    </div>
     <ion-buttons slot="end">
       <ion-button (click)="irAConfiguraciones()">
         <ion-icon slot="icon-only" name="settings-outline"></ion-icon>

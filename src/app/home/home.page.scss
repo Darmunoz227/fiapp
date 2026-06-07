@@ -2,6 +2,65 @@ ion-content {
   --background: #f8f9fa;
 }
 
+.home-toolbar {
+  --min-height: 76px;
+  align-items: center;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  position: relative;
+}
+
+.home-title-wrap {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 0 10px 16px;
+  min-width: 0;
+}
+
+.home-title-main {
+  color: white;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: 0.3px;
+}
+
+.home-title-sub {
+  color: rgba(255, 255, 255, 0.95);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-title-business {
+  color: rgba(255,255,255,0.95);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.05;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  top: 10px;
+  text-align: center;
+  pointer-events: none;
+}
+
+@media (max-width: 360px) {
+  .home-title-main {
+    font-size: 18px;
+  }
+
+  .home-title-sub {
+    font-size: 11px;
+  }
+}
+
 .tarjeta-total {
   margin: 20px 16px;
   border-radius: 16px;
