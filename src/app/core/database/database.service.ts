@@ -36,8 +36,32 @@ export class DatabaseService {
   }
 
   private async crearTablas(): Promise<void> {
-    const createTablesSQL = 'CREATE TABLE IF NOT EXISTS clientes (id TEXT PRIMARY KEY NOT NULL, nombre TEXT NOT NULL, telefono TEXT NOT NULL, habeas_data_flag INTEGER NOT NULL, fecha_creacion INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS transacciones (id TEXT PRIMARY KEY NOT NULL, cliente_id TEXT NOT NULL, tipo TEXT NOT NULL, monto REAL NOT NULL, concepto TEXT, fecha INTEGER NOT NULL, FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE); CREATE INDEX IF NOT EXISTS transacciones_cliente_id_idx ON transacciones(cliente_id);';
-    await this.db.execute(createTablesSQL);
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS clientes (
+        id TEXT PRIMARY KEY NOT NULL,
+        nombre TEXT NOT NULL,
+        telefono TEXT NOT NULL,
+        habeas_data_flag INTEGER NOT NULL,
+        fecha_creacion INTEGER NOT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS transacciones (
+        id TEXT PRIMARY KEY NOT NULL,
+        cliente_id TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        monto REAL NOT NULL,
+        concepto TEXT,
+        fecha INTEGER NOT NULL,
+        FOREIGN KEY (cliente_id) REFERENCES clientes(id) ON DELETE CASCADE
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS transacciones_cliente_id_idx
+      ON transacciones(cliente_id);
+    `);
   }
 
   async crearCliente(cliente: Cliente): Promise<void> {

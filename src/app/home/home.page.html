@@ -22,6 +22,12 @@
 
 <ion-content [fullscreen]="true" color="light" class="ion-padding">
   
+  <div class="watermark-container">
+    <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" class="watermark-svg">
+      <text x="100" y="50" text-anchor="middle" font-size="48" font-weight="700" letter-spacing="2" fill="currentColor">FIAPP</text>
+    </svg>
+  </div>
+  
   <ion-card class="tarjeta-total">
     <ion-card-content>
       <ion-text color="medium">
@@ -70,5 +76,13 @@
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>
+
+  <ion-footer class="footer-info">
+    <ion-toolbar color="light">
+      <ion-text color="medium" class="footer-text">
+        <p>FiApp - Gestión de Fiados | Versión {{ appVersion }}</p>
+      </ion-text>
+    </ion-toolbar>
+  </ion-footer>
 
 </ion-content>
