@@ -60,6 +60,29 @@ ion-content {
 	line-height: 1.35;
 }
 
+.credits-block {
+	text-align: center;
+	margin: 40px 0 16px;
+	color: #888;
+}
+
+.credits-title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 700;
+	color: #666;
+}
+
+.credits-version {
+	margin: 6px 0 0;
+	font-size: 12px;
+}
+
+.credits-team {
+	margin: 4px 0 0;
+	font-size: 12px;
+}
+
 .item-title {
 	font-weight: 700;
 	color: #333;

@@ -6,7 +6,7 @@ import {
   IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
   IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
   ModalController, AlertController, IonItemSliding, IonItemOptions, IonItemOption,
-  IonButton, IonButtons, IonFooter
+  IonButton, IonButtons
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { add, trash, settingsOutline } from 'ionicons/icons'; 
@@ -15,7 +15,6 @@ import { DatabaseService } from '../core/database/database.service';
 import { formatCurrencyCOP } from '../shared/utils/formatters';
 import { PreferencesService } from '../core/preferences/preferences.service';
 import { Transaccion } from '../core/models/transaccion.model';
-import { App } from '@capacitor/app';
 
 @Component({
   selector: 'app-home',
@@ -29,7 +28,6 @@ import { App } from '@capacitor/app';
     IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
     IonItemSliding, IonItemOptions, IonItemOption,
     IonButton, IonButtons,
-    IonFooter
   ],
 })
 export class HomePage {
@@ -38,7 +36,6 @@ export class HomePage {
   clientesActivos: any[] = [];
   clientesFiltrados: any[] = []; 
   businessName: string | null = null;
-  appVersion: string = '1.0.0';
 
   constructor(
     private modalCtrl: ModalController,
@@ -53,17 +50,6 @@ export class HomePage {
   ionViewWillEnter() {
     this.checkNombreNegocio();
     this.cargarClientesYDeudas();
-    this.cargarVersionApp();
-  }
-
-  async cargarVersionApp() {
-    try {
-      const info = await App.getInfo();
-      this.appVersion = info.version || '1.0.0';
-    } catch (error) {
-      console.error('Error cargando versión de la app:', error);
-      this.appVersion = '1.0.0';
-    }
   }
 
   async checkNombreNegocio() {

@@ -6,6 +6,7 @@ import { addIcons } from 'ionicons';
 import { downloadOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
+import { App } from '@capacitor/app';
 // Importamos la herramienta nativa de compartir
 import { Share } from '@capacitor/share'; 
 
@@ -19,6 +20,7 @@ import { Share } from '@capacitor/share';
 export class ConfiguracionesPage {
   nombreNegocio = '';
   mostrarToastGuardado = false;
+  appVersion: string = '1.0.0';
 
   constructor(
     private dbService: DatabaseService,
@@ -29,6 +31,17 @@ export class ConfiguracionesPage {
 
   ionViewWillEnter() {
     this.cargarNombreNegocio();
+    this.cargarVersionApp();
+  }
+
+  async cargarVersionApp() {
+    try {
+      const info = await App.getInfo();
+      this.appVersion = info.version || '1.0.0';
+    } catch (error) {
+      console.error('Error cargando versión de la app:', error);
+      this.appVersion = '1.0.0';
+    }
   }
 
   async cargarNombreNegocio() {
