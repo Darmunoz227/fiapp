@@ -12,6 +12,7 @@ import { addIcons } from 'ionicons';
 import { add, trash, settingsOutline } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
+import { FreemiumService } from '../core/freemium/freemium.service';
 import { formatCurrencyCOP } from '../shared/utils/formatters';
 import { PreferencesService } from '../core/preferences/preferences.service';
 import { Transaccion } from '../core/models/transaccion.model';
@@ -42,7 +43,8 @@ export class HomePage {
     private dbService: DatabaseService,
     private router: Router,
     private alertCtrl: AlertController 
-    , private prefs: PreferencesService
+    , private prefs: PreferencesService,
+    private freemiumService: FreemiumService
   ) {
     addIcons({ add, trash, settingsOutline }); 
   }
@@ -130,6 +132,11 @@ export class HomePage {
   }
 
   async abrirModalNuevoCliente() {
+    const puedeAgregar = await this.freemiumService.puedeAgregarCliente();
+    if (!puedeAgregar) {
+      return;
+    }
+
     const modal = await this.modalCtrl.create({
       component: NuevoClienteComponent,
       breakpoints: [0, 0.75],

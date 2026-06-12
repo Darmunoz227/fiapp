@@ -83,6 +83,18 @@ export class DatabaseService {
     return res.values as Cliente[] || [];
   }
 
+  async contarClientes(): Promise<number> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.mockWebClientes.length;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT COUNT(*) as total FROM clientes';
+    const res = await this.db.query(sql);
+    const total = res.values?.[0] as { total?: number | string } | undefined;
+    return Number(total?.total ?? 0);
+  }
+
   async obtenerClientePorId(id: string): Promise<Cliente | null> {
     if (Capacitor.getPlatform() === 'web') return this.mockWebClientes.find(c => c.id === id) || null;
     if (!this.isInitialized) await this.initializePlugin();

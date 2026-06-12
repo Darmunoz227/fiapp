@@ -8,6 +8,7 @@ import {
 
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../../core/database/database.service';
+import { FreemiumService } from '../../../core/freemium/freemium.service';
 import { Cliente } from '../../../core/models/cliente.model';
 
 @Component({
@@ -29,7 +30,8 @@ export class NuevoClienteComponent {
 
   constructor(
     private modalCtrl: ModalController,
-    private dbService: DatabaseService 
+    private dbService: DatabaseService,
+    private freemiumService: FreemiumService
   ) {}
 
   cerrarModal() {
@@ -37,6 +39,11 @@ export class NuevoClienteComponent {
   }
 
   async guardarCliente() {
+    const puedeAgregar = await this.freemiumService.puedeAgregarCliente();
+    if (!puedeAgregar) {
+      return;
+    }
+
     const nuevoCliente: Cliente = {
       id: uuidv4(), 
       nombre: this.nombre,

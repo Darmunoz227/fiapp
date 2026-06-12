@@ -1,11 +1,12 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonIcon, IonLabel, IonInput, IonButton, IonToast } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonIcon, IonLabel, IonInput, IonButton, IonToast, AlertController, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { downloadOutline, shieldCheckmarkOutline } from 'ionicons/icons';
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { App } from '@capacitor/app';
 // Importamos la herramienta nativa de compartir
 import { Share } from '@capacitor/share'; 
@@ -21,10 +22,15 @@ export class ConfiguracionesPage {
   nombreNegocio = '';
   mostrarToastGuardado = false;
   appVersion: string = '1.0.0';
+  private tapsEnCreditos = 0;
+  private timerResetTaps: ReturnType<typeof setTimeout> | null = null;
 
   constructor(
     private dbService: DatabaseService,
-    private prefs: PreferencesService
+    private prefs: PreferencesService,
+    private freemiumService: FreemiumService,
+    private alertCtrl: AlertController,
+    private toastCtrl: ToastController
   ) {
     addIcons({ downloadOutline, shieldCheckmarkOutline });
   }
@@ -63,6 +69,63 @@ export class ConfiguracionesPage {
 
   cerrarToastGuardado() {
     this.mostrarToastGuardado = false;
+  }
+
+  onTapCreditos() {
+    this.tapsEnCreditos += 1;
+
+    if (this.timerResetTaps) {
+      clearTimeout(this.timerResetTaps);
+    }
+
+    this.timerResetTaps = setTimeout(() => {
+      this.tapsEnCreditos = 0;
+      this.timerResetTaps = null;
+    }, 2500);
+
+    if (this.tapsEnCreditos >= 5) {
+      this.tapsEnCreditos = 0;
+      if (this.timerResetTaps) {
+        clearTimeout(this.timerResetTaps);
+        this.timerResetTaps = null;
+      }
+      this.mostrarAlertaCodigoActivacion();
+    }
+  }
+
+  async mostrarAlertaCodigoActivacion() {
+    const alert = await this.alertCtrl.create({
+      header: 'Activar FiApp',
+      inputs: [
+        { name: 'password', type: 'password', placeholder: 'Código de activación' }
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Desbloquear',
+          handler: async (data: { password?: string }) => {
+            const password = (data?.password ?? '').trim();
+            if (password === 'darmunoz') {
+              await this.freemiumService.activarLicenciaPremium();
+              await this.mostrarToastDesbloqueo();
+            }
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+  }
+
+  async mostrarToastDesbloqueo() {
+    const toast = await this.toastCtrl.create({
+      message: '¡FiApp Desbloqueada con éxito! Gracias por tu apoyo. 🚀',
+      duration: 2400,
+      position: 'bottom',
+      color: 'success'
+    });
+
+    await toast.present();
   }
 
   // --- RF-07: EXPORTACIÓN DE RESPALDO JSON NATIVO ---
