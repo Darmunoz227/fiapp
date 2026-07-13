@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import { ModalController } from '@ionic/angular';
 
 import { NuevoClienteComponent } from './nuevo-cliente.component';
 
@@ -9,6 +10,19 @@ describe('NuevoClienteComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [NuevoClienteComponent],
+      providers: [
+        {
+          provide: ModalController,
+          useValue: {
+            create: () => Promise.resolve({
+              present: () => Promise.resolve(),
+              dismiss: () => Promise.resolve(),
+              onDidDismiss: () => Promise.resolve({ data: null, role: null }),
+              onWillDismiss: () => Promise.resolve({ data: null, role: null }),
+            }),
+          },
+        },
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(NuevoClienteComponent);
