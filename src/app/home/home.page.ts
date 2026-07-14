@@ -5,11 +5,10 @@ import {
   IonHeader, IonToolbar, IonContent, IonCard,
   IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
   IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
-  ModalController, AlertController, IonItemSliding, IonItemOptions, IonItemOption,
-  IonButton, IonButtons
+  ModalController, AlertController, IonButton, IonButtons
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { add, trash, settingsOutline } from 'ionicons/icons'; 
+import { add, settingsOutline } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
 import { FreemiumService } from '../core/freemium/freemium.service';
@@ -27,7 +26,6 @@ import { Transaccion } from '../core/models/transaccion.model';
     IonHeader, IonToolbar, IonContent, IonCard,
     IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
     IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
-    IonItemSliding, IonItemOptions, IonItemOption,
     IonButton, IonButtons,
   ],
 })
@@ -46,7 +44,7 @@ export class HomePage {
     , private prefs: PreferencesService,
     private freemiumService: FreemiumService
   ) {
-    addIcons({ add, trash, settingsOutline }); 
+    addIcons({ add, settingsOutline }); 
   }
 
   ionViewWillEnter() {
@@ -147,25 +145,6 @@ export class HomePage {
     if (data && data.guardado) {
       await this.cargarClientesYDeudas();
     }
-  }
-
-  async confirmarEliminarCliente(cliente: any) {
-    const alert = await this.alertCtrl.create({
-      header: '¿Eliminar cliente?',
-      message: '¿Estás seguro de que deseas borrar a ' + cliente.nombre + '? Se perderá todo su historial.',
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Eliminar',
-          role: 'destructive', 
-          handler: async () => {
-            await this.dbService.eliminarCliente(cliente.id);
-            await this.cargarClientesYDeudas();
-          }
-        }
-      ]
-    });
-    await alert.present();
   }
 
   irAConfiguraciones() {

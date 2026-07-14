@@ -51,8 +51,7 @@
   </div>
 
   <ion-list *ngIf="transacciones.length > 0" style="background: transparent;">
-    <ion-item-sliding *ngFor="let t of transacciones">
-      <ion-item lines="full" style="--background: white; margin-bottom: 8px; border-radius: 8px; --padding-end: 0;">
+    <ion-item *ngFor="let t of transacciones" lines="full" style="--background: white; margin-bottom: 8px; border-radius: 8px; --padding-end: 0;">
         <ion-icon slot="start" [name]="t.tipo === 'fiado' ? 'arrow-up-outline' : 'arrow-down-outline'" 
                   [color]="t.tipo === 'fiado' ? 'danger' : 'success'">
         </ion-icon>
@@ -71,13 +70,6 @@
         </ion-button>
 
       </ion-item>
-      
-      <ion-item-options side="end">
-        <ion-item-option color="danger" (click)="confirmarEliminarTransaccion(t)">
-          <ion-icon slot="icon-only" name="trash"></ion-icon>
-        </ion-item-option>
-      </ion-item-options>
-    </ion-item-sliding>
   </ion-list>
 
 </ion-content>

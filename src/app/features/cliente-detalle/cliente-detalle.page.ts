@@ -4,7 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
   IonCard, IonCardContent, IonText, IonButton, IonIcon, IonList, IonItem, IonLabel, IonNote,
-  ModalController, AlertController, IonItemSliding, IonItemOptions, IonItemOption
+  ModalController
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline } from 'ionicons/icons'; 
@@ -24,7 +24,6 @@ import { v4 as uuidv4 } from 'uuid';
   imports: [
     CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonBackButton, IonButtons,
     IonCard, IonCardContent, IonText, IonButton, IonIcon, IonList, IonItem, IonLabel, IonNote,
-    IonItemSliding, IonItemOptions, IonItemOption
   ]
 })
 export class ClienteDetallePage implements OnInit {
@@ -37,11 +36,9 @@ export class ClienteDetallePage implements OnInit {
     private route: ActivatedRoute,
     private dbService: DatabaseService,
     private modalCtrl: ModalController,
-    private alertCtrl: AlertController
-    , private prefs: PreferencesService
+    private prefs: PreferencesService
   ) {
-    // Cambiamos documentTextOutline por receiptOutline
-    addIcons({ arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline }); 
+    addIcons({ arrowUpOutline, arrowDownOutline, logoWhatsapp, receiptOutline }); 
   }
 
   async ngOnInit() {
@@ -96,24 +93,6 @@ export class ClienteDetallePage implements OnInit {
       await this.dbService.crearTransaccion(nuevaTransaccion);
       await this.cargarDatos(); 
     }
-  }
-
-  async confirmarEliminarTransaccion(transaccion: Transaccion) {
-    const alert = await this.alertCtrl.create({
-      header: '¿Eliminar movimiento?',
-      message: '¿Estás seguro de que deseas borrar este ' + transaccion.tipo + ' por $' + transaccion.monto + '?',
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Eliminar', role: 'destructive', 
-          handler: async () => {
-            await this.dbService.eliminarTransaccion(transaccion.id);
-            await this.cargarDatos();
-          }
-        }
-      ]
-    });
-    await alert.present();
   }
 
   // --- RF-06: COBRAR (WhatsApp General) ---
