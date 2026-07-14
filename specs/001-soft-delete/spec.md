@@ -9,12 +9,12 @@ Este feature introduce un mecanismo de borrado seguro y recuperable en la aplica
 Comportamiento Requerido
 Para Clientes
 Borrado Lógico: Cuando un cliente es borrado, se oculta de todas las vistas pero permanece en la base de datos con el campo deleted_at establecido.
-Deshacer Borrado: Se proporciona una opción "Deshacer" inmediata y temporal que restaura el cliente a su estado previo mientras el usuario sigue en el contexto actual; no sobrevive a cerrar la app.
+Deshacer Borrado: Se proporciona una opción "Deshacer" como snackbar/toast temporal que expira aproximadamente a los 5 segundos o cuando el usuario navega fuera de la pantalla actual, lo que ocurra primero; no sobrevive a la navegación, al cierre en segundo plano ni al reinicio de la app.
 Restricción de Deuda: Solo se puede borrar un cliente si no tiene deuda activa.
 Conteo Freemium: El conteo de clientes para el plan freemium (7 clientes) NO incluirá clientes borrados.
 Para Transacciones
 Borrado Lógico: Cuando una transacción es borrada, se oculta de todas las vistas y recalcula el saldo sin considerarla.
-Deshacer Borrado: Se proporciona una opción "Deshacer" inmediata y temporal que restaura la transacción a su estado previo mientras el usuario sigue en el contexto actual; no sobrevive a cerrar la app.
+Deshacer Borrado: Se proporciona una opción "Deshacer" como snackbar/toast temporal que expira aproximadamente a los 5 segundos o cuando el usuario navega fuera de la pantalla actual, lo que ocurra primero; no sobrevive a la navegación, al cierre en segundo plano ni al reinicio de la app.
 Criterios de Aceptación
 Clientes
 Borrado Lógico:

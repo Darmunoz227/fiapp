@@ -25,6 +25,8 @@ Represents a customer record visible in the app.
 	recreating the table.
 - New metadata columns are nullable and may use safe defaults for legacy rows so
 	the migration does not break installed devices.
+- Within this feature's scope, `created_at` and `updated_at` may remain `NULL`
+  on existing rows; they will be populated when the sync feature is implemented.
 
 ### Transaccion
 Represents a debt or payment movement associated with a cliente.
@@ -50,6 +52,8 @@ Represents a debt or payment movement associated with a cliente.
 	recreating the table.
 - New metadata columns are nullable and may use safe defaults for legacy rows so
 	the migration does not break installed devices.
+- Within this feature's scope, `created_at` and `updated_at` may remain `NULL`
+  on existing rows; they will be populated when the sync feature is implemented.
 
 ### Deuda Cliente
 Derived view of a cliente's current balance.

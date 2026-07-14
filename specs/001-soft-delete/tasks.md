@@ -102,7 +102,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [P] [US3] Add a short-lived undo state holder in `src/app/core/database/database.service.ts` or a nearby core service to track the last deleted record within the current context only
+- [ ] T028 [P] [US3] Add a short-lived undo state holder in a UI/feature-layer service under `src/app/home/` or `src/app/features/cliente-detalle/` to track the last deleted record within the current screen context only
 - [ ] T029 [US3] Wire the cliente delete flow in `src/app/home/home.page.ts` so the immediate undo action restores the last soft-deleted cliente
 - [ ] T030 [US3] Wire the transaccion delete flow in `src/app/features/cliente-detalle/cliente-detalle.page.ts` so the immediate undo action restores the last soft-deleted transaccion
 - [ ] T031 [US3] Update visible totals in `src/app/home/home.page.ts`, `src/app/features/cliente-detalle/cliente-detalle.page.ts`, and `src/app/features/configuraciones/configuraciones.page.ts` after undo restores a record
