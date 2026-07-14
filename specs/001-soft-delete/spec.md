@@ -9,12 +9,12 @@ Este feature introduce un mecanismo de borrado seguro y recuperable en la aplica
 Comportamiento Requerido
 Para Clientes
 Borrado Lógico: Cuando un cliente es borrado, se oculta de todas las vistas pero permanece en la base de datos con el campo deleted_at establecido.
-Deshacer Borrado: Se proporciona una opción "Deshacer" que restaura el cliente a su estado previo.
+Deshacer Borrado: Se proporciona una opción "Deshacer" inmediata y temporal que restaura el cliente a su estado previo mientras el usuario sigue en el contexto actual; no sobrevive a cerrar la app.
 Restricción de Deuda: Solo se puede borrar un cliente si no tiene deuda activa.
 Conteo Freemium: El conteo de clientes para el plan freemium (7 clientes) NO incluirá clientes borrados.
 Para Transacciones
 Borrado Lógico: Cuando una transacción es borrada, se oculta de todas las vistas y recalcula el saldo sin considerarla.
-Deshacer Borrado: Se proporciona una opción "Deshacer" que restaura la transacción a su estado previo.
+Deshacer Borrado: Se proporciona una opción "Deshacer" inmediata y temporal que restaura la transacción a su estado previo mientras el usuario sigue en el contexto actual; no sobrevive a cerrar la app.
 Criterios de Aceptación
 Clientes
 Borrado Lógico:
@@ -117,6 +117,12 @@ Then:
 La transacción se restaura a su estado previo, removiendo deleted_at.
 La transacción aparece nuevamente en las listas de transacciones.
 El saldo calculado se actualiza para incluir nuevamente esta transacción.
+Alcance de Permisos
+
+- Esta feature no implementa autenticación ni gestión de roles.
+- Se asume que el usuario que ejecuta borrar/deshacer tiene permisos equivalentes a OWNER.
+- La validación real de OWNER y EMPLOYEE quedará para la feature de roles.
+
 Casos Borde
 
 Cierra la app antes de Deshacer:
@@ -124,12 +130,13 @@ Cierra la app antes de Deshacer:
   aplicación antes de usar "Deshacer".
 - Comportamiento Esperado: El borrado queda permanente-lógico. El registro 
   permanece oculto con su marca de borrado y NO es recuperable desde la 
-  interfaz hasta que exista la papelera visible (fuera de alcance).
+  interfaz porque la acción de deshacer solo existe de forma inmediata en el
+  contexto actual.
 
 Intenta Borrar Cliente con Deuda:
 
 Escenario: Un cliente con deuda activa intenta ser borrado.
-Comportamiento Esperado: Se muestra un mensaje de error indicando que el cliente tiene deuda y no puede ser borrado. El cliente permanece en la lista de clientes sin cambios.
+Comportamiento Esperado: Se muestra un mensaje de error indicando que el cliente tiene deuda y no puede ser borrado. Para esta especificación, "deuda activa" significa saldo total mayor que cero. El cliente permanece en la lista de clientes sin cambios.
 Deshace el Borrado de una Transacción:
 
 Escenario: Una transacción es borrada lógicamente y luego deshacida.
