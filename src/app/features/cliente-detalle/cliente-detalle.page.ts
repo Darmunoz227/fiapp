@@ -45,6 +45,10 @@ export class ClienteDetallePage implements OnInit {
     await this.cargarDatos();
   }
 
+  ionViewWillEnter() {
+    void this.cargarDatos();
+  }
+
   async cargarDatos() {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {

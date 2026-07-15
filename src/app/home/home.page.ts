@@ -1,20 +1,22 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonContent, IonCard,
   IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
   IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
-  ModalController, AlertController, IonButton, IonButtons
+  ModalController, AlertController, IonButton, IonButtons, IonItemSliding, IonItemOptions, IonItemOption, ToastController
 } from '@ionic/angular/standalone';
+import { App } from '@capacitor/app';
 import { addIcons } from 'ionicons';
-import { add, settingsOutline } from 'ionicons/icons'; 
+import { add, settingsOutline, trash } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
 import { FreemiumService } from '../core/freemium/freemium.service';
 import { formatCurrencyCOP } from '../shared/utils/formatters';
 import { PreferencesService } from '../core/preferences/preferences.service';
 import { Transaccion } from '../core/models/transaccion.model';
+import { ClienteDeleteUndoService } from './cliente-delete-undo.service';
 
 @Component({
   selector: 'app-home',
@@ -26,8 +28,10 @@ import { Transaccion } from '../core/models/transaccion.model';
     IonHeader, IonToolbar, IonContent, IonCard,
     IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
     IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
+    IonItemSliding, IonItemOptions, IonItemOption,
     IonButton, IonButtons,
   ],
+  providers: [ClienteDeleteUndoService],
 })
 export class HomePage {
   
@@ -35,6 +39,7 @@ export class HomePage {
   clientesActivos: any[] = [];
   clientesFiltrados: any[] = []; 
   businessName: string | null = null;
+  private appStateListener: any = null;
 
   constructor(
     private modalCtrl: ModalController,
@@ -42,14 +47,42 @@ export class HomePage {
     private router: Router,
     private alertCtrl: AlertController 
     , private prefs: PreferencesService,
-    private freemiumService: FreemiumService
+    private freemiumService: FreemiumService,
+    private toastCtrl: ToastController,
+    private clienteDeleteUndoService: ClienteDeleteUndoService,
+    private cdr: ChangeDetectorRef
   ) {
-    addIcons({ add, settingsOutline }); 
+    addIcons({ add, settingsOutline, trash }); 
   }
 
   ionViewWillEnter() {
     this.checkNombreNegocio();
     this.cargarClientesYDeudas();
+    void this.registrarListenerEstadoApp();
+  }
+
+  ionViewWillLeave() {
+    this.clienteDeleteUndoService.clear();
+  }
+
+  ngOnDestroy() {
+    this.clienteDeleteUndoService.clear();
+    if (this.appStateListener) {
+      this.appStateListener.remove();
+      this.appStateListener = null;
+    }
+  }
+
+  private async registrarListenerEstadoApp() {
+    if (this.appStateListener) {
+      return;
+    }
+
+    this.appStateListener = await App.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        this.clienteDeleteUndoService.clear();
+      }
+    });
   }
 
   async checkNombreNegocio() {
@@ -112,6 +145,7 @@ export class HomePage {
       this.totalCartera += deudaCliente;
     }
     this.clientesFiltrados = [...this.clientesActivos];
+    this.cdr.detectChanges();
   }
 
   buscarCliente(event: any) {
@@ -145,6 +179,64 @@ export class HomePage {
     if (data && data.guardado) {
       await this.cargarClientesYDeudas();
     }
+  }
+
+  async confirmarEliminarCliente(cliente: any) {
+    if (cliente.deudaTotal > 0) {
+      const alert = await this.alertCtrl.create({
+        header: 'No se puede borrar',
+        message: 'Este cliente tiene saldo positivo y no puede ser borrado.',
+        buttons: ['Cerrar']
+      });
+      await alert.present();
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: '¿Eliminar cliente?',
+      message: '¿Estás seguro de que deseas borrar a ' + cliente.nombre + '?',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Eliminar',
+          role: 'destructive',
+          handler: async () => {
+            await this.dbService.softDeleteCliente(cliente.id);
+            this.clienteDeleteUndoService.stage(cliente);
+            await this.cargarClientesYDeudas();
+            void this.mostrarToastDeshacerCliente();
+          }
+        }
+      ]
+    });
+    await alert.present();
+  }
+
+  private async mostrarToastDeshacerCliente() {
+    const toast = await this.toastCtrl.create({
+      message: 'Cliente eliminado',
+      duration: 5000,
+      position: 'bottom',
+      buttons: [
+        {
+          text: 'Deshacer',
+          role: 'cancel',
+          handler: async () => {
+            const clientePendiente = this.clienteDeleteUndoService.consume();
+            if (!clientePendiente) {
+              return;
+            }
+
+            await this.dbService.restoreCliente(clientePendiente.id);
+            await this.cargarClientesYDeudas();
+          }
+        }
+      ]
+    });
+
+    await toast.present();
+    await toast.onDidDismiss();
+    this.clienteDeleteUndoService.clear();
   }
 
   irAConfiguraciones() {
