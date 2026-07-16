@@ -1,0 +1,225 @@
+---
+title: "Soft-Delete Feature Implementation"
+spec: "specs/001-soft-delete"
+status: "in-progress"
+phase: 2
+priority: "P1"
+---
+
+# Soft-Delete Feature (001) — Speckit Tracking
+
+## Overview
+Implement logical deletion (soft-delete) with undo capability for clientes and transacciones while preserving data integrity and freemium limits.
+
+**Reference**: `specs/001-soft-delete/`
+
+---
+
+## Phase Status
+
+### ✅ Phase 1: Setup (COMPLETE)
+**Goal**: Project initialization and basic structure
+
+- [x] T001 Schema version tracking in `src/app/core/database/database.service.ts` (SCHEMA_VERSION = 2)
+- [x] T002 Models updated with tombstone fields (`deleted_at`, `created_at`, `updated_at`, `store_id`, `created_by`)
+- [x] T003 Test fixtures prepared in database.service.spec.ts
+
+**Status**: ✅ READY FOR PHASE 2
+
+---
+
+### 🔄 Phase 2: Foundational (CRITICAL — IN PROGRESS)
+**Goal**: Core infrastructure that MUST be complete before ANY user story
+
+**⚠️ BLOCKS**: All user story work until complete
+
+- [x] T004 SQLite migration logic with ALTER TABLE (implemented in `migrarEsquemaSiNecesario()`)
+- [x] T005 PRAGMA foreign_keys = ON in `initializePlugin()` (implemented in `habilitarForeignKeys()`)
+- [x] T006 Nullable tombstone/audit columns with safe defaults (implemented in `crearTablasSiFaltan()` + `agregarColumnaSiFalta()`)
+- [x] T007 Version-gated migration tests in database.service.spec.ts
+- [x] T008 Read helpers refactored with active query filtering (`filtrarActivos()`, WHERE clauses with `deleted_at IS NULL`)
+
+**Status**: ✅ READY FOR USER STORIES (T009-T031)
+
+---
+
+### 📋 Phase 3: User Story 1 — Soft-delete Cliente with Undo & Freemium (P1 - MVP)
+**Goal**: Allow cliente deletion and restoration while preserving debt validation and freemium counts
+
+**Independent Test**: Delete cliente without debt → verify disappears → confirm undo restores immediately → verify deleted clientes don't count in freemium limit
+
+#### Tests (T009-T011)
+- [ ] T009 Soft-delete cliente service tests (database.service.spec.ts): logical delete, restore, filtering
+- [ ] T010 Freemium gating tests (freemium.service.spec.ts): deleted clientes excluded from counts
+- [ ] T011 UI flow tests (home.page.spec.ts): delete confirmation, hidden row, undo handling
+
+#### Implementation (T012-T017)
+- [x] T012 Soft-delete methods: `softDeleteCliente()`, `restoreCliente()` implemented in database.service.ts
+- [x] T013 Query filtering: `obtenerClientes()` uses `WHERE deleted_at IS NULL` ✅
+- [ ] T014 Freemium service: Update `contarClientes()` to exclude deleted clientes
+  - **File**: `src/app/core/freemium/freemium.service.ts`
+  - **Action**: Verify `contarClientes()` uses active count only
+- [ ] T015 UI: Hide soft-deleted clientes, trigger delete, expose undo
+  - **Files**: `src/app/home/home.page.ts`, `src/app/home/home.page.html`
+  - **Action**: Add delete confirmation, hide row on soft-delete, show undo snackbar (5s or nav-away)
+- [ ] T016 Debt restriction: Prevent delete if cliente has active debt
+  - **File**: `src/app/home/home.page.ts`
+  - **Action**: Check `deuda > 0` before soft-delete
+- [ ] T017 Detail & refresh consistency
+  - **File**: `src/app/features/cliente-detalle/cliente-detalle.page.ts`
+  - **Action**: Handle delete/undo in detail view, refresh after undo
+
+**Checkpoint**: User Story 1 fully functional and independently testable
+
+---
+
+### 📋 Phase 4: User Story 2 — Soft-delete Transaccion with Undo & Balance Recalc (P2)
+**Goal**: Allow transaccion deletion and restoration with correct balance calculations
+
+**Independent Test**: Delete transaccion → verify disappears and balance updates → undo immediately → balance returns to previous
+
+#### Tests (T018-T020)
+- [ ] T018 Soft-delete transaccion service tests (database.service.spec.ts): logical delete, restore, balance filtering
+- [ ] T019 Balance calculation tests (cliente-detalle.page.spec.ts): deleted transacciones excluded from debt
+- [ ] T020 UI flow tests (cliente-detalle.page.spec.ts): delete, undo, recalculated totals
+
+#### Implementation (T021-T025)
+- [x] T021 Soft-delete methods: `softDeleteTransaccion()`, `restoreTransaccion()` implemented in database.service.ts
+- [x] T022 Query filtering: `obtenerTransaccionesPorCliente()` uses `WHERE deleted_at IS NULL` ✅
+- [ ] T023 UI: Hide deleted transacciones, trigger delete, expose undo
+  - **File**: `src/app/features/cliente-detalle/cliente-detalle.page.ts`, template
+  - **Action**: Add delete confirmation, hide row on soft-delete, show undo snackbar (5s or nav-away)
+- [ ] T024 Balance recalculation: Only include active transacciones
+  - **File**: `src/app/features/cliente-detalle/cliente-detalle.page.ts`
+  - **Action**: Calculate balance from active transacciones only after delete/undo
+- [ ] T025 Summary views refresh
+  - **Files**: `src/app/home/home.page.ts`, `src/app/features/configuraciones/configuraciones.page.ts`
+  - **Action**: Refresh totals after transaccion delete/undo
+
+**Checkpoint**: User Stories 1 & 2 fully functional
+
+---
+
+### 📋 Phase 5: User Story 3 — Immediate Undo for Recent Deletes (P3)
+**Goal**: Allow undo of most recent delete while staying in current context (no nav/restart survival)
+
+**Independent Test**: Delete cliente/transaccion → tap undo immediately → record returns → derived counts restore
+
+#### Tests (T026-T027)
+- [ ] T026 Undo interaction tests (home.page.spec.ts): immediate restore after cliente delete
+- [ ] T027 Undo interaction tests (cliente-detalle.page.spec.ts): immediate restore after transaccion delete
+
+#### Implementation (T028-T031)
+- [ ] T028 Undo state holder: Create short-lived context-only service
+  - **File**: `src/app/home/undo.service.ts` or `src/app/features/cliente-detalle/undo.service.ts`
+  - **Action**: Track last deleted record (cliente_id or transaccion_id) until nav/app-close
+- [ ] T029 Wire cliente undo
+  - **File**: `src/app/home/home.page.ts`
+  - **Action**: Call `restoreCliente()` on undo snackbar action
+- [ ] T030 Wire transaccion undo
+  - **File**: `src/app/features/cliente-detalle/cliente-detalle.page.ts`
+  - **Action**: Call `restoreTransaccion()` on undo snackbar action
+- [ ] T031 Refresh totals after undo
+  - **Files**: `src/app/home/home.page.ts`, `src/app/features/cliente-detalle/cliente-detalle.page.ts`, `src/app/features/configuraciones/configuraciones.page.ts`
+
+**Checkpoint**: All user stories independently functional
+
+---
+
+### 🎨 Phase 6: Polish & Cross-Cutting (Final)
+- [ ] T032 Update `specs/001-soft-delete/quickstart.md` if verification steps changed
+- [ ] T033 Refine `specs/001-soft-delete/research.md` and `data-model.md` with implementation details
+- [ ] T034 `npm run build && npm run test` — full end-to-end validation
+- [ ] T035 Review `src/app/core/database/database.service.ts` for query consistency
+
+---
+
+## Current Implementation Status
+
+### Database Service (`src/app/core/database/database.service.ts`)
+✅ **Schema Migration**: PRAGMA user_version tracking, ALTER TABLE logic, version gating
+✅ **Soft-delete Methods**: 
+  - `softDeleteCliente(id)` — marks deleted_at with timestamp
+  - `restoreCliente(id)` — clears deleted_at
+  - `softDeleteTransaccion(id)` — marks deleted_at with timestamp
+  - `restoreTransaccion(id)` — clears deleted_at
+
+✅ **Query Filtering**:
+  - `obtenerClientes()` — WHERE deleted_at IS NULL
+  - `obtenerTransaccionesPorCliente()` — WHERE deleted_at IS NULL
+  - `contarClientes()` — WHERE deleted_at IS NULL
+  - `obtenerClientePorId()` — WHERE deleted_at IS NULL
+  - Helper: `filtrarActivos<T>()` — filters by deleted_at for mock web platform
+
+✅ **Web Platform Parity**: Mock implementations in `mockWebClientes` / `mockWebTransacciones` with soft-delete support
+
+---
+
+## Next Immediate Actions
+
+### Priority 1: Complete Phase 3 (User Story 1)
+1. **T014**: Review/update `src/app/core/freemium/freemium.service.ts`
+   - Ensure `contarClientes()` calls database with active filter only
+2. **T015**: Add UI delete flow to `src/app/home/home.page.ts`
+   - Delete button → confirmation → `softDeleteCliente()` → hide row → show undo snackbar
+3. **T016**: Add debt check before delete
+   - Block delete if `deuda > 0`, show error message
+4. **T017**: Update detail page consistency
+   - Handle delete/undo in `cliente-detalle.page.ts`, refresh on undo
+
+### Priority 2: Complete Phase 4 (User Story 2)
+1. Similar to Phase 3 but for transacciones in `cliente-detalle.page.ts`
+2. Verify balance recalculation excludes deleted transacciones
+
+### Priority 3: Complete Phase 5 (User Story 3)
+1. Create undo state service with 5s timeout or nav-away expiry
+2. Wire undo snackbar actions to restore methods
+
+### Priority 4: Polish & Testing
+1. Run full test suite and build validation
+
+---
+
+## File Reference Map
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `src/app/core/database/database.service.ts` | Core soft-delete implementation | ✅ Phase 2 Complete |
+| `src/app/core/models/cliente.model.ts` | Cliente schema with deleted_at field | ✅ Setup Complete |
+| `src/app/core/models/transaccion.model.ts` | Transaccion schema with deleted_at field | ✅ Setup Complete |
+| `src/app/core/freemium/freemium.service.ts` | Freemium limit enforcement | 🔄 T014 Pending |
+| `src/app/home/home.page.ts` | Cliente list UI & delete flow | 🔄 T015-T016 Pending |
+| `src/app/home/home.page.html` | Cliente list template | 🔄 T015 Pending |
+| `src/app/features/cliente-detalle/cliente-detalle.page.ts` | Detail view & transaccion delete flow | 🔄 T023-T024 Pending |
+| `src/app/features/cliente-detalle/cliente-detalle.page.html` | Detail view template | 🔄 T023 Pending |
+| `src/app/features/configuraciones/configuraciones.page.ts` | Config summary refresh | 🔄 T025, T031 Pending |
+| `specs/001-soft-delete/spec.md` | Feature specification | ✅ Reference |
+| `specs/001-soft-delete/tasks.md` | Task breakdown | ✅ Reference |
+
+---
+
+## Validation Checklist
+
+### Before Declaring Phase Complete
+- [ ] All tasks for the phase marked [x]
+- [ ] `npm run test` passes for affected services
+- [ ] `npm run build` succeeds
+- [ ] Manual testing: delete/restore flow works end-to-end
+- [ ] Freemium limits enforced correctly (if Phase 3)
+- [ ] Balance recalculation correct (if Phase 4)
+- [ ] Undo snackbar respects 5s timeout and nav-away (if Phase 5)
+
+---
+
+## Notes & Known Issues
+
+- **Web Platform**: Mock implementation uses in-memory arrays; soft-delete behavior matches SQLite queries
+- **Foreign Keys**: PRAGMA foreign_keys ON enforced; transaccion delete cascades NOT physical (soft-delete only)
+- **Undo Scope**: Undo must NOT survive navigation, app close, or restart; short-lived UI service only
+- **Freemium Count**: Must use `contarClientes()` which already filters deleted_at IS NULL ✅
+
+---
+
+**Last Updated**: 2026-07-16
+**Created By**: Speckit Integration
+**Reference**: `/specs/001-soft-delete/`
