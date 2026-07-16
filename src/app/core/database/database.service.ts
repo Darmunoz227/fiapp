@@ -221,4 +221,30 @@ export class DatabaseService {
     const sql = 'UPDATE clientes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
     await this.db.run(sql, [id]);
   }
+
+  async softDeleteTransaccion(id: string): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebTransacciones = this.mockWebTransacciones.map((transaccion) => (
+        transaccion.id === id ? { ...transaccion, deleted_at: Date.now() } : transaccion
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE transacciones SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.db.run(sql, [Date.now(), id]);
+  }
+
+  async restoreTransaccion(id: string): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebTransacciones = this.mockWebTransacciones.map((transaccion) => (
+        transaccion.id === id ? { ...transaccion, deleted_at: null } : transaccion
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE transacciones SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
+    await this.db.run(sql, [id]);
+  }
 }
