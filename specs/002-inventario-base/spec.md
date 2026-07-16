@@ -79,6 +79,13 @@ Como comerciante, quiero identificar productos con stock bajo para reponer a tie
 - **FR-009**: El sistema MUST permitir cantidades decimales para productos de tipo PESO.
 - **FR-010**: El sistema MUST mostrar una alerta de stock bajo cuando el stock calculado sea inferior al minimo configurable del producto.
 - **FR-011**: El sistema MUST mantener el historial de movimientos como referencia para auditoria y consulta.
+- **FR-012**: El sistema MUST bloquear cualquier movimiento saliente de tipo VENTA o MERMA cuya cantidad exceda el stock derivado disponible del producto.
+- **FR-013**: Para un movimiento de tipo AJUSTE, el sistema MUST recibir la cantidad fisica contada, calcular la diferencia contra el stock derivado actual y registrar el ajuste resultante con su delta.
+- **FR-014**: Cada movimiento de tipo AJUSTE MUST almacenar como metadatos el stock calculado antes del ajuste, la cantidad fisica ingresada, la diferencia calculada, el motivo y la marca de tiempo.
+- **FR-015**: El sistema MUST tratar el log de movimientos como unica fuente de verdad para el stock derivado y MUST NOT almacenar un campo mutable de stock en el producto ni una cache o proyeccion de stock.
+- **FR-016**: Los movimientos MUST poder incluir un campo opcional y nulo llamado actor_id, reservado para uso futuro de identidad de usuario.
+- **FR-017**: Los productos de tipo PESO MUST almacenar cantidades en gramos como enteros con precision minima de 1 gramo y MUST mostrarse al usuario en kilogramos.
+- **FR-018**: El sistema MUST mantener fuera de alcance la transformacion o desposte de productos en sub-productos para esta version.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -104,3 +111,9 @@ Como comerciante, quiero identificar productos con stock bajo para reponer a tie
 - El costo promedio se calcula solo a partir de compras registradas; ventas, ajustes y mermas afectan el stock, no el promedio ponderado de costo.
 - Los motivos de movimiento son opcionales excepto cuando el equipo defina reglas adicionales para mermas o ajustes.
 - El precio de venta del producto es independiente del costo promedio y puede cambiar sin reescribir el historial de movimientos.
+- Los movimientos salientes VENTA y MERMA no pueden dejar stock derivado negativo; cualquier intento que exceda el disponible debe bloquearse.
+- Un AJUSTE se origina desde el conteo fisico ingresado por el usuario y el sistema calcula la diferencia contra el stock derivado actual.
+- El log de movimientos es la unica fuente de verdad del inventario; no se mantiene stock mutable ni cache/proyeccion de stock.
+- El campo actor_id puede existir en los movimientos como identificador nullable para trazabilidad futura, pero no implica usuarios ni roles en esta version.
+- Los productos por PESO se capturan y almacenan en gramos enteros y se presentan convertidos a kilogramos al usuario.
+- La transformacion o desposte de productos queda fuera de alcance para esta version.
