@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
 import { Cliente } from '../models/cliente.model';
+import { MovimInventario } from '../models/movim-inventario.model';
+import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
 
 type RowWithDeletedAt = {
@@ -17,9 +19,11 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 2;
+  private readonly SCHEMA_VERSION = 3;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
+  private mockWebProductos: Producto[] = [];
+  private mockWebMovimInventario: MovimInventario[] = [];
 
   async initializePlugin(): Promise<boolean> {
     try {
@@ -90,6 +94,49 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS transacciones_cliente_id_idx
       ON transacciones(cliente_id);
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS productos (
+        id TEXT PRIMARY KEY NOT NULL,
+        nombre TEXT NOT NULL,
+        precio_venta REAL NOT NULL,
+        tipo_venta TEXT NOT NULL,
+        minimo_stock INTEGER NOT NULL,
+        costo_promedio REAL NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS movim_inventario (
+        id TEXT PRIMARY KEY NOT NULL,
+        producto_id TEXT NOT NULL,
+        tipo TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        costo_unitario REAL NOT NULL,
+        motivo TEXT,
+        fecha INTEGER NOT NULL,
+        actor_id TEXT DEFAULT NULL,
+        stock_calculado_anterior INTEGER DEFAULT NULL,
+        cantidad_fisica INTEGER DEFAULT NULL,
+        diferencia_calculada INTEGER DEFAULT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS movim_inventario_producto_id_idx
+      ON movim_inventario(producto_id);
     `);
   }
 
