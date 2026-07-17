@@ -231,6 +231,18 @@ export class DatabaseService {
     await this.db.run(sql, values);
   }
 
+  async crearProducto(producto: Producto): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProductos.push({ ...producto, deleted_at: producto.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio) VALUES (?, ?, ?, ?, ?, ?)';
+    const values = [producto.id, producto.nombre, producto.precio_venta, producto.tipo_venta, producto.minimo_stock, producto.costo_promedio];
+    await this.db.run(sql, values);
+  }
+
   async obtenerTransaccionesPorCliente(clienteId: string): Promise<Transaccion[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.filtrarActivos(this.mockWebTransacciones)
@@ -241,6 +253,17 @@ export class DatabaseService {
     const sql = 'SELECT * FROM transacciones WHERE cliente_id = ? AND deleted_at IS NULL ORDER BY fecha DESC';
     const res = await this.db.query(sql, [clienteId]);
     return res.values as Transaccion[] || [];
+  }
+
+  async obtenerProductos(): Promise<Producto[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebProductos) as Producto[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM productos WHERE deleted_at IS NULL ORDER BY nombre';
+    const res = await this.db.query(sql);
+    return res.values as Producto[] || [];
   }
 
   async softDeleteCliente(id: string): Promise<void> {

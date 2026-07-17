@@ -3,6 +3,7 @@ import { Capacitor } from '@capacitor/core';
 
 import { DatabaseService } from './database.service';
 import { Cliente } from '../models/cliente.model';
+import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
 
 describe('DatabaseService', () => {
@@ -43,6 +44,22 @@ describe('DatabaseService', () => {
       deleted_at: overrides.deleted_at ?? null,
       created_at: overrides.created_at ?? null,
       updated_at: overrides.updated_at ?? null,
+      store_id: overrides.store_id ?? null,
+      created_by: overrides.created_by ?? null,
+    };
+  }
+
+  function crearProductoParcial(overrides: Partial<Producto> = {}): Producto {
+    return {
+      id: overrides.id ?? 'producto-1',
+      nombre: overrides.nombre ?? 'Producto 1',
+      precio_venta: overrides.precio_venta ?? 2500,
+      tipo_venta: overrides.tipo_venta ?? 'UNIDAD',
+      minimo_stock: overrides.minimo_stock ?? 5,
+      costo_promedio: overrides.costo_promedio ?? 1800,
+      created_at: overrides.created_at ?? null,
+      updated_at: overrides.updated_at ?? null,
+      deleted_at: overrides.deleted_at ?? null,
       store_id: overrides.store_id ?? null,
       created_by: overrides.created_by ?? null,
     };
@@ -119,5 +136,30 @@ describe('DatabaseService', () => {
     expect(transaccionesVisibles.length).toBe(1);
     expect(transaccionesVisibles[0].id).toBe('transaccion-1');
     expect(transaccionesVisibles[0].deleted_at ?? null).toBeNull();
+  });
+
+  it('stores and retrieves a product with the expected persisted fields', async () => {
+    const producto = crearProductoParcial({
+      id: 'producto-1',
+      nombre: 'Carne molida',
+      precio_venta: 12500,
+      tipo_venta: 'PESO',
+      minimo_stock: 3000,
+      costo_promedio: 9800,
+    });
+
+    await service.crearProducto(producto);
+
+    const productos = await service.obtenerProductos();
+
+    expect(productos.length).toBe(1);
+    expect(productos[0]).toEqual(jasmine.objectContaining({
+      id: 'producto-1',
+      nombre: 'Carne molida',
+      precio_venta: 12500,
+      tipo_venta: 'PESO',
+      minimo_stock: 3000,
+      costo_promedio: 9800,
+    }));
   });
 });
