@@ -1,43 +1,64 @@
-.inventory-page {
-  --background: #f5f2ea;
+ion-content.inventory-page {
+  --background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
 }
 
 .inventory-card {
-  background: #ffffff;
-  border-radius: 20px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  background: white;
   padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+  margin-bottom: 18px;
 }
 
 .inventory-card h2 {
-  margin: 0 0 12px;
-  font-size: 1.1rem;
+  font-size: 14px;
   font-weight: 700;
-  color: #1f2937;
+  color: #8a8f98;
+  margin: 0 0 10px;
+  padding-left: 10px;
+  letter-spacing: 0.4px;
 }
 
 .inventory-form {
   background: transparent;
 }
 
+.inventory-form ion-item {
+  --background: white;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --min-height: 72px;
+  margin-bottom: 8px;
+}
+
+.inventory-form ion-input,
+.inventory-form ion-select {
+  --padding-top: 10px;
+  --padding-bottom: 10px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  --background: #f7f8fb;
+  --border-radius: 12px;
+  border: 1px solid #e3e8ef;
+  margin-top: 2px;
+}
+
 .save-button {
   margin-top: 14px;
 }
 
-.inventory-list-wrapper ion-item {
-  --padding-start: 0;
-  --inner-padding-end: 0;
-}
-
 .price-label {
-  text-align: end;
+  text-align: right;
   font-weight: 700;
-  color: #111827;
+  color: #333;
 }
 
 .empty-state {
   margin: 0;
+  padding: 12px 4px;
+  text-align: center;
   color: #6b7280;
-  font-size: 0.95rem;
+  font-size: 13px;
+  line-height: 1.4;
 }
