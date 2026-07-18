@@ -19,4 +19,8 @@ export const routes: Routes = [
     path: 'configuraciones',
     loadComponent: () => import('./features/configuraciones/configuraciones.page').then( m => m.ConfiguracionesPage)
   },
+  {
+    path: 'inventario',
+    loadComponent: () => import('./features/inventario/inventory-list.page').then(m => m.InventoryListPage)
+  },
 ];
