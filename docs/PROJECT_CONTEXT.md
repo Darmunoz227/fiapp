@@ -2,7 +2,7 @@
 
 > Purpose: give a new AI supervisor or developer enough verified project context to continue FiApp without relying on chat memory.
 >
-> Last updated: 2026-07-16
+> Last updated: 2026-07-18
 
 ---
 
@@ -44,8 +44,9 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Feature #2 has been specified, clarified, planned, tasked, and analyzed.
-- Feature #2 is ready to begin implementation, starting with the Foundational phase.
+- Feature #2 Foundation phase complete (schema v3, models, helpers).
+- Feature #2 User Story 1 (product create/list + validation) complete, tested, committed.
+- Next up: Feature #2 User Story 2 (stock movements + weighted-average cost).
 
 Before doing work, always run:
 
@@ -120,7 +121,7 @@ Coverage added:
 
 ### Current phase
 
-Feature #2 is ready for implementation.
+Feature #2 Foundation and User Story 1 are complete, tested, and committed. Implementation is in progress; User Story 2 (stock movements + weighted-average cost) is next.
 
 Artifacts already created and reviewed:
 
@@ -311,23 +312,19 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Continue Feature #2 implementation with the Foundational phase only:
+Continue Feature #2 with User Story 2 (stock movements + weighted-average cost): T015-T020.
 
-```text
-T004-T008
-```
+Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
-Use Copilot or another strong codebase-aware model for implementation.
-Review actual diffs before accepting anything.
+US2 locked rules:
 
-First implementation batch should focus on:
+- Persist movements (COMPRA, VENTA, AJUSTE, MERMA) in movim_inventario.
+- Derived stock = SUM(valid movements); no mutable stock, no cache.
+- Block VENTA/MERMA that would exceed available derived stock (no negative stock).
+- Recalculate weighted-average cost ONLY on COMPRA.
+- AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
+- PESO quantities stored as integer grams.
 
-- `SCHEMA_VERSION = 3`
-- `productos` table
-- `movim_inventario` table
-- model files
-- web mock fallback
-- gram/kilogram helpers
-- tests for migrations/model basics where practical
+Current status: Foundation + US1 complete and committed. 33 tests passing. Branch 002-inventario-base is 4 commits ahead of origin (not yet pushed).
 
-Do not implement US1/US2/US3 inventory UI until the foundation is reviewed and committed.
+Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
