@@ -312,7 +312,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Continue Feature #2 with User Story 2 (stock movements + weighted-average cost): T015-T020.
+Continue Feature #2 User Story 2 UI layer. Data-layer engine (T015, T017) is DONE. Remaining: T016 (movement flow tests), T018 (movement entry UI: COMPRA/VENTA/AJUSTE/MERMA), T019 (AJUSTE from physical count + audit metadata), T020 (derived-cost + movement-history display).
 
 Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
@@ -325,6 +325,6 @@ US2 locked rules:
 - AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
 - PESO quantities stored as integer grams.
 
-Current status: Foundation + US1 complete and committed. 33 tests passing. Branch 002-inventario-base is 4 commits ahead of origin (not yet pushed).
+Current status: Foundation + US1 complete. US2 data-layer engine complete and committed (T015, T017): movement persistence, negative-stock guard, weighted-average cost. 40 tests passing. Branch 002-inventario-base pushed and in sync with origin.
 
 Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
