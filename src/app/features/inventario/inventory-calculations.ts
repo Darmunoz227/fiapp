@@ -30,6 +30,20 @@ export function kilogramosAGramos(kilogramos: number): number {
   return Math.round(kilogramos * 1000);
 }
 
+export function calcularCostoPromedioPonderado(
+  stockAnterior: number,
+  costoAnterior: number,
+  cantidadComprada: number,
+  costoUnitarioCompra: number,
+): number {
+  const denominador = stockAnterior + cantidadComprada;
+  if (denominador === 0) {
+    return costoUnitarioCompra;
+  }
+
+  return ((stockAnterior * costoAnterior) + (cantidadComprada * costoUnitarioCompra)) / denominador;
+}
+
 function calcularDeltaAjuste(movimiento: MovimInventario): number {
   if (typeof movimiento.diferencia_calculada === 'number') {
     return movimiento.diferencia_calculada;

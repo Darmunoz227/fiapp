@@ -5,6 +5,7 @@ import { Cliente } from '../models/cliente.model';
 import { MovimInventario } from '../models/movim-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
+import { calcularCostoPromedioPonderado, calcularStockDerivado } from '../../features/inventario/inventory-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
@@ -243,6 +244,77 @@ export class DatabaseService {
     await this.db.run(sql, values);
   }
 
+  async crearMovimiento(movimiento: MovimInventario): Promise<void> {
+    const movimientosExistentes = await this.obtenerMovimientosPorProducto(movimiento.producto_id);
+    const stockDerivado = calcularStockDerivado(movimientosExistentes);
+
+    if ((movimiento.tipo === 'VENTA' || movimiento.tipo === 'MERMA') && movimiento.cantidad > stockDerivado) {
+      throw new Error('Stock insuficiente para registrar el movimiento');
+    }
+
+    if (movimiento.tipo === 'COMPRA') {
+      const producto = await this.obtenerProductoPorIdInterno(movimiento.producto_id);
+      if (producto == null) {
+        throw new Error('Producto no encontrado');
+      }
+
+      const costoPromedio = calcularCostoPromedioPonderado(
+        stockDerivado,
+        producto.costo_promedio,
+        movimiento.cantidad,
+        movimiento.costo_unitario,
+      );
+
+      await this.actualizarCostoPromedioProducto(movimiento.producto_id, costoPromedio);
+    }
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebMovimInventario.push({ ...movimiento, deleted_at: movimiento.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO movim_inventario (
+        id, producto_id, tipo, cantidad, costo_unitario, motivo, fecha,
+        actor_id, stock_calculado_anterior, cantidad_fisica, diferencia_calculada,
+        created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      movimiento.id,
+      movimiento.producto_id,
+      movimiento.tipo,
+      movimiento.cantidad,
+      movimiento.costo_unitario,
+      movimiento.motivo ?? null,
+      movimiento.fecha,
+      movimiento.actor_id ?? null,
+      movimiento.stock_calculado_anterior ?? null,
+      movimiento.cantidad_fisica ?? null,
+      movimiento.diferencia_calculada ?? null,
+      movimiento.created_at ?? null,
+      movimiento.updated_at ?? null,
+      movimiento.deleted_at ?? null,
+      movimiento.store_id ?? null,
+      movimiento.created_by ?? null,
+    ];
+    await this.db.run(sql, values);
+  }
+
+  async obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebMovimInventario)
+        .filter((movimiento) => movimiento.producto_id === productoId)
+        .sort((a, b) => a.fecha - b.fecha) as MovimInventario[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM movim_inventario WHERE producto_id = ? AND deleted_at IS NULL ORDER BY fecha';
+    const res = await this.db.query(sql, [productoId]);
+    return res.values as MovimInventario[] || [];
+  }
+
   async obtenerTransaccionesPorCliente(clienteId: string): Promise<Transaccion[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.filtrarActivos(this.mockWebTransacciones)
@@ -316,5 +388,29 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE transacciones SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
     await this.db.run(sql, [id]);
+  }
+
+  private async obtenerProductoPorIdInterno(id: string): Promise<Producto | null> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebProductos).find((producto) => producto.id === id) || null;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM productos WHERE id = ? AND deleted_at IS NULL';
+    const res = await this.db.query(sql, [id]);
+    return res.values && res.values.length > 0 ? res.values[0] as Producto : null;
+  }
+
+  private async actualizarCostoPromedioProducto(id: string, costoPromedio: number): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProductos = this.mockWebProductos.map((producto) => (
+        producto.id === id ? { ...producto, costo_promedio: costoPromedio } : producto
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE productos SET costo_promedio = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.db.run(sql, [costoPromedio, id]);
   }
 }
