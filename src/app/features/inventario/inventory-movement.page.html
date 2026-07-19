@@ -1,0 +1,49 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/inventario"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Movimiento de inventario</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding inventory-movement-page">
+  <section class="inventory-card">
+    <h2>{{ producto?.nombre || 'Producto no encontrado' }}</h2>
+    <p class="stock-summary">Stock derivado actual: <strong>{{ stockDerivado }}</strong></p>
+  </section>
+
+  <section class="inventory-card">
+    <h2>Registrar movimiento</h2>
+
+    <ion-list lines="full" class="inventory-form">
+      <ion-item>
+        <ion-label position="stacked">Tipo</ion-label>
+        <ion-select [(ngModel)]="tipo" interface="popover">
+          <ion-select-option value="COMPRA">COMPRA</ion-select-option>
+          <ion-select-option value="VENTA">VENTA</ion-select-option>
+          <ion-select-option value="MERMA">MERMA</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Cantidad</ion-label>
+        <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Costo unitario</ion-label>
+        <ion-input type="number" inputmode="numeric" [(ngModel)]="costo_unitario"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Motivo</ion-label>
+        <ion-input [(ngModel)]="motivo" placeholder="Opcional"></ion-input>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" class="save-button" (click)="registrarMovimiento()">
+      Registrar movimiento
+    </ion-button>
+  </section>
+</ion-content>

@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption,
@@ -17,7 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
   standalone: true,
   imports: [
     CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption
+    IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink
   ]
 })
 export class InventoryListPage {

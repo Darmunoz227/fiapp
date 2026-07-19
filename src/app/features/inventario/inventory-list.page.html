@@ -45,7 +45,7 @@
     <h2>Productos</h2>
 
     <ion-list lines="full" *ngIf="productos.length > 0; else emptyState">
-      <ion-item *ngFor="let producto of productos">
+      <ion-item *ngFor="let producto of productos" button="true" detail="true" [routerLink]="['/inventario/movimiento', producto.id]">
         <ion-label>
           <h3>{{ producto.nombre }}</h3>
           <p>Venta: {{ producto.tipo_venta }} · Mínimo: {{ producto.minimo_stock }}</p>

@@ -23,4 +23,8 @@ export const routes: Routes = [
     path: 'inventario',
     loadComponent: () => import('./features/inventario/inventory-list.page').then(m => m.InventoryListPage)
   },
+  {
+    path: 'inventario/movimiento/:productoId',
+    loadComponent: () => import('./features/inventario/inventory-movement.page').then(m => m.InventoryMovementPage)
+  },
 ];
