@@ -398,4 +398,69 @@ describe('DatabaseService', () => {
       cantidad_fisica: 8,
     }));
   });
+
+  it('obtenerResumenInventario reflects derived stock and low-stock status for COMPRA and VENTA movements', async () => {
+    await service.crearProducto(crearProductoParcial({
+      id: 'producto-1',
+      minimo_stock: 5,
+      costo_promedio: 1800,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+      producto_id: 'producto-1',
+    }));
+
+    const resumenDespuesCompra = await service.obtenerResumenInventario();
+    expect(resumenDespuesCompra).toContain(jasmine.objectContaining({
+      producto_id: 'producto-1',
+      stock_derivado: 10,
+      costo_promedio: 1000,
+      stock_bajo: false,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-venta-1',
+      tipo: 'VENTA',
+      cantidad: 6,
+      costo_unitario: 0,
+      producto_id: 'producto-1',
+    }));
+
+    const resumenDespuesVenta = await service.obtenerResumenInventario();
+    expect(resumenDespuesVenta).toContain(jasmine.objectContaining({
+      producto_id: 'producto-1',
+      stock_derivado: 4,
+      costo_promedio: 1000,
+      stock_bajo: true,
+    }));
+  });
+
+  it('obtenerResumenInventario marks stock as low when it is exactly at the minimum', async () => {
+    await service.crearProducto(crearProductoParcial({
+      id: 'producto-2',
+      minimo_stock: 5,
+      costo_promedio: 2200,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-2',
+      tipo: 'COMPRA',
+      cantidad: 5,
+      costo_unitario: 900,
+      producto_id: 'producto-2',
+    }));
+
+    const resumen = await service.obtenerResumenInventario();
+
+    expect(resumen).toContain(jasmine.objectContaining({
+      producto_id: 'producto-2',
+      stock_derivado: 5,
+      costo_promedio: 900,
+      stock_bajo: true,
+    }));
+  });
 });

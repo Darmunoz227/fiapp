@@ -3,9 +3,10 @@ import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacito
 import { Capacitor } from '@capacitor/core';
 import { Cliente } from '../models/cliente.model';
 import { MovimInventario } from '../models/movim-inventario.model';
+import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
-import { calcularCostoPromedioPonderado, calcularStockDerivado } from '../../features/inventario/inventory-calculations';
+import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
@@ -336,6 +337,24 @@ export class DatabaseService {
     const sql = 'SELECT * FROM productos WHERE deleted_at IS NULL ORDER BY nombre';
     const res = await this.db.query(sql);
     return res.values as Producto[] || [];
+  }
+
+  async obtenerResumenInventario(): Promise<ResumenInventario[]> {
+    const productos = await this.obtenerProductos();
+
+    const resumenes = await Promise.all(productos.map(async (producto) => {
+      const movimientos = await this.obtenerMovimientosPorProducto(producto.id);
+      const stockDerivado = calcularStockDerivado(movimientos);
+
+      return {
+        producto_id: producto.id,
+        stock_derivado: stockDerivado,
+        costo_promedio: producto.costo_promedio,
+        stock_bajo: esStockBajo(stockDerivado, producto.minimo_stock),
+      };
+    }));
+
+    return resumenes;
   }
 
   async softDeleteCliente(id: string): Promise<void> {

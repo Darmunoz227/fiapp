@@ -1,5 +1,9 @@
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 
+export function esStockBajo(stockDerivado: number, minimoStock: number): boolean {
+  return stockDerivado <= minimoStock;
+}
+
 export function calcularStockDerivado(movimientos: MovimInventario[]): number {
   return movimientos.reduce((stock, movimiento) => {
     if (movimiento.deleted_at != null) {
