@@ -70,6 +70,10 @@ export class InventoryMovementPage {
     void this.cargarDatos();
   }
 
+  get movimientosOrdenados(): MovimInventario[] {
+    return [...this.movimientos].sort((a, b) => b.fecha - a.fecha);
+  }
+
   async cargarDatos() {
     const productos = await this.dbService.obtenerProductos();
     this.producto = productos.find((producto) => producto.id === this.productoId) ?? null;

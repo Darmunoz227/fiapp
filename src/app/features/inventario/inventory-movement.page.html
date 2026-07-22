@@ -11,6 +11,10 @@
   <section class="inventory-card">
     <h2>{{ producto?.nombre || 'Producto no encontrado' }}</h2>
     <p class="stock-summary">Stock derivado actual: <strong>{{ stockDerivado }}</strong></p>
+    <p class="stock-summary">
+      Costo promedio ponderado:
+      <strong>{{ (producto?.costo_promedio ?? 0) | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </p>
   </section>
 
   <section class="inventory-card">
@@ -45,5 +49,36 @@
     <ion-button expand="block" class="save-button" (click)="registrarMovimiento()">
       Registrar movimiento
     </ion-button>
+  </section>
+
+  <section class="inventory-card">
+    <h2>Historial de movimientos</h2>
+
+    <ng-container *ngIf="movimientosOrdenados.length > 0; else emptyMovimientos">
+      <div class="movement-list">
+        <article class="movement-item" *ngFor="let movimiento of movimientosOrdenados">
+          <div class="movement-item__header">
+            <strong>{{ movimiento.tipo }}</strong>
+            <span>{{ movimiento.fecha | date:'dd/MM/yyyy, HH:mm' }}</span>
+          </div>
+
+          <p>
+            Cantidad: <strong>{{ movimiento.cantidad }}</strong>
+          </p>
+
+          <p *ngIf="movimiento.tipo === 'COMPRA'">
+            Costo unitario: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
+          </p>
+
+          <p *ngIf="movimiento.motivo">
+            Motivo: <strong>{{ movimiento.motivo }}</strong>
+          </p>
+        </article>
+      </div>
+    </ng-container>
+
+    <ng-template #emptyMovimientos>
+      <p class="empty-state">Aún no existen movimientos registrados.</p>
+    </ng-template>
   </section>
 </ion-content>

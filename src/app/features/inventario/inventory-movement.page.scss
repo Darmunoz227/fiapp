@@ -24,6 +24,10 @@
   color: #334155;
 }
 
+.stock-summary + .stock-summary {
+  margin-top: 8px;
+}
+
 .inventory-form ion-item {
   --background: #f7f8fb;
   --border-color: #e3e8ef;
@@ -35,4 +39,39 @@
 
 .save-button {
   margin-top: 8px;
+}
+
+.movement-list {
+  display: grid;
+  gap: 12px;
+}
+
+.movement-item {
+  background: #f7f8fb;
+  border: 1px solid #e3e8ef;
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.movement-item p {
+  margin: 6px 0 0;
+  color: #334155;
+}
+
+.movement-item__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: baseline;
+  color: #0f172a;
+}
+
+.movement-item__header span {
+  color: #8a8f98;
+  font-size: 12px;
+}
+
+.empty-state {
+  margin: 0;
+  color: #64748b;
 }
