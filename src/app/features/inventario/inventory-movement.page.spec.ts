@@ -187,6 +187,34 @@ describe('InventoryMovementPage', () => {
     expect(component.motivo).toBe('');
   });
 
+  it('registers an AJUSTE using physical count and stores the computed delta', async () => {
+    movimientosMock = [
+      crearMovimientoParcial({ id: 'mov-1', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 }),
+    ];
+
+    await component.cargarDatos();
+
+    component.tipo = 'AJUSTE';
+    component.conteo_fisico = 8;
+    component.motivo = 'Conteo físico';
+
+    await component.registrarMovimiento();
+
+    expect(databaseServiceMock.crearMovimiento).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.crearMovimiento).toHaveBeenCalledWith(jasmine.objectContaining({
+      producto_id: 'producto-1',
+      tipo: 'AJUSTE',
+      cantidad: 0,
+      cantidad_fisica: 8,
+      stock_calculado_anterior: 10,
+      diferencia_calculada: -2,
+      motivo: 'Conteo físico',
+    }));
+    expect(component.conteo_fisico).toBe(0);
+    expect(component.motivo).toBe('');
+    expect(component.tipo).toBe('COMPRA');
+  });
+
   it('shows the service error and keeps the form when stock is blocked', async () => {
     databaseServiceMock.crearMovimiento.and.rejectWith(new Error('Stock insuficiente para registrar el movimiento'));
 

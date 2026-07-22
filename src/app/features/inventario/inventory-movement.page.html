@@ -27,18 +27,28 @@
           <ion-select-option value="COMPRA">COMPRA</ion-select-option>
           <ion-select-option value="VENTA">VENTA</ion-select-option>
           <ion-select-option value="MERMA">MERMA</ion-select-option>
+          <ion-select-option value="AJUSTE">AJUSTE</ion-select-option>
         </ion-select>
       </ion-item>
 
-      <ion-item>
-        <ion-label position="stacked">Cantidad</ion-label>
-        <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
-      </ion-item>
+      <ng-container *ngIf="tipo === 'AJUSTE'; else movimientoNormalFields">
+        <ion-item>
+          <ion-label position="stacked">Conteo físico</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="conteo_fisico"></ion-input>
+        </ion-item>
+      </ng-container>
 
-      <ion-item>
-        <ion-label position="stacked">Costo unitario</ion-label>
-        <ion-input type="number" inputmode="numeric" [(ngModel)]="costo_unitario"></ion-input>
-      </ion-item>
+      <ng-template #movimientoNormalFields>
+        <ion-item>
+          <ion-label position="stacked">Cantidad</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Costo unitario</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="costo_unitario"></ion-input>
+        </ion-item>
+      </ng-template>
 
       <ion-item>
         <ion-label position="stacked">Motivo</ion-label>
@@ -62,13 +72,25 @@
             <span>{{ movimiento.fecha | date:'dd/MM/yyyy, HH:mm' }}</span>
           </div>
 
-          <p>
-            Cantidad: <strong>{{ movimiento.cantidad }}</strong>
-          </p>
+          <ng-container *ngIf="movimiento.tipo === 'AJUSTE'; else movimientoNormal">
+            <p>
+              Conteo físico: <strong>{{ movimiento.cantidad_fisica }}</strong>
+            </p>
 
-          <p *ngIf="movimiento.tipo === 'COMPRA'">
-            Costo unitario: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
-          </p>
+            <p>
+              Diferencia: <strong>{{ movimiento.diferencia_calculada }}</strong>
+            </p>
+          </ng-container>
+
+          <ng-template #movimientoNormal>
+            <p>
+              Cantidad: <strong>{{ movimiento.cantidad }}</strong>
+            </p>
+
+            <p *ngIf="movimiento.tipo === 'COMPRA'">
+              Costo unitario: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
+            </p>
+          </ng-template>
 
           <p *ngIf="movimiento.motivo">
             Motivo: <strong>{{ movimiento.motivo }}</strong>
