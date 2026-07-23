@@ -49,6 +49,8 @@
         <ion-label>
           <h3>{{ producto.nombre }}</h3>
           <p>Venta: {{ producto.tipo_venta }} · Mínimo: {{ producto.minimo_stock }}</p>
+          <p>Stock actual: {{ stockActual(producto.id) }}</p>
+          <p *ngIf="esStockBajo(producto.id)" class="stock-bajo-badge">Stock bajo</p>
         </ion-label>
         <ion-label slot="end" class="price-label">
           {{ producto.precio_venta | currency:'COP':'symbol':'1.0-0' }}

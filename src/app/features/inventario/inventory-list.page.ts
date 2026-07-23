@@ -8,6 +8,7 @@ import {
   ToastController
 } from '@ionic/angular/standalone';
 import { DatabaseService } from '../../core/database/database.service';
+import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -23,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid';
 })
 export class InventoryListPage {
   productos: Producto[] = [];
+  resumenPorProducto = new Map<string, ResumenInventario>();
   nombre = '';
   precio_venta = 0;
   tipo_venta: 'UNIDAD' | 'PESO' = 'UNIDAD';
@@ -39,6 +41,16 @@ export class InventoryListPage {
 
   async cargarProductos() {
     this.productos = await this.dbService.obtenerProductos();
+    const resumenes = await this.dbService.obtenerResumenInventario();
+    this.resumenPorProducto = new Map(resumenes.map((resumen) => [resumen.producto_id, resumen]));
+  }
+
+  esStockBajo(productoId: string): boolean {
+    return this.resumenPorProducto.get(productoId)?.stock_bajo ?? false;
+  }
+
+  stockActual(productoId: string): number {
+    return this.resumenPorProducto.get(productoId)?.stock_derivado ?? 0;
   }
 
   async crearProducto() {
