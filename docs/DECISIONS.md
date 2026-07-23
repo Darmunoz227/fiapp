@@ -284,3 +284,14 @@ T004-T008
 ```
 
 **Do not start with UI.** Database/schema/model foundation first.
+
+
+---
+
+## Decision 024 — Inventory movements are immutable; corrections via AJUSTE/MERMA
+
+**Decision:** Movement log entries are not directly deletable or editable. Merchant errors are corrected with a new AJUSTE (physical count) or a compensating MERMA/COMPRA, always with a motivo.
+
+**Reason:** The movement log is the single immutable source of truth (Constitution III). Deleting entries would corrupt derived stock, weighted-average cost history, and auditability.
+
+**Implication:** Do NOT add direct movement deletion in US1-US3. Future improvement (out of scope, candidate Feature #3): soft-delete of movements using the existing deleted_at column (calcularStockDerivado already ignores movements where deleted_at != null). Must be traceable, never a physical delete.
