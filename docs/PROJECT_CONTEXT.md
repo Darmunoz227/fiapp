@@ -312,7 +312,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Feature #3 (soft-delete de movimientos) is COMPLETE: spec/plan/tasks + T001-T006 + T008, 63 tests passing, build green, committed on branch 003-soft-delete-movimientos. Ready for review/merge to main. Delivered: anular/restore of VENTA/MERMA/AJUSTE with undo toast, COMPRA blocked (corrected via AJUSTE), defense-in-depth guard (service + UI), no physical delete, costo_promedio untouched. Next action: merge Feature #3 to main, then choose Feature #4. Pending (Decision 025): transaction-atomicity hardening of crearMovimiento on native SQLite. Pending candidate: COMPRA soft-delete with weighted-avg cost recompute.
+Feature #4 (Ventas / POS single-item) is COMPLETE: spec/plan/tasks + T001-T010, 71 tests passing, build green, committed on branch 004-ventas-pos. Ready for review/merge to main. Delivered: single-item sales CONTADO and FIADO, editable price, frozen ganancia snapshot (Constitution III), atomic transaction primitive (ejecutarEnTransaccion) wrapping venta + VENTA movimiento + client debt with proven rollback, schema v4 ventas table, plus home navigation to inventario/ventas. Next action: merge Feature #4 to main, then Feature #5 = Reportes/Ganancias (sales & profit history; the ventas table already provides the data). Pending (Decision 025): transaction-atomicity hardening of crearMovimiento (the primitive can now be reused). Pending: reconcile manual fiado vs venta fiado (deuda manual no toca inventario ni ganancia).
 
 Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
@@ -325,6 +325,6 @@ US2 locked rules:
 - AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
 - PESO quantities stored as integer grams.
 
-Current status: Feature #3 (soft-delete de movimientos) COMPLETE. Merchants can anular/restore VENTA/MERMA/AJUSTE movements (undo toast, Feature #1 pattern); COMPRA is blocked and corrected via AJUSTE (defense-in-depth guard in service + UI); derived stock and low-stock recompute automatically; no physical delete; costo_promedio untouched. 63 tests passing, build green. Branch 003-soft-delete-movimientos committed (HEAD 455c89b), ready for review/merge to main. Feature #2 already merged to main.
+Current status: Feature #4 (Ventas / POS) COMPLETE. FiApp is now a real point-of-sale: single-item sales CONTADO/FIADO, editable price, frozen ganancia snapshot, atomic transaction primitive (venta + VENTA movimiento + client debt, all-or-nothing with proven rollback), schema v4 ventas table, home navigation. 71 tests passing, build green. Branch 004-ventas-pos committed, ready for review/merge to main. Features #1, #2, #3 already merged to main.
 
 Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
