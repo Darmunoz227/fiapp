@@ -19,6 +19,7 @@ import {
 } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
+import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
@@ -50,8 +51,10 @@ import { calcularStockDerivado } from '../inventario/inventory-calculations';
 })
 export class VentasPage {
   productos: Producto[] = [];
+  clientes: Cliente[] = [];
 
   productoId = '';
+  clienteId = '';
   cantidad = 0;
   precio = 0;
   tipo_pago: 'CONTADO' | 'FIADO' = 'CONTADO';
@@ -80,6 +83,7 @@ export class VentasPage {
 
   async cargarProductos() {
     this.productos = await this.dbService.obtenerProductos();
+    this.clientes = await this.dbService.obtenerClientes();
 
     if (this.productoId) {
       await this.onSeleccionarProducto(this.productoId);
@@ -102,7 +106,7 @@ export class VentasPage {
     this.stockDerivado = calcularStockDerivado(movimientos);
   }
 
-  async registrarVentaContado() {
+  async registrarVenta() {
     const cantidad = Number(this.cantidad);
     const precio = Number(this.precio);
 
@@ -121,8 +125,8 @@ export class VentasPage {
       return;
     }
 
-    if (this.tipo_pago === 'FIADO') {
-      await this.mostrarToast('El pago a fiado estara disponible pronto', 'danger');
+    if (this.tipo_pago === 'FIADO' && !this.clienteId) {
+      await this.mostrarToast('Debes seleccionar un cliente para una venta a fiado', 'danger');
       return;
     }
 
@@ -143,8 +147,8 @@ export class VentasPage {
       precio_venta: precio,
       costo_unitario: costoUnitario,
       ganancia,
-      tipo_pago: 'CONTADO',
-      cliente_id: null,
+      tipo_pago: this.tipo_pago,
+      cliente_id: this.tipo_pago === 'FIADO' ? this.clienteId : null,
       fecha: ahora,
       created_at: null,
       updated_at: null,
@@ -173,7 +177,26 @@ export class VentasPage {
     };
 
     try {
-      await this.dbService.registrarVenta(venta, movimiento);
+      if (this.tipo_pago === 'FIADO') {
+        const transaccionFiado: Transaccion = {
+          id: uuidv4(),
+          cliente_id: this.clienteId,
+          tipo: 'fiado',
+          monto: precio * cantidad,
+          concepto: 'Venta a crédito',
+          fecha: ahora,
+          created_at: null,
+          updated_at: null,
+          deleted_at: null,
+          store_id: null,
+          created_by: null,
+        };
+
+        await this.dbService.registrarVenta(venta, movimiento, transaccionFiado);
+      } else {
+        await this.dbService.registrarVenta(venta, movimiento);
+      }
+
       await this.onSeleccionarProducto(this.productoId);
 
       const valorGanancia = new Intl.NumberFormat('es-CO', {
@@ -193,6 +216,7 @@ export class VentasPage {
 
   limpiarFormulario() {
     this.productoId = '';
+    this.clienteId = '';
     this.cantidad = 0;
     this.precio = 0;
     this.tipo_pago = 'CONTADO';

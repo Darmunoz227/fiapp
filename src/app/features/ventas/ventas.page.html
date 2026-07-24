@@ -42,13 +42,20 @@
           <ion-select-option value="FIADO">FIADO</ion-select-option>
         </ion-select>
       </ion-item>
+
+      <ion-item *ngIf="tipo_pago === 'FIADO'">
+        <ion-label position="stacked">Cliente</ion-label>
+        <ion-select [(ngModel)]="clienteId" interface="popover">
+          <ion-select-option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</ion-select-option>
+        </ion-select>
+      </ion-item>
     </ion-list>
 
     <p class="ganancia-preview" *ngIf="gananciaEstimada !== null">
       Ganancia estimada: <strong>{{ gananciaEstimada | currency:'COP':'symbol':'1.0-0' }}</strong>
     </p>
 
-    <ion-button expand="block" class="save-button" (click)="registrarVentaContado()">
+    <ion-button expand="block" class="save-button" (click)="registrarVenta()">
       Registrar venta
     </ion-button>
   </section>
