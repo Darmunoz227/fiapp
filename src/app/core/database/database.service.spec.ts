@@ -399,6 +399,136 @@ describe('DatabaseService', () => {
     }));
   });
 
+  it('soft-deleting a VENTA excludes it from active history and recomputes stock', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1' }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-venta-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
+    }));
+
+    await service.softDeleteMovimiento('movimiento-venta-1');
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+
+    expect(movimientos.some((movimiento) => movimiento.id === 'movimiento-venta-1')).toBeFalse();
+    expect(calcularStockDerivado(movimientos)).toBe(10);
+  });
+
+  it('soft-deleting a MERMA recomputes stock', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1' }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-merma-1',
+      producto_id: 'p1',
+      tipo: 'MERMA',
+      cantidad: 2,
+      costo_unitario: 0,
+    }));
+
+    await service.softDeleteMovimiento('movimiento-merma-1');
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+
+    expect(movimientos.some((movimiento) => movimiento.id === 'movimiento-merma-1')).toBeFalse();
+    expect(calcularStockDerivado(movimientos)).toBe(10);
+  });
+
+  it('soft-deleting an AJUSTE recomputes stock', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1' }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-ajuste-1',
+      producto_id: 'p1',
+      tipo: 'AJUSTE',
+      cantidad: 0,
+      costo_unitario: 0,
+      stock_calculado_anterior: 10,
+      cantidad_fisica: 8,
+      diferencia_calculada: -2,
+    }));
+
+    await service.softDeleteMovimiento('movimiento-ajuste-1');
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+
+    expect(movimientos.some((movimiento) => movimiento.id === 'movimiento-ajuste-1')).toBeFalse();
+    expect(calcularStockDerivado(movimientos)).toBe(10);
+  });
+
+  it('soft-deleting a COMPRA is REJECTED', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1' }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    await expectAsync(service.softDeleteMovimiento('movimiento-compra-1')).toBeRejected();
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+
+    expect(movimientos.some((movimiento) => movimiento.id === 'movimiento-compra-1')).toBeTrue();
+  });
+
+  it('restoring a soft-deleted VENTA makes it count again', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1' }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-venta-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
+    }));
+
+    await service.softDeleteMovimiento('movimiento-venta-1');
+    await service.restoreMovimiento('movimiento-venta-1');
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+
+    expect(movimientos.some((movimiento) => movimiento.id === 'movimiento-venta-1')).toBeTrue();
+    expect(calcularStockDerivado(movimientos)).toBe(7);
+  });
+
   it('obtenerResumenInventario reflects derived stock and low-stock status for COMPRA and VENTA movements', async () => {
     await service.crearProducto(crearProductoParcial({
       id: 'producto-1',
