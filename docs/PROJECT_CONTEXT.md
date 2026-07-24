@@ -312,7 +312,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Continue Feature #2 with the Polish phase: T026-T028. US1, US2, and US3 are COMPLETE. Remaining: T026 (quickstart validation notes), T027 (refactor / naming consistency; also consider wrapping COMPRA cost-update + movement INSERT in a transaction for native atomicity), T028 (final build + full test validation). Work test-first where applicable; confirm green BEFORE each commit.
+Feature #2 (Inventario) is COMPLETE: all 28 tasks (Setup, Foundation, US1, US2, US3, Polish) done, 55 tests passing, build green, pushed. The branch 002-inventario-base is ready for review/merge to main. Next action: choose Feature #3. Candidate per Decision 024: soft-delete of inventory movements (traceable correction), with a proper failure-path test. Also pending (Decision 025): transaction-atomicity hardening of crearMovimiento on native SQLite.
 
 Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
@@ -325,6 +325,6 @@ US2 locked rules:
 - AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
 - PESO quantities stored as integer grams.
 
-Current status: Foundation, US1, US2, and US3 COMPLETE and committed. Full inventory feature: product CRUD, movements (COMPRA/VENTA/MERMA/AJUSTE), weighted-average cost, negative-stock guard, cost + movement history display, AJUSTE physical-count flow with audit trail, and low-stock alerts (esStockBajo <= rule, red badge in product list). 55 tests passing. Branch 002-inventario-base pushed and in sync with origin (HEAD dd3f38e). Next: Polish phase T026-T028.
+Current status: Feature #2 (Inventario) COMPLETE — Setup, Foundation, US1, US2, US3, and Polish (28/28 tasks). Full inventory: product CRUD, movements (COMPRA/VENTA/MERMA/AJUSTE), weighted-average cost, negative-stock guard, cost + movement history display, AJUSTE physical-count flow with audit trail, low-stock alerts (esStockBajo <= rule, red badge). 55 tests passing, build green. Branch 002-inventario-base pushed and in sync with origin (HEAD ff023e0), ready for review/merge to main.
 
 Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
