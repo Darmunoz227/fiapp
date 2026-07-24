@@ -95,6 +95,10 @@
           <p *ngIf="movimiento.motivo">
             Motivo: <strong>{{ movimiento.motivo }}</strong>
           </p>
+
+          <ion-button size="small" fill="clear" color="danger" (click)="anularMovimiento(movimiento)">
+            Anular
+          </ion-button>
         </article>
       </div>
     </ng-container>

@@ -82,6 +82,22 @@ export class InventoryMovementPage {
     this.stockDerivado = calcularStockDerivado(this.movimientos);
   }
 
+  async anularMovimiento(movimiento: MovimInventario) {
+    if (movimiento.tipo === 'COMPRA') {
+      await this.mostrarToast('Las COMPRAS se corrigen con un AJUSTE', 'danger');
+      return;
+    }
+
+    try {
+      await this.dbService.softDeleteMovimiento(movimiento.id);
+      await this.cargarDatos();
+      await this.mostrarToastDeshacer(movimiento.id);
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'No se pudo anular el movimiento';
+      await this.mostrarToast(mensaje, 'danger');
+    }
+  }
+
   async registrarMovimiento() {
     const motivo = this.motivo.trim();
 
@@ -188,5 +204,36 @@ export class InventoryMovementPage {
     });
 
     await toast.present();
+  }
+
+  private async mostrarToastDeshacer(movimientoId: string) {
+    const toast = await this.toastCtrl.create({
+      message: 'Movimiento anulado',
+      duration: 5000,
+      position: 'bottom',
+      color: 'success',
+      buttons: [
+        {
+          text: 'Deshacer',
+          role: 'undo',
+          handler: () => {
+            void this.restaurarMovimientoDesdeToast(movimientoId);
+          },
+        },
+      ],
+    });
+
+    await toast.present();
+  }
+
+  private async restaurarMovimientoDesdeToast(movimientoId: string) {
+    try {
+      await this.dbService.restoreMovimiento(movimientoId);
+      await this.cargarDatos();
+      await this.mostrarToast('Movimiento restaurado', 'success');
+    } catch (error) {
+      const mensaje = error instanceof Error ? error.message : 'No se pudo restaurar el movimiento';
+      await this.mostrarToast(mensaje, 'danger');
+    }
   }
 }

@@ -312,7 +312,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Feature #2 (Inventario) is COMPLETE: all 28 tasks (Setup, Foundation, US1, US2, US3, Polish) done, 55 tests passing, build green, pushed. The branch 002-inventario-base is ready for review/merge to main. Next action: choose Feature #3. Candidate per Decision 024: soft-delete of inventory movements (traceable correction), with a proper failure-path test. Also pending (Decision 025): transaction-atomicity hardening of crearMovimiento on native SQLite.
+Feature #3 (soft-delete de movimientos) is COMPLETE: spec/plan/tasks + T001-T006 + T008, 63 tests passing, build green, committed on branch 003-soft-delete-movimientos. Ready for review/merge to main. Delivered: anular/restore of VENTA/MERMA/AJUSTE with undo toast, COMPRA blocked (corrected via AJUSTE), defense-in-depth guard (service + UI), no physical delete, costo_promedio untouched. Next action: merge Feature #3 to main, then choose Feature #4. Pending (Decision 025): transaction-atomicity hardening of crearMovimiento on native SQLite. Pending candidate: COMPRA soft-delete with weighted-avg cost recompute.
 
 Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
@@ -325,6 +325,6 @@ US2 locked rules:
 - AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
 - PESO quantities stored as integer grams.
 
-Current status: Feature #2 (Inventario) COMPLETE — Setup, Foundation, US1, US2, US3, and Polish (28/28 tasks). Full inventory: product CRUD, movements (COMPRA/VENTA/MERMA/AJUSTE), weighted-average cost, negative-stock guard, cost + movement history display, AJUSTE physical-count flow with audit trail, low-stock alerts (esStockBajo <= rule, red badge). 55 tests passing, build green. Branch 002-inventario-base pushed and in sync with origin (HEAD ff023e0), ready for review/merge to main.
+Current status: Feature #3 (soft-delete de movimientos) COMPLETE. Merchants can anular/restore VENTA/MERMA/AJUSTE movements (undo toast, Feature #1 pattern); COMPRA is blocked and corrected via AJUSTE (defense-in-depth guard in service + UI); derived stock and low-stock recompute automatically; no physical delete; costo_promedio untouched. 63 tests passing, build green. Branch 003-soft-delete-movimientos committed (HEAD 455c89b), ready for review/merge to main. Feature #2 already merged to main.
 
 Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.

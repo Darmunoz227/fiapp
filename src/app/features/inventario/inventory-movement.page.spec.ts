@@ -28,11 +28,14 @@ describe('InventoryMovementPage', () => {
   let component: InventoryMovementPage;
   let fixture: ComponentFixture<InventoryMovementPage>;
   let movimientosMock: MovimInventario[];
+  let lastToastConfig: any;
 
   const databaseServiceMock = jasmine.createSpyObj('DatabaseService', [
     'crearMovimiento',
     'obtenerProductos',
     'obtenerMovimientosPorProducto',
+    'softDeleteMovimiento',
+    'restoreMovimiento',
   ]);
 
   const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
@@ -74,14 +77,22 @@ describe('InventoryMovementPage', () => {
     databaseServiceMock.crearMovimiento.and.callFake(async (movimiento: MovimInventario) => {
       movimientosMock = [...movimientosMock, movimiento];
     });
+    databaseServiceMock.softDeleteMovimiento.and.resolveTo(undefined);
+    databaseServiceMock.restoreMovimiento.and.resolveTo(undefined);
 
     databaseServiceMock.crearMovimiento.calls.reset();
     databaseServiceMock.obtenerProductos.calls.reset();
     databaseServiceMock.obtenerMovimientosPorProducto.calls.reset();
+    databaseServiceMock.softDeleteMovimiento.calls.reset();
+    databaseServiceMock.restoreMovimiento.calls.reset();
 
-    toastControllerMock.create.and.callFake(async (_config: any) => ({
-      present: () => Promise.resolve(),
-    } as any));
+    lastToastConfig = undefined;
+    toastControllerMock.create.and.callFake(async (config: any) => {
+      lastToastConfig = config;
+      return {
+        present: () => Promise.resolve(),
+      } as any;
+    });
     toastControllerMock.create.calls.reset();
 
     TestBed.configureTestingModule({
@@ -233,5 +244,52 @@ describe('InventoryMovementPage', () => {
     expect(component.cantidad).toBe(99);
     expect(component.motivo).toBe('Venta sin stock');
     expect(component.tipo).toBe('VENTA');
+  });
+
+  it('anular a VENTA calls softDeleteMovimiento and reloads', async () => {
+    movimientosMock = [
+      crearMovimientoParcial({ id: 'mov-compra', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 }),
+      crearMovimientoParcial({ id: 'mov-venta', tipo: 'VENTA', cantidad: 3, costo_unitario: 0 }),
+    ];
+
+    await component.cargarDatos();
+
+    await component.anularMovimiento(movimientosMock[1]);
+
+    expect(databaseServiceMock.softDeleteMovimiento).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.softDeleteMovimiento).toHaveBeenCalledWith('mov-venta');
+    expect(databaseServiceMock.obtenerMovimientosPorProducto.calls.count()).toBeGreaterThan(1);
+  });
+
+  it('anular a COMPRA does NOT call softDeleteMovimiento and shows a danger toast', async () => {
+    const compra = crearMovimientoParcial({ id: 'mov-compra', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 });
+
+    await component.anularMovimiento(compra);
+
+    expect(databaseServiceMock.softDeleteMovimiento).not.toHaveBeenCalled();
+    expect(toastControllerMock.create).toHaveBeenCalledWith(jasmine.objectContaining({
+      message: 'Las COMPRAS se corrigen con un AJUSTE',
+      color: 'danger',
+    }));
+  });
+
+  it('undo path calls restoreMovimiento', async () => {
+    movimientosMock = [
+      crearMovimientoParcial({ id: 'mov-compra', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 }),
+      crearMovimientoParcial({ id: 'mov-venta', tipo: 'VENTA', cantidad: 3, costo_unitario: 0 }),
+    ];
+
+    await component.cargarDatos();
+    await component.anularMovimiento(movimientosMock[1]);
+
+    const undoButton = lastToastConfig?.buttons?.find((button: any) => button.text === 'Deshacer');
+    expect(undoButton).toBeDefined();
+
+    await undoButton.handler();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(databaseServiceMock.restoreMovimiento).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.restoreMovimiento).toHaveBeenCalledWith('mov-venta');
   });
 });

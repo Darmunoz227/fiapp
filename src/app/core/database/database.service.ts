@@ -357,6 +357,37 @@ export class DatabaseService {
     return resumenes;
   }
 
+  async softDeleteMovimiento(id: string): Promise<void> {
+    const movimiento = await this.obtenerMovimientoPorIdInterno(id);
+    if (movimiento != null && movimiento.tipo === 'COMPRA') {
+      throw new Error('Las COMPRAS se corrigen con un AJUSTE');
+    }
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebMovimInventario = this.mockWebMovimInventario.map((movimientoActual) => (
+        movimientoActual.id === id ? { ...movimientoActual, deleted_at: Date.now() } : movimientoActual
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE movim_inventario SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.db.run(sql, [Date.now(), id]);
+  }
+
+  async restoreMovimiento(id: string): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebMovimInventario = this.mockWebMovimInventario.map((movimientoActual) => (
+        movimientoActual.id === id ? { ...movimientoActual, deleted_at: null } : movimientoActual
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE movim_inventario SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
+    await this.db.run(sql, [id]);
+  }
+
   async softDeleteCliente(id: string): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
       this.mockWebClientes = this.mockWebClientes.map((cliente) => (
@@ -381,6 +412,17 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE clientes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
     await this.db.run(sql, [id]);
+  }
+
+  private async obtenerMovimientoPorIdInterno(id: string): Promise<MovimInventario | null> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.mockWebMovimInventario.find((movimiento) => movimiento.id === id) || null;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM movim_inventario WHERE id = ?';
+    const res = await this.db.query(sql, [id]);
+    return res.values && res.values.length > 0 ? res.values[0] as MovimInventario : null;
   }
 
   async softDeleteTransaccion(id: string): Promise<void> {
