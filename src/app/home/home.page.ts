@@ -9,7 +9,7 @@ import {
 } from '@ionic/angular/standalone';
 import { App } from '@capacitor/app';
 import { addIcons } from 'ionicons';
-import { add, cartOutline, cubeOutline, settingsOutline, trash } from 'ionicons/icons'; 
+import { add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
 import { FreemiumService } from '../core/freemium/freemium.service';
@@ -52,7 +52,7 @@ export class HomePage {
     private clienteDeleteUndoService: ClienteDeleteUndoService,
     private cdr: ChangeDetectorRef
   ) {
-    addIcons({ add, cartOutline, cubeOutline, settingsOutline, trash }); 
+    addIcons({ add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash }); 
   }
 
   ionViewWillEnter() {
@@ -238,6 +238,8 @@ export class HomePage {
     await toast.onDidDismiss();
     this.clienteDeleteUndoService.clear();
   }
+
+  irAReportes() { this.router.navigate(['/reportes']); }
 
   irAVentas() { this.router.navigate(['/ventas']); }
 
