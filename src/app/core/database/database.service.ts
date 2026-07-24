@@ -6,6 +6,7 @@ import { MovimInventario } from '../models/movim-inventario.model';
 import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
+import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 
 type RowWithDeletedAt = {
@@ -21,11 +22,12 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 3;
+  private readonly SCHEMA_VERSION = 4;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
   private mockWebMovimInventario: MovimInventario[] = [];
+  private mockWebVentas: Venta[] = [];
 
   async initializePlugin(): Promise<boolean> {
     try {
@@ -139,6 +141,31 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS movim_inventario_producto_id_idx
       ON movim_inventario(producto_id);
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS ventas (
+        id TEXT PRIMARY KEY NOT NULL,
+        producto_id TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_venta REAL NOT NULL,
+        costo_unitario REAL NOT NULL,
+        ganancia REAL NOT NULL,
+        tipo_pago TEXT NOT NULL,
+        cliente_id TEXT DEFAULT NULL,
+        fecha INTEGER NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS ventas_producto_id_idx
+      ON ventas(producto_id);
     `);
   }
 
