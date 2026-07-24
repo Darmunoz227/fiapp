@@ -1,0 +1,44 @@
+ion-content.reportes-page {
+  --background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
+}
+
+.reportes-card {
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+  background: white;
+  padding: 16px;
+  margin-bottom: 18px;
+}
+
+.reportes-card h2 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #8a8f98;
+  margin: 0 0 10px;
+  padding-left: 10px;
+  letter-spacing: 0.4px;
+}
+
+.resumen-grid p,
+.venta-label p {
+  margin: 0 0 8px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.venta-label h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 12px 4px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+  line-height: 1.4;
+}

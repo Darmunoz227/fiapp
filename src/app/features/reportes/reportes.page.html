@@ -1,0 +1,56 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Reportes</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding reportes-page">
+  <section class="reportes-card">
+    <h2>Filtro</h2>
+
+    <ion-segment [value]="rango" (ionChange)="cambiarRango($event.detail.value)">
+      <ion-segment-button value="HOY">
+        <ion-label>Hoy</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="TODO">
+        <ion-label>Todo</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </section>
+
+  <section class="reportes-card">
+    <h2>Resumen</h2>
+
+    <div class="resumen-grid">
+      <p>Total vendido: <strong>{{ resumen.totalVendido | currency:'COP':'symbol':'1.0-0' }}</strong></p>
+      <p>Ganancia total: <strong>{{ resumen.gananciaTotal | currency:'COP':'symbol':'1.0-0' }}</strong></p>
+      <p>N.º de ventas: <strong>{{ resumen.numeroVentas }}</strong></p>
+      <p>Contado: <strong>{{ resumen.contadoCount }}</strong> ({{ resumen.contadoTotal | currency:'COP':'symbol':'1.0-0' }})</p>
+      <p>Fiado: <strong>{{ resumen.fiadoCount }}</strong> ({{ resumen.fiadoTotal | currency:'COP':'symbol':'1.0-0' }})</p>
+    </div>
+  </section>
+
+  <section class="reportes-card">
+    <h2>Ventas</h2>
+
+    <ion-list lines="full" *ngIf="ventasFiltradas.length > 0; else emptyState">
+      <ion-item *ngFor="let venta of ventasFiltradas">
+        <ion-label class="venta-label">
+          <h3>{{ nombreProducto(venta.producto_id) }}</h3>
+          <p>Cantidad: {{ venta.cantidad }}</p>
+          <p>Total: {{ totalVenta(venta) | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Ganancia: {{ venta.ganancia | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Pago: {{ venta.tipo_pago }}</p>
+          <p>Fecha: {{ venta.fecha | date:'dd/MM/yyyy, HH:mm' }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #emptyState>
+      <p class="empty-state">No hay ventas en este periodo.</p>
+    </ng-template>
+  </section>
+</ion-content>
