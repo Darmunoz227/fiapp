@@ -330,6 +330,90 @@ export class DatabaseService {
     await this.db.run(sql, values);
   }
 
+  private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
+    if (Capacitor.getPlatform() === 'web') {
+      const snapVentas = [...this.mockWebVentas];
+      const snapMovim = [...this.mockWebMovimInventario];
+      const snapTransacciones = [...this.mockWebTransacciones];
+      const snapProductos = [...this.mockWebProductos];
+
+      try {
+        return await operacion();
+      } catch (error) {
+        this.mockWebVentas = snapVentas;
+        this.mockWebMovimInventario = snapMovim;
+        this.mockWebTransacciones = snapTransacciones;
+        this.mockWebProductos = snapProductos;
+        throw error;
+      }
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    await this.db.beginTransaction();
+
+    try {
+      const resultado = await operacion();
+      await this.db.commitTransaction();
+      return resultado;
+    } catch (error) {
+      await this.db.rollbackTransaction();
+      throw error;
+    }
+  }
+
+  private async insertVenta(venta: Venta): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentas.push({ ...venta, deleted_at: venta.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO ventas (
+        id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
+        tipo_pago, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      venta.id,
+      venta.producto_id,
+      venta.cantidad,
+      venta.precio_venta,
+      venta.costo_unitario,
+      venta.ganancia,
+      venta.tipo_pago,
+      venta.cliente_id ?? null,
+      venta.fecha,
+      venta.created_at ?? null,
+      venta.updated_at ?? null,
+      venta.deleted_at ?? null,
+      venta.store_id ?? null,
+      venta.created_by ?? null,
+    ];
+    await this.db.run(sql, values);
+  }
+
+  async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
+    return this.ejecutarEnTransaccion(async () => {
+      await this.crearMovimiento(movimiento);
+      await this.insertVenta(venta);
+      if (venta.tipo_pago === 'FIADO' && transaccionFiado) {
+        await this.crearTransaccion(transaccionFiado);
+      }
+    });
+  }
+
+  async obtenerVentas(): Promise<Venta[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebVentas) as Venta[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC';
+    const res = await this.db.query(sql);
+    return res.values as Venta[] || [];
+  }
+
   async obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.filtrarActivos(this.mockWebMovimInventario)

@@ -7,6 +7,7 @@ import { calcularStockDerivado } from '../../features/inventario/inventory-calcu
 import { MovimInventario } from '../models/movim-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
+import { Venta } from '../models/venta.model';
 
 describe('DatabaseService', () => {
   let service: DatabaseService;
@@ -80,6 +81,25 @@ describe('DatabaseService', () => {
       stock_calculado_anterior: overrides.stock_calculado_anterior ?? null,
       cantidad_fisica: overrides.cantidad_fisica ?? null,
       diferencia_calculada: overrides.diferencia_calculada ?? null,
+      created_at: overrides.created_at ?? null,
+      updated_at: overrides.updated_at ?? null,
+      deleted_at: overrides.deleted_at ?? null,
+      store_id: overrides.store_id ?? null,
+      created_by: overrides.created_by ?? null,
+    };
+  }
+
+  function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
+    return {
+      id: overrides.id ?? 'venta-1',
+      producto_id: overrides.producto_id ?? 'producto-1',
+      cantidad: overrides.cantidad ?? 1,
+      precio_venta: overrides.precio_venta ?? 1500,
+      costo_unitario: overrides.costo_unitario ?? 1000,
+      ganancia: overrides.ganancia ?? 500,
+      tipo_pago: overrides.tipo_pago ?? 'CONTADO',
+      cliente_id: overrides.cliente_id ?? null,
+      fecha: overrides.fecha ?? Date.now(),
       created_at: overrides.created_at ?? null,
       updated_at: overrides.updated_at ?? null,
       deleted_at: overrides.deleted_at ?? null,
@@ -232,6 +252,194 @@ describe('DatabaseService', () => {
     const movimientos = await obtenerMovimientosPorProducto('producto-1');
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
+  });
+
+  it('CONTADO sale drops stock, records venta with frozen ganancia, no client debt', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-1',
+      producto_id: 'p1',
+      cantidad: 3,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1500,
+      tipo_pago: 'CONTADO',
+      cliente_id: null,
+    });
+
+    const movimientoVenta = crearMovimientoParcial({
+      id: 'movimiento-venta-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
+    });
+
+    await service.registrarVenta(venta, movimientoVenta);
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+    const ventas = await service.obtenerVentas();
+    const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
+
+    expect(calcularStockDerivado(movimientos)).toBe(7);
+    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-1', ganancia: 1500 }));
+    expect(deudasCliente.length).toBe(0);
+  });
+
+  it('FIADO sale atomically creates venta + VENTA movement + client debt', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-2',
+      producto_id: 'p1',
+      cantidad: 3,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1500,
+      tipo_pago: 'FIADO',
+      cliente_id: 'c1',
+    });
+
+    const movimientoVenta = crearMovimientoParcial({
+      id: 'movimiento-venta-2',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
+    });
+
+    const transaccionFiado = crearTransaccionParcial({
+      id: 'transaccion-fiado-1',
+      cliente_id: 'c1',
+      tipo: 'fiado',
+      monto: venta.precio_venta * venta.cantidad,
+      concepto: 'Venta fiada',
+    });
+
+    await service.registrarVenta(venta, movimientoVenta, transaccionFiado);
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+    const ventas = await service.obtenerVentas();
+    const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
+
+    expect(calcularStockDerivado(movimientos)).toBe(7);
+    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }));
+    expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
+  });
+
+  it('ROLLBACK (mandatory): if a write fails, NOTHING persists', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 5,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-rollback-1',
+      producto_id: 'p1',
+      cantidad: 99,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 49500,
+      tipo_pago: 'FIADO',
+      cliente_id: 'c1',
+    });
+
+    const movimientoVenta = crearMovimientoParcial({
+      id: 'movimiento-venta-rollback-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 99,
+      costo_unitario: 0,
+    });
+
+    const transaccionFiado = crearTransaccionParcial({
+      id: 'transaccion-fiado-rollback-1',
+      cliente_id: 'c1',
+      tipo: 'fiado',
+      monto: venta.precio_venta * venta.cantidad,
+      concepto: 'Venta fiada fallida',
+    });
+
+    await expectAsync(service.registrarVenta(venta, movimientoVenta, transaccionFiado)).toBeRejected();
+
+    const movimientos = await obtenerMovimientosPorProducto('p1');
+    const ventas = await service.obtenerVentas();
+    const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
+
+    expect(calcularStockDerivado(movimientos)).toBe(5);
+    expect(ventas.length).toBe(0);
+    expect(deudasCliente.some((transaccion) => transaccion.id === 'transaccion-fiado-rollback-1')).toBeFalse();
+  });
+
+  it('ganancia is immutable after a later COMPRA changes costo_promedio', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-3',
+      producto_id: 'p1',
+      cantidad: 3,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1500,
+      tipo_pago: 'CONTADO',
+      cliente_id: null,
+    });
+
+    const movimientoVenta = crearMovimientoParcial({
+      id: 'movimiento-venta-3',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
+    });
+
+    await service.registrarVenta(venta, movimientoVenta);
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-2',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 2000,
+    }));
+
+    const ventas = await service.obtenerVentas();
+    const ventaPersistida = ventas.find((item) => item.id === 'venta-3');
+
+    expect(ventaPersistida).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
   });
 
   it('VENTA exceeding stock is BLOCKED', async () => {
