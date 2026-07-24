@@ -312,7 +312,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Feature #4 (Ventas / POS single-item) is COMPLETE: spec/plan/tasks + T001-T010, 71 tests passing, build green, committed on branch 004-ventas-pos. Ready for review/merge to main. Delivered: single-item sales CONTADO and FIADO, editable price, frozen ganancia snapshot (Constitution III), atomic transaction primitive (ejecutarEnTransaccion) wrapping venta + VENTA movimiento + client debt with proven rollback, schema v4 ventas table, plus home navigation to inventario/ventas. Next action: merge Feature #4 to main, then Feature #5 = Reportes/Ganancias (sales & profit history; the ventas table already provides the data). Pending (Decision 025): transaction-atomicity hardening of crearMovimiento (the primitive can now be reused). Pending: reconcile manual fiado vs venta fiado (deuda manual no toca inventario ni ganancia).
+Feature #5 (Reportes / Ganancias) is COMPLETE: spec/plan/tasks + T001-T008, 80 tests passing, build green, committed on branch 005-reportes. Ready for review/merge to main. Delivered: read-only sales report with Hoy/Todo toggle, summary (total vendido, ganancia total, N ventas, contado vs fiado), sales list newest-first with product name, pure testable helpers (filtrarVentasPorRango, calcularResumenVentas), home navigation to reportes. Next action: merge Feature #5 to main, then Feature #6 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado; realistic merchant need). Also pending: Decision 025 transaction hardening (primitive reusable); reconcile manual fiado vs venta fiado.
 
 Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
 
@@ -325,6 +325,6 @@ US2 locked rules:
 - AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
 - PESO quantities stored as integer grams.
 
-Current status: Feature #4 (Ventas / POS) COMPLETE. FiApp is now a real point-of-sale: single-item sales CONTADO/FIADO, editable price, frozen ganancia snapshot, atomic transaction primitive (venta + VENTA movimiento + client debt, all-or-nothing with proven rollback), schema v4 ventas table, home navigation. 71 tests passing, build green. Branch 004-ventas-pos committed, ready for review/merge to main. Features #1, #2, #3 already merged to main.
+Current status: Feature #5 (Reportes / Ganancias) COMPLETE. FiApp now surfaces sales & profit: read-only report with Hoy/Todo toggle, summary (total vendido, ganancia total, N ventas, contado vs fiado) and a sales list, computed by pure testable helpers over the ventas table, plus home navigation. 80 tests passing, build green. Branch 005-reportes committed, ready for review/merge to main. Features #1-#4 already merged to main.
 
 Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
