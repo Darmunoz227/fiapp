@@ -1,0 +1,62 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Ventas</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding ventas-page">
+  <section class="ventas-card">
+    <h2>Registrar venta</h2>
+
+    <ion-list lines="full" class="ventas-form">
+      <ion-item>
+        <ion-label position="stacked">Producto</ion-label>
+        <ion-select [(ngModel)]="productoId" interface="popover" (ionChange)="onSeleccionarProducto(productoId)">
+          <ion-select-option *ngFor="let producto of productos" [value]="producto.id">
+            {{ producto.nombre }}
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <p class="stock-summary" *ngIf="productoId">
+        Stock actual: <strong>{{ stockDerivado }}</strong>
+      </p>
+
+      <ion-item>
+        <ion-label position="stacked">Precio de venta</ion-label>
+        <ion-input type="number" inputmode="decimal" [(ngModel)]="precio"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Cantidad</ion-label>
+        <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Tipo de pago</ion-label>
+        <ion-select [(ngModel)]="tipo_pago" interface="popover">
+          <ion-select-option value="CONTADO">CONTADO</ion-select-option>
+          <ion-select-option value="FIADO">FIADO</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item *ngIf="tipo_pago === 'FIADO'">
+        <ion-label position="stacked">Cliente</ion-label>
+        <ion-select [(ngModel)]="clienteId" interface="popover">
+          <ion-select-option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</ion-select-option>
+        </ion-select>
+      </ion-item>
+    </ion-list>
+
+    <p class="ganancia-preview" *ngIf="gananciaEstimada !== null">
+      Ganancia estimada: <strong>{{ gananciaEstimada | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </p>
+
+    <ion-button expand="block" class="save-button" (click)="registrarVenta()">
+      Registrar venta
+    </ion-button>
+  </section>
+</ion-content>
