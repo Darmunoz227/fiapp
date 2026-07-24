@@ -1,0 +1,106 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/inventario"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Movimiento de inventario</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding inventory-movement-page">
+  <section class="inventory-card">
+    <h2>{{ producto?.nombre || 'Producto no encontrado' }}</h2>
+    <p class="stock-summary">Stock derivado actual: <strong>{{ stockDerivado }}</strong></p>
+    <p class="stock-summary">
+      Costo promedio ponderado:
+      <strong>{{ (producto?.costo_promedio ?? 0) | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </p>
+  </section>
+
+  <section class="inventory-card">
+    <h2>Registrar movimiento</h2>
+
+    <ion-list lines="full" class="inventory-form">
+      <ion-item>
+        <ion-label position="stacked">Tipo</ion-label>
+        <ion-select [(ngModel)]="tipo" interface="popover">
+          <ion-select-option value="COMPRA">COMPRA</ion-select-option>
+          <ion-select-option value="VENTA">VENTA</ion-select-option>
+          <ion-select-option value="MERMA">MERMA</ion-select-option>
+          <ion-select-option value="AJUSTE">AJUSTE</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ng-container *ngIf="tipo === 'AJUSTE'; else movimientoNormalFields">
+        <ion-item>
+          <ion-label position="stacked">Conteo físico</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="conteo_fisico"></ion-input>
+        </ion-item>
+      </ng-container>
+
+      <ng-template #movimientoNormalFields>
+        <ion-item>
+          <ion-label position="stacked">Cantidad</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Costo unitario</ion-label>
+          <ion-input type="number" inputmode="numeric" [(ngModel)]="costo_unitario"></ion-input>
+        </ion-item>
+      </ng-template>
+
+      <ion-item>
+        <ion-label position="stacked">Motivo</ion-label>
+        <ion-input [(ngModel)]="motivo" placeholder="Opcional"></ion-input>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" class="save-button" (click)="registrarMovimiento()">
+      Registrar movimiento
+    </ion-button>
+  </section>
+
+  <section class="inventory-card">
+    <h2>Historial de movimientos</h2>
+
+    <ng-container *ngIf="movimientosOrdenados.length > 0; else emptyMovimientos">
+      <div class="movement-list">
+        <article class="movement-item" *ngFor="let movimiento of movimientosOrdenados">
+          <div class="movement-item__header">
+            <strong>{{ movimiento.tipo }}</strong>
+            <span>{{ movimiento.fecha | date:'dd/MM/yyyy, HH:mm' }}</span>
+          </div>
+
+          <ng-container *ngIf="movimiento.tipo === 'AJUSTE'; else movimientoNormal">
+            <p>
+              Conteo físico: <strong>{{ movimiento.cantidad_fisica }}</strong>
+            </p>
+
+            <p>
+              Diferencia: <strong>{{ movimiento.diferencia_calculada }}</strong>
+            </p>
+          </ng-container>
+
+          <ng-template #movimientoNormal>
+            <p>
+              Cantidad: <strong>{{ movimiento.cantidad }}</strong>
+            </p>
+
+            <p *ngIf="movimiento.tipo === 'COMPRA'">
+              Costo unitario: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
+            </p>
+          </ng-template>
+
+          <p *ngIf="movimiento.motivo">
+            Motivo: <strong>{{ movimiento.motivo }}</strong>
+          </p>
+        </article>
+      </div>
+    </ng-container>
+
+    <ng-template #emptyMovimientos>
+      <p class="empty-state">Aún no existen movimientos registrados.</p>
+    </ng-template>
+  </section>
+</ion-content>

@@ -284,3 +284,25 @@ T004-T008
 ```
 
 **Do not start with UI.** Database/schema/model foundation first.
+
+
+---
+
+## Decision 024 — Inventory movements are immutable; corrections via AJUSTE/MERMA
+
+**Decision:** Movement log entries are not directly deletable or editable. Merchant errors are corrected with a new AJUSTE (physical count) or a compensating MERMA/COMPRA, always with a motivo.
+
+**Reason:** The movement log is the single immutable source of truth (Constitution III). Deleting entries would corrupt derived stock, weighted-average cost history, and auditability.
+
+**Implication:** Do NOT add direct movement deletion in US1-US3. Future improvement (out of scope, candidate Feature #3): soft-delete of movements using the existing deleted_at column (calcularStockDerivado already ignores movements where deleted_at != null). Must be traceable, never a physical delete.
+
+
+---
+
+## Decision 025 — T027 review: inventory naming already consistent, no refactor
+
+**Decision:** T027 (refactor / naming consistency) was performed as a review. No code changes were made; naming across inventory-calculations.ts and database.service.ts is already consistent (crear*/obtener*/actualizar* verbs, matching model nouns, pure calculations delegated to helpers).
+
+**Reason:** Refactoring working, fully-tested code (55 tests) with no genuine inconsistency would add risk (regression) for no functional benefit, and risks the over-implementation failure pattern.
+
+**Implication:** T027 closed with zero code diff. The transaction-atomicity hardening (wrapping COMPRA cost-update + movement INSERT in a native SQL transaction) is deferred to a dedicated future task with a proper failure-path test; it is not part of Polish.

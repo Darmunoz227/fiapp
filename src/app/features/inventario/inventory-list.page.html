@@ -1,0 +1,65 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Inventario</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding inventory-page">
+  <section class="inventory-card">
+    <h2>Nuevo producto</h2>
+
+    <ion-list lines="full" class="inventory-form">
+      <ion-item>
+        <ion-label position="stacked">Nombre</ion-label>
+        <ion-input [(ngModel)]="nombre" placeholder="Ej. Carne molida"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Precio de venta</ion-label>
+        <ion-input type="number" inputmode="numeric" [(ngModel)]="precio_venta"></ion-input>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Tipo de venta</ion-label>
+        <ion-select [(ngModel)]="tipo_venta" interface="popover">
+          <ion-select-option value="UNIDAD">UNIDAD</ion-select-option>
+          <ion-select-option value="PESO">PESO</ion-select-option>
+        </ion-select>
+      </ion-item>
+
+      <ion-item>
+        <ion-label position="stacked">Stock mínimo</ion-label>
+        <ion-input type="number" inputmode="numeric" [(ngModel)]="minimo_stock"></ion-input>
+      </ion-item>
+    </ion-list>
+
+    <ion-button expand="block" class="save-button" (click)="crearProducto()">
+      Guardar producto
+    </ion-button>
+  </section>
+
+  <section class="inventory-card inventory-list-wrapper">
+    <h2>Productos</h2>
+
+    <ion-list lines="full" *ngIf="productos.length > 0; else emptyState">
+      <ion-item *ngFor="let producto of productos" button="true" detail="true" [routerLink]="['/inventario/movimiento', producto.id]">
+        <ion-label>
+          <h3>{{ producto.nombre }}</h3>
+          <p>Venta: {{ producto.tipo_venta }} · Mínimo: {{ producto.minimo_stock }}</p>
+          <p>Stock actual: {{ stockActual(producto.id) }}</p>
+          <p *ngIf="esStockBajo(producto.id)" class="stock-bajo-badge">Stock bajo</p>
+        </ion-label>
+        <ion-label slot="end" class="price-label">
+          {{ producto.precio_venta | currency:'COP':'symbol':'1.0-0' }}
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #emptyState>
+      <p class="empty-state">Todavía no tienes productos creados.</p>
+    </ng-template>
+  </section>
+</ion-content>
