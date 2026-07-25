@@ -12,7 +12,7 @@
 **Type:** Ionic + Angular standalone mobile/web app  
 **Platform:** Capacitor + SQLite via `@capacitor-community/sqlite`  
 **Primary use case:** Help Colombian and LATAM micro-merchants manage customers, fiado/debt, products, inventory, and eventually mPOS sales/profit.  
-**Current repository:** `FiaApp-Comercial`  
+**Current repository:** `FiApp-Comercial`  
 **Development approach:** Spec-Driven Development (SDD) with Spec Kit, supervised AI coding, Git checkpoints, and build/test gates.
 
 ---
@@ -45,6 +45,7 @@ As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
 - Features #2 through #5 are all COMPLETE, tested, and merged to main.
+- Current schema version: v4 (bumped across Feature #2 inventory tables and Feature #4 ventas table).
 - 80 tests passing. Build green. Working branch: main (everything merged).
 - Next up: Feature #6 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado).
 
@@ -139,24 +140,6 @@ Analyze result summary:
 - Ambiguity count: 0
 - Constitution alignment issues: none
 - Main minor finding: `actor_id` was implicit in tasks and should be made explicit during implementation/review.
-
-### Recommended next implementation scope
-
-Implement Foundational phase only first:
-
-```text
-T004-T008
-```
-
-Do not implement all inventory tasks at once.
-
-Foundational phase includes:
-
-- Bump database schema version from 2 to 3.
-- Add migration-gated creation of `productos` and `movim_inventario` tables.
-- Add models for product and inventory movement.
-- Add web fallback structures.
-- Add shared helpers for derived stock and grams/kilograms conversion.
 
 ---
 
@@ -317,7 +300,7 @@ Features #1 through #5 are COMPLETE and merged to main (80 tests passing, build 
 
 NEXT (Carol chooses):
 - Feature #6 (most likely): Pago parcial/mixto en ventas (abono: part cash + part credit in one sale). Realistic merchant need. Will touch writes + the atomic primitive, so go spec-first.
-- Pending (Decision 025): transaction-atomicity hardening of crearMovimiento; the ejecutarEnTransaccion primitive from Feature #4 is now reusable.
+- Pending (no numbered decision yet): transaction-atomicity hardening of crearMovimiento (wrap COMPRA cost-update + movement INSERT in a native SQL transaction, with a failure-path test). Deferred per Decision 025's implication — NOT Decision 025 itself (025 = T027 naming review, closed zero-diff). The ejecutarEnTransaccion primitive from Feature #4 is reusable for this.
 - Pending (product decision): reconcile manual fiado (Home -> cliente) vs venta fiado. A manual fiado creates client debt but does NOT touch inventory or ganancia; a venta fiado does both.
 - Optional: on-device testing (real SQLite persistence).
 

@@ -282,6 +282,7 @@ Movement types:
 ```text
 T004-T008
 ```
+**STATUS (2026-07-24): SUPERSEDED.** Feature #2 and its foundational phase (T004-T008) are complete and merged to main, along with Features #3-#5. This decision is retained as historical record only.
 
 **Do not start with UI.** Database/schema/model foundation first.
 
