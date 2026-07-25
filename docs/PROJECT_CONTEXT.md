@@ -2,7 +2,7 @@
 
 > Purpose: give a new AI supervisor or developer enough verified project context to continue FiApp without relying on chat memory.
 >
-> Last updated: 2026-07-18
+> Last updated: 2026-07-24
 
 ---
 
@@ -44,9 +44,9 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Feature #2 Foundation phase complete (schema v3, models, helpers).
-- Feature #2 User Story 1 (product create/list + validation) complete, tested, committed.
-- Next up: Feature #2 User Story 2 (stock movements + weighted-average cost).
+- Features #2 through #5 are all COMPLETE, tested, and merged to main.
+- 80 tests passing. Build green. Working branch: main (everything merged).
+- Next up: Feature #6 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado).
 
 Before doing work, always run:
 
@@ -115,13 +115,13 @@ Coverage added:
 
 ---
 
-## 5. Current Feature #2 — Inventory Base
+## 5. Feature #2 (COMPLETED) — Inventory Base
 
 **Feature directory:** `specs/002-inventario-base/`
 
 ### Current phase
 
-Feature #2 Foundation and User Story 1 are complete, tested, and committed. Implementation is in progress; User Story 2 (stock movements + weighted-average cost) is next.
+Feature #2 is fully COMPLETE (Foundation + US1 + US2 + US3 + Polish) and merged to main. This section is kept as historical reference; see DECISIONS.md and git history for the full record.
 
 Artifacts already created and reviewed:
 
@@ -310,21 +310,23 @@ No code should be written before that.
 
 ---
 
+
 ## 10. Recommended next action
 
-Feature #5 (Reportes / Ganancias) is COMPLETE: spec/plan/tasks + T001-T008, 80 tests passing, build green, committed on branch 005-reportes. Ready for review/merge to main. Delivered: read-only sales report with Hoy/Todo toggle, summary (total vendido, ganancia total, N ventas, contado vs fiado), sales list newest-first with product name, pure testable helpers (filtrarVentasPorRango, calcularResumenVentas), home navigation to reportes. Next action: merge Feature #5 to main, then Feature #6 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado; realistic merchant need). Also pending: Decision 025 transaction hardening (primitive reusable); reconcile manual fiado vs venta fiado.
+Features #1 through #5 are COMPLETE and merged to main (80 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo).
 
-Work test-first: write failing tests (T015, T016) before implementation (T017-T020). Review actual diffs before accepting anything. Commit in small logical batches.
+NEXT (Carol chooses):
+- Feature #6 (most likely): Pago parcial/mixto en ventas (abono: part cash + part credit in one sale). Realistic merchant need. Will touch writes + the atomic primitive, so go spec-first.
+- Pending (Decision 025): transaction-atomicity hardening of crearMovimiento; the ejecutarEnTransaccion primitive from Feature #4 is now reusable.
+- Pending (product decision): reconcile manual fiado (Home -> cliente) vs venta fiado. A manual fiado creates client debt but does NOT touch inventory or ganancia; a venta fiado does both.
+- Optional: on-device testing (real SQLite persistence).
 
-US2 locked rules:
+HOW TO START A NEW FEATURE:
+1. Run: git status && git log --oneline -3 (verify clean on main).
+2. Create a branch: 006-nombre.
+3. Spec-first: write spec.md -> plan.md -> tasks.md and commit them BEFORE any code.
+4. Test-first per task: RED tests, then implement to GREEN, confirm "TOTAL: N SUCCESS" on screen BEFORE each commit.
+5. Review every diff. Commit in small logical batches. Merge to main with --no-ff after verifying green on main.
 
-- Persist movements (COMPRA, VENTA, AJUSTE, MERMA) in movim_inventario.
-- Derived stock = SUM(valid movements); no mutable stock, no cache.
-- Block VENTA/MERMA that would exceed available derived stock (no negative stock).
-- Recalculate weighted-average cost ONLY on COMPRA.
-- AJUSTE: user enters physical count; system computes and stores the delta plus audit metadata.
-- PESO quantities stored as integer grams.
-
-Current status: Feature #5 (Reportes / Ganancias) COMPLETE. FiApp now surfaces sales & profit: read-only report with Hoy/Todo toggle, summary (total vendido, ganancia total, N ventas, contado vs fiado) and a sales list, computed by pure testable helpers over the ventas table, plus home navigation. 80 tests passing, build green. Branch 005-reportes committed, ready for review/merge to main. Features #1-#4 already merged to main.
-
-Do not implement US3 (low-stock) or Polish tasks until US2 is reviewed and committed.
+Key commands: build = ng build (npm run build); tests = npm test -- --watch=false --browsers=ChromeHeadless.
+Remember: web platform uses in-memory mocks (no persistence across reload/new tab) BY DESIGN; SQLite persists on device.
