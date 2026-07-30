@@ -345,7 +345,38 @@ describe('DatabaseService', () => {
     expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }));
     expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
   });
+  it('COMPRA rollback: if the movement insert fails, costo_promedio is NOT modified', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
 
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-baseline',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 5,
+      costo_unitario: 1000,
+    }));
+
+    const costoAntes = (await service.obtenerProductos())
+      .find((producto) => producto.id === 'p1')!.costo_promedio;
+    expect(costoAntes).toBe(1000);
+
+    const movimientos = (service as any).mockWebMovimInventario as MovimInventario[];
+    spyOn(movimientos, 'push').and.throwError('simulated movement insert failure');
+
+    await expectAsync(crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-compra-falla',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 5,
+      costo_unitario: 2000,
+    }))).toBeRejected();
+
+    const costoDespues = (await service.obtenerProductos())
+      .find((producto) => producto.id === 'p1')!.costo_promedio;
+
+    expect(costoDespues).toBe(1000);
+    expect((await obtenerMovimientosPorProducto('p1')).length).toBe(1);
+  });
   it('ROLLBACK (mandatory): if a write fails, NOTHING persists', async () => {
     await service.crearCliente(crearClienteParcial({ id: 'c1' }));
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
