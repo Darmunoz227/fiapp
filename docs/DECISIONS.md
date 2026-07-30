@@ -307,3 +307,42 @@ T004-T008
 **Reason:** Refactoring working, fully-tested code (55 tests) with no genuine inconsistency would add risk (regression) for no functional benefit, and risks the over-implementation failure pattern.
 
 **Implication:** T027 closed with zero code diff. The transaction-atomicity hardening (wrapping COMPRA cost-update + movement INSERT in a native SQL transaction) is deferred to a dedicated future task with a proper failure-path test; it is not part of Polish.
+
+---
+
+## Decision 026 — crearMovimiento is transactional; internal variant for composition
+
+**Decision:** `crearMovimiento` is now atomic. Its body was extracted into a private
+`crearMovimientoInterno` (which assumes the caller owns the transaction), and the public
+`crearMovimiento` wraps that variant in `ejecutarEnTransaccion`. `registrarVenta` calls
+the internal variant, since it already opens its own transaction.
+
+**Problem it fixes:** For COMPRA, `crearMovimiento` performed two sequential writes with no
+transaction boundary: (1) update `producto.costo_promedio`, then (2) INSERT the movement.
+If step 2 failed, the cost was already persisted for a purchase that never entered the log.
+Since every sale freezes `costo_unitario` from `costo_promedio`, a poisoned cost would
+silently corrupt ganancia on all subsequent sales, with no UI path to repair it (AJUSTE
+corrects stock, never cost).
+
+**Why method separation over alternatives:** A naive `beginTransaction()` inside
+`crearMovimiento` would break `registrarVenta` with "cannot start a transaction within a
+transaction". Considered: (i) optional `tx?` parameter, (ii) reentrant transaction detection,
+(iii) SAVEPOINT. Chose separation because nesting becomes structurally impossible rather than
+runtime-guarded, the public API stays unchanged (UI call sites untouched), and it adds no
+machinery we do not need.
+
+**Side benefit:** The stock-guard reads now run inside the transaction, giving read-write
+consistency for the negative-stock check.
+
+**⚠️ Coverage limit — read this before trusting green:** The Karma suite stubs
+`Capacitor.getPlatform()` to `'web'`, so `ejecutarEnTransaccion` always takes the in-memory
+snapshot path and never calls `beginTransaction()`. **No test in this suite can detect a
+nested SQL transaction.** During this feature, a mid-implementation state where
+`registrarVenta` still called the public `crearMovimiento` produced a full green run (81
+SUCCESS) while being broken on device. Defenses are code review (grep every call site) and
+on-device testing — never the green alone.
+
+**Implication:** Any future caller that already holds a transaction MUST call
+`crearMovimientoInterno`. Any caller outside a transaction MUST call `crearMovimiento`.
+Keep `ejecutarEnTransaccion` private. Feature 007 (pago parcial/mixto) builds on this
+primitive and must follow the same rule.
