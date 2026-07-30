@@ -17,6 +17,7 @@ import {
 import { DatabaseService } from '../../core/database/database.service';
 import { Producto } from '../../core/models/producto.model';
 import { Venta } from '../../core/models/venta.model';
+import { calcularTotalVenta } from '../ventas/ventas-calculations';
 import { calcularResumenVentas, filtrarVentasPorRango, RangoReporte, ResumenVentas } from './reportes-calculations';
 
 @Component({
@@ -85,6 +86,6 @@ export class ReportesPage {
   }
 
   totalVenta(venta: Venta): number {
-    return venta.precio_venta * venta.cantidad;
+    return calcularTotalVenta(venta.precio_venta, venta.cantidad);
   }
 }

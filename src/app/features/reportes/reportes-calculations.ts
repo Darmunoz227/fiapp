@@ -1,4 +1,5 @@
 import { Venta } from '../../core/models/venta.model';
+import { calcularTotalVenta } from '../ventas/ventas-calculations';
 
 export type RangoReporte = 'HOY' | 'TODO';
 
@@ -35,7 +36,7 @@ export function filtrarVentasPorRango(ventas: Venta[], rango: RangoReporte, ahor
 export function calcularResumenVentas(ventas: Venta[]): ResumenVentas {
   return ventas.reduce<ResumenVentas>(
     (resumen, venta) => {
-      const totalVenta = venta.precio_venta * venta.cantidad;
+      const totalVenta = calcularTotalVenta(venta.precio_venta, venta.cantidad);
 
       resumen.totalVendido += totalVenta;
       resumen.gananciaTotal += venta.ganancia;

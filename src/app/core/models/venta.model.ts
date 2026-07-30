@@ -1,4 +1,4 @@
-export type TipoPago = 'CONTADO' | 'FIADO';
+export type TipoPago = 'CONTADO' | 'FIADO' | 'MIXTO';
 
 export interface Venta {
   id: string;

@@ -106,3 +106,17 @@ impossible first, guard it anyway second.
 - AC7: Existing v4 sales are backfilled: CONTADO -> all to monto_contado,
   FIADO -> all to monto_fiado. Backfill is idempotent.
 - AC8: All 81 existing tests remain green.
+
+## Amendment (T001 finding) — counts with MIXTO
+
+ResumenVentas has SEVEN fields, not four: totalVendido, gananciaTotal, numeroVentas, contadoCount, fiadoCount, contadoTotal, fiadoTotal.
+
+Totals are unambiguous: a MIXTO sale contributes pesos to BOTH contadoTotal and fiadoTotal. Counts are not: a mixed sale is ONE sale that is both things.
+
+Decision (Carol, option B): add a third counter mixtoCount. A sale increments exactly one counter, preserving the invariant contadoCount + fiadoCount + mixtoCount === numeroVentas, testable the same way as the peso invariant.
+
+Other T001 findings:
+- reportes.page.ts:47 initializes the resumen object inline with all zeroed fields, duplicating the default inside calcularResumenVentas. Adding mixtoCount requires touching BOTH.
+- ventas.page.ts:60 declares tipo_pago with a literal union, not the TipoPago type. Adding MIXTO to the type will NOT produce a compiler error there; it must be changed by hand.
+- The ganancia formula is also duplicated (ventas.page.ts gananciaEstimada getter and inside registrarVenta). NOT touched in Feature 007; noted as future cleanup.
+- reportes.page.html and ventas.page.html have not been read yet; they must be read before T008 and T009.
