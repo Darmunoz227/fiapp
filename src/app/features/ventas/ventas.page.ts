@@ -23,7 +23,7 @@ import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
-import { Venta } from '../../core/models/venta.model';
+import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
 
 @Component({
@@ -57,7 +57,7 @@ export class VentasPage {
   clienteId = '';
   cantidad = 0;
   precio = 0;
-  tipo_pago: 'CONTADO' | 'FIADO' = 'CONTADO';
+  tipo_pago: TipoPago = 'CONTADO';
   stockDerivado = 0;
 
   constructor(
@@ -148,6 +148,8 @@ export class VentasPage {
       costo_unitario: costoUnitario,
       ganancia,
       tipo_pago: this.tipo_pago,
+      monto_contado: this.tipo_pago === 'CONTADO' ? precio * cantidad : 0,
+      monto_fiado: this.tipo_pago === 'FIADO' ? precio * cantidad : 0,
       cliente_id: this.tipo_pago === 'FIADO' ? this.clienteId : null,
       fecha: ahora,
       created_at: null,

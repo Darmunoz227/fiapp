@@ -8,6 +8,8 @@ export interface Venta {
   costo_unitario: number;
   ganancia: number;
   tipo_pago: TipoPago;
+  monto_contado: number;
+  monto_fiado: number;
   cliente_id?: string | null;
   fecha: number;
   created_at?: number | null;

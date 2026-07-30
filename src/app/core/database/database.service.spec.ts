@@ -98,6 +98,8 @@ describe('DatabaseService', () => {
       costo_unitario: overrides.costo_unitario ?? 1000,
       ganancia: overrides.ganancia ?? 500,
       tipo_pago: overrides.tipo_pago ?? 'CONTADO',
+      monto_contado: overrides.monto_contado ?? 1500,
+      monto_fiado: overrides.monto_fiado ?? 0,
       cliente_id: overrides.cliente_id ?? null,
       fecha: overrides.fecha ?? Date.now(),
       created_at: overrides.created_at ?? null,
