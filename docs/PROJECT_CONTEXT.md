@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #5 are all COMPLETE, tested, and merged to main.
+- Features #2 through #6 are all COMPLETE, tested, and merged to main.
 - Current schema version: v4 (bumped across Feature #2 inventory tables and Feature #4 ventas table).
-- 80 tests passing. Build green. Working branch: main (everything merged).
-- Next up: Feature #6 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado).
+- 81 tests passing. Build green. Working branch: main (everything merged).
+- Next up: Feature #7 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado).
 
 Before doing work, always run:
 
@@ -296,11 +296,11 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #5 are COMPLETE and merged to main (80 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo).
+Features #1 through #6 are COMPLETE and merged to main (81 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026).
 
 NEXT (Carol chooses):
-- Feature #6 (most likely): Pago parcial/mixto en ventas (abono: part cash + part credit in one sale). Realistic merchant need. Will touch writes + the atomic primitive, so go spec-first.
-- Pending (no numbered decision yet): transaction-atomicity hardening of crearMovimiento (wrap COMPRA cost-update + movement INSERT in a native SQL transaction, with a failure-path test). Deferred per Decision 025's implication — NOT Decision 025 itself (025 = T027 naming review, closed zero-diff). The ejecutarEnTransaccion primitive from Feature #4 is reusable for this.
+- Feature #7 (next, most likely): Pago parcial/mixto en ventas (abono: part cash + part credit in one sale). Realistic merchant need. Builds on the now-hardened transactional primitive; go spec-first. Callers inside a transaction must use crearMovimientoInterno (see Decision 026).
+- DONE (Feature #6, Decision 026): crearMovimiento is now transactional. Public entry wraps ejecutarEnTransaccion; registrarVenta composes via crearMovimientoInterno, so nesting is structurally impossible. 81 tests.
 - Pending (product decision): reconcile manual fiado (Home -> cliente) vs venta fiado. A manual fiado creates client debt but does NOT touch inventory or ganancia; a venta fiado does both.
 - Optional: on-device testing (real SQLite persistence).
 

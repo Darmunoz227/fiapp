@@ -273,6 +273,10 @@ export class DatabaseService {
   }
 
   async crearMovimiento(movimiento: MovimInventario): Promise<void> {
+    return this.ejecutarEnTransaccion(() => this.crearMovimientoInterno(movimiento));
+  }
+
+  private async crearMovimientoInterno(movimiento: MovimInventario): Promise<void> {
     const movimientosExistentes = await this.obtenerMovimientosPorProducto(movimiento.producto_id);
     const stockDerivado = calcularStockDerivado(movimientosExistentes);
 
@@ -395,7 +399,7 @@ export class DatabaseService {
 
   async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
     return this.ejecutarEnTransaccion(async () => {
-      await this.crearMovimiento(movimiento);
+      await this.crearMovimientoInterno(movimiento);
       await this.insertVenta(venta);
       if (venta.tipo_pago === 'FIADO' && transaccionFiado) {
         await this.crearTransaccion(transaccionFiado);
