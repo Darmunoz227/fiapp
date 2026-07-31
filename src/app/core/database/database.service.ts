@@ -225,7 +225,7 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'INSERT INTO clientes (id, nombre, telefono, habeas_data_flag, fecha_creacion) VALUES (?, ?, ?, ?, ?)';
     const values = [cliente.id, cliente.nombre, cliente.telefono, cliente.habeas_data_flag ? 1 : 0, cliente.fecha_creacion];
-    await this.db.run(sql, values);
+    await this.ejecutarRun(sql, values);
   }
 
   async obtenerClientes(): Promise<Cliente[]> {
@@ -256,7 +256,7 @@ export class DatabaseService {
     return res.values && res.values.length > 0 ? res.values[0] as Cliente : null;
   }
 
-  async crearTransaccion(transaccion: Transaccion): Promise<void> {
+  async crearTransaccion(transaccion: Transaccion, dentroDeTx = false): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
       this.mockWebTransacciones.push({ ...transaccion, deleted_at: transaccion.deleted_at ?? null });
       return;
@@ -264,7 +264,7 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'INSERT INTO transacciones (id, cliente_id, tipo, monto, concepto, fecha) VALUES (?, ?, ?, ?, ?, ?)';
     const values = [transaccion.id, transaccion.cliente_id, transaccion.tipo, transaccion.monto, transaccion.concepto || '', transaccion.fecha];
-    await this.db.run(sql, values);
+    await this.ejecutarRun(sql, values, dentroDeTx);
   }
 
   async crearProducto(producto: Producto): Promise<void> {
@@ -276,7 +276,7 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio) VALUES (?, ?, ?, ?, ?, ?)';
     const values = [producto.id, producto.nombre, producto.precio_venta, producto.tipo_venta, producto.minimo_stock, producto.costo_promedio];
-    await this.db.run(sql, values);
+    await this.ejecutarRun(sql, values);
   }
 
   async crearMovimiento(movimiento: MovimInventario): Promise<void> {
@@ -338,7 +338,7 @@ export class DatabaseService {
       movimiento.store_id ?? null,
       movimiento.created_by ?? null,
     ];
-    await this.db.run(sql, values);
+    await this.ejecutarRun(sql, values, true);
   }
 
   private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
@@ -403,7 +403,7 @@ export class DatabaseService {
       venta.store_id ?? null,
       venta.created_by ?? null,
     ];
-    await this.db.run(sql, values);
+    await this.ejecutarRun(sql, values, true);
   }
 
   async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
@@ -412,7 +412,7 @@ export class DatabaseService {
       await this.crearMovimientoInterno(movimiento);
       await this.insertVenta(venta);
       if (venta.monto_fiado > 0 && transaccionFiado) {
-        await this.crearTransaccion(transaccionFiado);
+        await this.crearTransaccion(transaccionFiado, true);
       }
     });
   }
@@ -497,7 +497,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE movim_inventario SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
-    await this.db.run(sql, [Date.now(), id]);
+    await this.ejecutarRun(sql, [Date.now(), id]);
   }
 
   async restoreMovimiento(id: string): Promise<void> {
@@ -510,7 +510,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE movim_inventario SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
-    await this.db.run(sql, [id]);
+    await this.ejecutarRun(sql, [id]);
   }
 
   async softDeleteCliente(id: string): Promise<void> {
@@ -523,7 +523,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE clientes SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
-    await this.db.run(sql, [Date.now(), id]);
+    await this.ejecutarRun(sql, [Date.now(), id]);
   }
 
   async restoreCliente(id: string): Promise<void> {
@@ -536,7 +536,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE clientes SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
-    await this.db.run(sql, [id]);
+    await this.ejecutarRun(sql, [id]);
   }
 
   private async obtenerMovimientoPorIdInterno(id: string): Promise<MovimInventario | null> {
@@ -560,7 +560,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE transacciones SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
-    await this.db.run(sql, [Date.now(), id]);
+    await this.ejecutarRun(sql, [Date.now(), id]);
   }
 
   async restoreTransaccion(id: string): Promise<void> {
@@ -573,7 +573,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE transacciones SET deleted_at = NULL WHERE id = ? AND deleted_at IS NOT NULL';
-    await this.db.run(sql, [id]);
+    await this.ejecutarRun(sql, [id]);
   }
 
   private async obtenerProductoPorIdInterno(id: string): Promise<Producto | null> {
@@ -597,7 +597,7 @@ export class DatabaseService {
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE productos SET costo_promedio = ? WHERE id = ? AND deleted_at IS NULL';
-    await this.db.run(sql, [costoPromedio, id]);
+    await this.ejecutarRun(sql, [costoPromedio, id], true);
   }
 
   private validarMontosVenta(venta: Venta): void {
@@ -623,13 +623,26 @@ export class DatabaseService {
   }
 
   private async backfillMontosVentas(): Promise<void> {
-    await this.db.run(
+    await this.ejecutarRun(
       "UPDATE ventas SET monto_contado = precio_venta * cantidad, monto_fiado = 0 WHERE monto_contado IS NULL AND tipo_pago = ?",
       ["CONTADO"],
     );
-    await this.db.run(
+    await this.ejecutarRun(
       "UPDATE ventas SET monto_contado = 0, monto_fiado = precio_venta * cantidad WHERE monto_contado IS NULL AND tipo_pago = ?",
       ["FIADO"],
     );
+  }
+
+  /**
+   * The plugin signature is run(sql, values, transaction) and that third
+   * parameter DEFAULTS TO TRUE, meaning every run opens its own transaction.
+   * Inside ejecutarEnTransaccion that produces "cannot start a transaction
+   * within a transaction" on a real device.
+   *
+   * Callers here think in terms of "am I already inside a transaction", so the
+   * flag is inverted once, in this single place. See Decision 028.
+   */
+  private async ejecutarRun(sql: string, values: any[], dentroDeTx = false) {
+    return this.db.run(sql, values, !dentroDeTx);
   }
 }
