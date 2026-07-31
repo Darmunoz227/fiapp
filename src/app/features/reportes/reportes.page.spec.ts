@@ -15,6 +15,8 @@ function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
     costo_unitario: overrides.costo_unitario ?? 1000,
     ganancia: overrides.ganancia ?? 500,
     tipo_pago: overrides.tipo_pago ?? 'CONTADO',
+    monto_contado: overrides.monto_contado ?? 1500,
+    monto_fiado: overrides.monto_fiado ?? 0,
     cliente_id: overrides.cliente_id ?? null,
     fecha: overrides.fecha ?? Date.now(),
     created_at: overrides.created_at ?? null,
@@ -58,6 +60,8 @@ describe('ReportesPage', () => {
       crearVentaParcial({
         id: 'v1',
         tipo_pago: 'CONTADO',
+        monto_contado: 2000,
+        monto_fiado: 0,
         precio_venta: 1000,
         cantidad: 2,
         ganancia: 400,
@@ -66,6 +70,8 @@ describe('ReportesPage', () => {
       crearVentaParcial({
         id: 'v2',
         tipo_pago: 'FIADO',
+        monto_contado: 0,
+        monto_fiado: 1500,
         precio_venta: 1500,
         cantidad: 1,
         ganancia: 500,

@@ -1,4 +1,5 @@
 import { Venta } from '../../core/models/venta.model';
+import { calcularTotalVenta, derivarTipoPago } from '../ventas/ventas-calculations';
 
 export type RangoReporte = 'HOY' | 'TODO';
 
@@ -8,6 +9,7 @@ export interface ResumenVentas {
   numeroVentas: number;
   contadoCount: number;
   fiadoCount: number;
+  mixtoCount: number;
   contadoTotal: number;
   fiadoTotal: number;
 }
@@ -35,18 +37,22 @@ export function filtrarVentasPorRango(ventas: Venta[], rango: RangoReporte, ahor
 export function calcularResumenVentas(ventas: Venta[]): ResumenVentas {
   return ventas.reduce<ResumenVentas>(
     (resumen, venta) => {
-      const totalVenta = venta.precio_venta * venta.cantidad;
+      const totalVenta = calcularTotalVenta(venta.precio_venta, venta.cantidad);
 
       resumen.totalVendido += totalVenta;
       resumen.gananciaTotal += venta.ganancia;
       resumen.numeroVentas += 1;
 
-      if (venta.tipo_pago === 'CONTADO') {
+      resumen.contadoTotal += venta.monto_contado ?? 0;
+      resumen.fiadoTotal += venta.monto_fiado ?? 0;
+
+      const tipo = derivarTipoPago(venta.monto_contado ?? 0, venta.monto_fiado ?? 0);
+      if (tipo === 'CONTADO') {
         resumen.contadoCount += 1;
-        resumen.contadoTotal += totalVenta;
-      } else if (venta.tipo_pago === 'FIADO') {
+      } else if (tipo === 'FIADO') {
         resumen.fiadoCount += 1;
-        resumen.fiadoTotal += totalVenta;
+      } else {
+        resumen.mixtoCount += 1;
       }
 
       return resumen;
@@ -57,6 +63,7 @@ export function calcularResumenVentas(ventas: Venta[]): ResumenVentas {
       numeroVentas: 0,
       contadoCount: 0,
       fiadoCount: 0,
+      mixtoCount: 0,
       contadoTotal: 0,
       fiadoTotal: 0,
     },

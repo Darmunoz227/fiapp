@@ -98,6 +98,8 @@ describe('DatabaseService', () => {
       costo_unitario: overrides.costo_unitario ?? 1000,
       ganancia: overrides.ganancia ?? 500,
       tipo_pago: overrides.tipo_pago ?? 'CONTADO',
+      monto_contado: overrides.monto_contado ?? 1500,
+      monto_fiado: overrides.monto_fiado ?? 0,
       cliente_id: overrides.cliente_id ?? null,
       fecha: overrides.fecha ?? Date.now(),
       created_at: overrides.created_at ?? null,
@@ -268,6 +270,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-1',
+      monto_contado: 4500,
+      monto_fiado: 0,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
@@ -310,6 +314,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-2',
+      monto_contado: 0,
+      monto_fiado: 4500,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
@@ -440,6 +446,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-3',
+      monto_contado: 4500,
+      monto_fiado: 0,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
@@ -831,5 +839,69 @@ describe('DatabaseService', () => {
       costo_promedio: 900,
       stock_bajo: true,
     }));
+  });
+
+  it("MIXTO sale persists venta, ONE movement, and fiado for the unpaid balance only", async () => {
+    await service.crearCliente(crearClienteParcial({ id: "c1" }));
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-mix", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
+    const venta = crearVentaParcial({ id: "v-mix", producto_id: "p1", cantidad: 2, precio_venta: 15000, costo_unitario: 1000, ganancia: 28000, tipo_pago: "MIXTO", cliente_id: "c1", monto_contado: 10000, monto_fiado: 20000 });
+    const mov = crearMovimientoParcial({ id: "mv-mix", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
+    const tx = crearTransaccionParcial({ id: "tx-mix", cliente_id: "c1", tipo: "fiado", monto: 20000, concepto: "Saldo venta mixta" });
+    await service.registrarVenta(venta, mov, tx);
+    const ventas = await service.obtenerVentas();
+    const movimientos = await obtenerMovimientosPorProducto("p1");
+    const deudas = await service.obtenerTransaccionesPorCliente("c1");
+    expect(ventas).toContain(jasmine.objectContaining({ id: "v-mix", monto_contado: 10000, monto_fiado: 20000 }));
+    expect(movimientos.filter((m) => m.tipo === "VENTA").length).toBe(1);
+    expect(deudas).toContain(jasmine.objectContaining({ id: "tx-mix", monto: 20000 }));
+  });
+
+  it("REJECTS a sale whose amounts do not add up to the total", async () => {
+    await service.crearCliente(crearClienteParcial({ id: "c1" }));
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-bad", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
+    const venta = crearVentaParcial({ id: "v-bad", producto_id: "p1", cantidad: 2, precio_venta: 15000, cliente_id: "c1", monto_contado: 10000, monto_fiado: 5000 });
+    const mov = crearMovimientoParcial({ id: "mv-bad", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
+    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    expect((await service.obtenerVentas()).length).toBe(0);
+  });
+
+  it("REJECTS a negative amount", async () => {
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-neg", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
+    const venta = crearVentaParcial({ id: "v-neg", producto_id: "p1", cantidad: 1, precio_venta: 1500, monto_contado: 3000, monto_fiado: -1500 });
+    const mov = crearMovimientoParcial({ id: "mv-neg", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
+    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    expect((await service.obtenerVentas()).length).toBe(0);
+  });
+
+  it("REJECTS null amounts", async () => {
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-null", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
+    const venta = crearVentaParcial({ id: "v-null", producto_id: "p1", cantidad: 1, precio_venta: 1500 });
+    (venta as any).monto_contado = null;
+    (venta as any).monto_fiado = null;
+    const mov = crearMovimientoParcial({ id: "mv-null", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
+    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    expect((await service.obtenerVentas()).length).toBe(0);
+  });
+
+  it("REJECTS monto_fiado greater than 0 without a cliente_id", async () => {
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-nocli", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
+    const venta = crearVentaParcial({ id: "v-nocli", producto_id: "p1", cantidad: 1, precio_venta: 1500, cliente_id: null, monto_contado: 500, monto_fiado: 1000 });
+    const mov = crearMovimientoParcial({ id: "mv-nocli", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
+    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    expect((await service.obtenerVentas()).length).toBe(0);
+  });
+
+  it("ACCEPTS float representation noise within the one-cent tolerance", async () => {
+    await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1 }));
+    await crearMovimiento(crearMovimientoParcial({ id: "mc-float", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1 }));
+    const venta = crearVentaParcial({ id: "v-float", producto_id: "p1", cantidad: 3, precio_venta: 1.1, costo_unitario: 1, ganancia: 0.3, monto_contado: 3.3, monto_fiado: 0 });
+    const mov = crearMovimientoParcial({ id: "mv-float", producto_id: "p1", tipo: "VENTA", cantidad: 3, costo_unitario: 0 });
+    await service.registrarVenta(venta, mov);
+    expect((await service.obtenerVentas()).length).toBe(1);
   });
 });

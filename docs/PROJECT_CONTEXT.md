@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #6 are all COMPLETE, tested, and merged to main.
-- Current schema version: v4 (bumped across Feature #2 inventory tables and Feature #4 ventas table).
-- 81 tests passing. Build green. Working branch: main (everything merged).
-- Next up: Feature #7 = Pago parcial/mixto en ventas (abono: parte contado + parte fiado).
+- Features #2 through #7 are all COMPLETE, tested, and merged to main.
+- Current schema version: v5 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado).
+- 96 tests passing. Build green. Working branch: main (everything merged).
+- Next up: Carol chooses. Candidates: later abonos against existing debt; reconcile manual fiado vs venta fiado; integer-cents migration; multi-item sales.
 
 Before doing work, always run:
 
@@ -296,13 +296,13 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #6 are COMPLETE and merged to main (81 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026).
+Features #1 through #7 are COMPLETE and merged to main (96 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027).
 
 NEXT (Carol chooses):
-- Feature #7 (next, most likely): Pago parcial/mixto en ventas (abono: part cash + part credit in one sale). Realistic merchant need. Builds on the now-hardened transactional primitive; go spec-first. Callers inside a transaction must use crearMovimientoInterno (see Decision 026).
-- DONE (Feature #6, Decision 026): crearMovimiento is now transactional. Public entry wraps ejecutarEnTransaccion; registrarVenta composes via crearMovimientoInterno, so nesting is structurally impossible. 81 tests.
-- Pending (product decision): reconcile manual fiado (Home -> cliente) vs venta fiado. A manual fiado creates client debt but does NOT touch inventory or ganancia; a venta fiado does both.
-- Optional: on-device testing (real SQLite persistence).
+- DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.
+- DONE (Feature #6, Decision 026): crearMovimiento is transactional; callers inside a transaction must use crearMovimientoInterno.
+- PENDING (recommended before calling #7 truly done): on-device verification over an existing v4 database. Karma stubs the platform to web, so the v5 migration, the backfill and the native INSERT are NEVER executed by the suite.
+- NEXT (Carol chooses): later abonos against existing debt; reconcile manual fiado vs venta fiado; integer-cents migration for money; multi-item sales.
 
 HOW TO START A NEW FEATURE:
 1. Run: git status && git log --oneline -3 (verify clean on main).

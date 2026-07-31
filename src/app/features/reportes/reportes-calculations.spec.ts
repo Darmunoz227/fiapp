@@ -10,6 +10,8 @@ function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
     costo_unitario: overrides.costo_unitario ?? 1000,
     ganancia: overrides.ganancia ?? 500,
     tipo_pago: overrides.tipo_pago ?? 'CONTADO',
+    monto_contado: overrides.monto_contado ?? 1500,
+    monto_fiado: overrides.monto_fiado ?? 0,
     cliente_id: overrides.cliente_id ?? null,
     fecha: overrides.fecha ?? Date.now(),
     created_at: overrides.created_at ?? null,
@@ -56,6 +58,8 @@ describe('reportes-calculations', () => {
         crearVentaParcial({
           id: 'v1',
           tipo_pago: 'CONTADO',
+          monto_contado: 2000,
+          monto_fiado: 0,
           precio_venta: 1000,
           cantidad: 2,
           ganancia: 400,
@@ -63,6 +67,8 @@ describe('reportes-calculations', () => {
         crearVentaParcial({
           id: 'v2',
           tipo_pago: 'FIADO',
+          monto_contado: 0,
+          monto_fiado: 1500,
           precio_venta: 1500,
           cantidad: 1,
           ganancia: 500,
@@ -77,6 +83,7 @@ describe('reportes-calculations', () => {
         numeroVentas: 2,
         contadoCount: 1,
         fiadoCount: 1,
+        mixtoCount: 0,
         contadoTotal: 2000,
         fiadoTotal: 1500,
       };
@@ -93,11 +100,34 @@ describe('reportes-calculations', () => {
         numeroVentas: 0,
         contadoCount: 0,
         fiadoCount: 0,
+        mixtoCount: 0,
         contadoTotal: 0,
         fiadoTotal: 0,
       };
 
       expect(resumen).toEqual(esperado);
     });
+  });
+
+  it("counts a MIXTO sale in mixtoCount and splits its pesos across both totals", () => {
+    const ventas = [crearVentaParcial({ id: "v-mix", cantidad: 2, precio_venta: 15000, monto_contado: 10000, monto_fiado: 20000, tipo_pago: "MIXTO", cliente_id: "c1" })];
+    const resumen = calcularResumenVentas(ventas);
+    expect(resumen.totalVendido).toBe(30000);
+    expect(resumen.contadoTotal).toBe(10000);
+    expect(resumen.fiadoTotal).toBe(20000);
+    expect(resumen.mixtoCount).toBe(1);
+    expect(resumen.contadoCount).toBe(0);
+    expect(resumen.fiadoCount).toBe(0);
+  });
+
+  it("keeps both invariants over a mixed dataset", () => {
+    const ventas = [
+      crearVentaParcial({ id: "a", cantidad: 1, precio_venta: 1000, monto_contado: 1000, monto_fiado: 0, tipo_pago: "CONTADO" }),
+      crearVentaParcial({ id: "b", cantidad: 1, precio_venta: 2000, monto_contado: 0, monto_fiado: 2000, tipo_pago: "FIADO", cliente_id: "c1" }),
+      crearVentaParcial({ id: "c", cantidad: 1, precio_venta: 5000, monto_contado: 2000, monto_fiado: 3000, tipo_pago: "MIXTO", cliente_id: "c1" }),
+    ];
+    const resumen = calcularResumenVentas(ventas);
+    expect(resumen.contadoTotal + resumen.fiadoTotal).toBe(resumen.totalVendido);
+    expect(resumen.contadoCount + resumen.fiadoCount + resumen.mixtoCount).toBe(resumen.numeroVentas);
   });
 });
