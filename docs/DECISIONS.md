@@ -370,3 +370,27 @@ primitive and must follow the same rule.
 **Canonical helper:** calcularTotalVenta replaced two duplicated inline formulas. Any new consumer must use it - three copies of one formula is three places for rounding to diverge.
 
 **Deliberately out of scope:** integer cents migration, later abonos against existing debt (those are transacciones), reconciling manual fiado vs venta fiado, multi-method payments, and whether precio_venta for PESO products is per gram or per kilo.
+
+---
+
+## Decision 027 - Amounts are the source of truth; tipo_pago is a projection
+
+**Decision:** A sale stores monto_contado and monto_fiado. tipo_pago becomes a PROJECTION derived from those amounts via derivarTipoPago, never written literally. This enables partial payment (abono): part cash, part credit in a single sale.
+
+**Product rules (Carol):** ONE frozen ganancia for the whole sale - profit does not depend on how the customer paid. ONE VENTA inventory movement for all goods handed over. ONE fiado transaction for the UNPAID balance only. cliente_id required when monto_fiado > 0.
+
+**Why amounts over a MIXTO label:** a label tells you a sale was mixed but not how many pesos entered the register. The merchant needs the cash figure. Amounts also let the report sum real money instead of counting sales by category.
+
+**Bug this exposed and fixed:** registrarVenta gated debt creation on tipo_pago === FIADO. A MIXTO sale would hand over goods, record the sale, and never create the client debt - the unpaid balance simply vanished. The same shape of bug existed in the report: an if/else-if on tipo_pago left MIXTO adding to totalVendido but to neither category, so the columns silently stopped adding up. Both are now gated on the amounts, not the label.
+
+**Float tolerance:** precio_venta is REAL, so the total is floating-point arithmetic and strict equality would reject valid sales over IEEE-754 noise (0.1 + 0.2 !== 0.3). The invariant uses Math.abs(sum - total) < 0.01. Colombian pesos are whole units in practice, so real business errors are measured in pesos while representation noise is around 1e-10. A guard test pins this: remove the tolerance and it goes red.
+
+**Two-layer defense:** the UI captures only the abono and derives monto_fiado = total - abono, so the invariant holds by construction. The data layer recomputes the total itself and enforces the invariant anyway - it must never trust a caller-supplied total. Same philosophy as Decision 026: make it structurally impossible first, guard it regardless.
+
+**Migration v4 to v5:** columns added through BOTH schema routes - crearTablasSiFaltan for new installs and migrarEsquemaSiNecesario for existing ones. Missing either leaves one population broken. Columns are nullable because SQLite cannot ADD COLUMN NOT NULL on a populated table; SQLite also cannot add a CHECK constraint after creation without a full table rebuild, which is why the invariant lives in code and not in the schema. backfillMontosVentas is a separate data step (agregarColumnaSiFalta is DDL only), idempotent via the IS NULL filter.
+
+**Coverage limit - read before trusting green:** Karma stubs the platform to web, so NEITHER schema route, NOR the backfill, NOR the native INSERT is ever executed by the suite. The 96 passing tests say nothing about whether the migration works on a device. On-device verification over an existing v4 database is the only proof.
+
+**Canonical helper:** calcularTotalVenta replaced two duplicated inline formulas. Any new consumer must use it - three copies of one formula is three places for rounding to diverge.
+
+**Deliberately out of scope:** integer cents migration, later abonos against existing debt (those are transacciones), reconciling manual fiado vs venta fiado, multi-method payments, and whether precio_venta for PESO products is per gram or per kilo.
