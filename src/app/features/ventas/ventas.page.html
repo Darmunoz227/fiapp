@@ -40,10 +40,21 @@
         <ion-select [(ngModel)]="tipo_pago" interface="popover">
           <ion-select-option value="CONTADO">CONTADO</ion-select-option>
           <ion-select-option value="FIADO">FIADO</ion-select-option>
+          <ion-select-option value="MIXTO">MIXTO (abono)</ion-select-option>
         </ion-select>
       </ion-item>
 
-      <ion-item *ngIf="tipo_pago === 'FIADO'">
+      <ion-item *ngIf="tipo_pago === 'MIXTO'">
+        <ion-label position="stacked">Abono recibido</ion-label>
+        <ion-input type="number" inputmode="decimal" [(ngModel)]="abono"></ion-input>
+      </ion-item>
+
+      <p class="stock-summary" *ngIf="tipo_pago === 'MIXTO' && totalVenta > 0">
+        Total: <strong>{{ totalVenta | currency:'COP':'symbol':'1.0-0' }}</strong> —
+        Queda debiendo: <strong>{{ montoFiadoCalculado | currency:'COP':'symbol':'1.0-0' }}</strong>
+      </p>
+
+      <ion-item *ngIf="montoFiadoCalculado > 0">
         <ion-label position="stacked">Cliente</ion-label>
         <ion-select [(ngModel)]="clienteId" interface="popover">
           <ion-select-option *ngFor="let c of clientes" [value]="c.id">{{ c.nombre }}</ion-select-option>

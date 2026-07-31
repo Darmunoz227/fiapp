@@ -25,6 +25,7 @@ import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
+import { calcularTotalVenta, derivarTipoPago } from './ventas-calculations';
 
 @Component({
   selector: 'app-ventas',
@@ -58,6 +59,7 @@ export class VentasPage {
   cantidad = 0;
   precio = 0;
   tipo_pago: TipoPago = 'CONTADO';
+  abono = 0;
   stockDerivado = 0;
 
   constructor(
@@ -79,6 +81,29 @@ export class VentasPage {
     }
 
     return (precio - producto.costo_promedio) * cantidad;
+  }
+
+  get totalVenta(): number {
+    const cantidad = Number(this.cantidad);
+    const precio = Number(this.precio);
+    if (Number.isNaN(cantidad) || Number.isNaN(precio)) {
+      return 0;
+    }
+    return calcularTotalVenta(precio, cantidad);
+  }
+
+  get montoContadoCalculado(): number {
+    if (this.tipo_pago === 'CONTADO') {
+      return this.totalVenta;
+    }
+    if (this.tipo_pago === 'FIADO') {
+      return 0;
+    }
+    return Number(this.abono) || 0;
+  }
+
+  get montoFiadoCalculado(): number {
+    return this.totalVenta - this.montoContadoCalculado;
   }
 
   async cargarProductos() {
@@ -125,8 +150,13 @@ export class VentasPage {
       return;
     }
 
-    if (this.tipo_pago === 'FIADO' && !this.clienteId) {
-      await this.mostrarToast('Debes seleccionar un cliente para una venta a fiado', 'danger');
+    if (this.montoContadoCalculado < 0 || this.montoContadoCalculado > this.totalVenta) {
+      await this.mostrarToast('El abono debe estar entre 0 y el total de la venta', 'danger');
+      return;
+    }
+
+    if (this.montoFiadoCalculado > 0 && !this.clienteId) {
+      await this.mostrarToast('Debes seleccionar un cliente para el saldo fiado', 'danger');
       return;
     }
 
@@ -140,6 +170,9 @@ export class VentasPage {
     const ganancia = (precio - costoUnitario) * cantidad;
     const ahora = Date.now();
 
+    const montoContado = this.montoContadoCalculado;
+    const montoFiado = this.montoFiadoCalculado;
+
     const venta: Venta = {
       id: uuidv4(),
       producto_id: this.productoId,
@@ -147,10 +180,10 @@ export class VentasPage {
       precio_venta: precio,
       costo_unitario: costoUnitario,
       ganancia,
-      tipo_pago: this.tipo_pago,
-      monto_contado: this.tipo_pago === 'CONTADO' ? precio * cantidad : 0,
-      monto_fiado: this.tipo_pago === 'FIADO' ? precio * cantidad : 0,
-      cliente_id: this.tipo_pago === 'FIADO' ? this.clienteId : null,
+      tipo_pago: derivarTipoPago(montoContado, montoFiado),
+      monto_contado: montoContado,
+      monto_fiado: montoFiado,
+      cliente_id: montoFiado > 0 ? this.clienteId : null,
       fecha: ahora,
       created_at: null,
       updated_at: null,
@@ -179,12 +212,12 @@ export class VentasPage {
     };
 
     try {
-      if (this.tipo_pago === 'FIADO') {
+      if (montoFiado > 0) {
         const transaccionFiado: Transaccion = {
           id: uuidv4(),
           cliente_id: this.clienteId,
           tipo: 'fiado',
-          monto: precio * cantidad,
+          monto: montoFiado,
           concepto: 'Venta a crédito',
           fecha: ahora,
           created_at: null,
@@ -222,6 +255,7 @@ export class VentasPage {
     this.cantidad = 0;
     this.precio = 0;
     this.tipo_pago = 'CONTADO';
+    this.abono = 0;
     this.stockDerivado = 0;
   }
 

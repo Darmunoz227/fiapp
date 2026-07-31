@@ -128,7 +128,7 @@ describe('VentasPage', () => {
 
     expect(databaseServiceMock.registrarVenta).not.toHaveBeenCalled();
     expect(toastControllerMock.create).toHaveBeenCalledWith(jasmine.objectContaining({
-      message: 'Debes seleccionar un cliente para una venta a fiado',
+      message: 'Debes seleccionar un cliente para el saldo fiado',
       color: 'danger',
     }));
   });
