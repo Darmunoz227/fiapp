@@ -302,11 +302,17 @@ NEXT (Carol chooses):
 - DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.
 - DONE (Feature #6, Decision 026): crearMovimiento is transactional; callers inside a transaction must use crearMovimientoInterno.
 - PENDING (recommended before calling #7 truly done): on-device verification over an existing v4 database. Karma stubs the platform to web, so the v5 migration, the backfill and the native INSERT are NEVER executed by the suite.
-- NEXT (Carol chooses): later abonos against existing debt; reconcile manual fiado vs venta fiado; integer-cents migration for money; multi-item sales.
+- NEXT, prioritized (Carol chooses):
+  P0 - On-device verification of the v5 migration over an existing v4 database. BLOCKING: an existing merchant could lose access to their clients, fiados and inventory if the migration fails, and no test in this suite can detect it.
+  P1 - Multi-item sale. Today a customer buying three products forces three separate sales. This is the biggest daily-use friction.
+  P2 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
+  P3 - Reconcile manual fiado (Home) vs venta fiado. A manual fiado creates debt but does NOT touch inventory or ganancia; a venta fiado does both.
+  P4 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
+  P5 - Backup and data export. Not in the original vision, but a lost phone today means lost books.
 
 HOW TO START A NEW FEATURE:
 1. Run: git status && git log --oneline -3 (verify clean on main).
-2. Create a branch: 006-nombre.
+2. Create a branch: 00X-nombre (next available number).
 3. Spec-first: write spec.md -> plan.md -> tasks.md and commit them BEFORE any code.
 4. Test-first per task: RED tests, then implement to GREEN, confirm "TOTAL: N SUCCESS" on screen BEFORE each commit.
 5. Review every diff. Commit in small logical batches. Merge to main with --no-ff after verifying green on main.
