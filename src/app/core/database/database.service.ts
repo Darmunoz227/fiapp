@@ -23,7 +23,7 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 4;
+  private readonly SCHEMA_VERSION = 5;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -153,6 +153,8 @@ export class DatabaseService {
         costo_unitario REAL NOT NULL,
         ganancia REAL NOT NULL,
         tipo_pago TEXT NOT NULL,
+        monto_contado REAL DEFAULT NULL,
+        monto_fiado REAL DEFAULT NULL,
         cliente_id TEXT DEFAULT NULL,
         fecha INTEGER NOT NULL,
         created_at INTEGER DEFAULT NULL,
@@ -182,6 +184,10 @@ export class DatabaseService {
     await this.agregarColumnaSiFalta('transacciones', 'deleted_at', 'INTEGER DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'store_id', 'TEXT DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'created_by', 'TEXT DEFAULT NULL');
+
+    await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
+    await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
+    await this.backfillMontosVentas();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -376,8 +382,8 @@ export class DatabaseService {
     const sql = `
       INSERT INTO ventas (
         id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
-        tipo_pago, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       venta.id,
@@ -387,6 +393,8 @@ export class DatabaseService {
       venta.costo_unitario,
       venta.ganancia,
       venta.tipo_pago,
+      venta.monto_contado,
+      venta.monto_fiado,
       venta.cliente_id ?? null,
       venta.fecha,
       venta.created_at ?? null,
@@ -612,5 +620,16 @@ export class DatabaseService {
     if (fiado > 0 && !venta.cliente_id) {
       throw new Error("Debes seleccionar un cliente para el saldo fiado");
     }
+  }
+
+  private async backfillMontosVentas(): Promise<void> {
+    await this.db.run(
+      "UPDATE ventas SET monto_contado = precio_venta * cantidad, monto_fiado = 0 WHERE monto_contado IS NULL AND tipo_pago = ?",
+      ["CONTADO"],
+    );
+    await this.db.run(
+      "UPDATE ventas SET monto_contado = 0, monto_fiado = precio_venta * cantidad WHERE monto_contado IS NULL AND tipo_pago = ?",
+      ["FIADO"],
+    );
   }
 }
