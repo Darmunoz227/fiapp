@@ -8,6 +8,7 @@ import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
+import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
@@ -398,10 +399,11 @@ export class DatabaseService {
   }
 
   async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
+    this.validarMontosVenta(venta);
     return this.ejecutarEnTransaccion(async () => {
       await this.crearMovimientoInterno(movimiento);
       await this.insertVenta(venta);
-      if (venta.tipo_pago === 'FIADO' && transaccionFiado) {
+      if (venta.monto_fiado > 0 && transaccionFiado) {
         await this.crearTransaccion(transaccionFiado);
       }
     });
@@ -588,5 +590,27 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'UPDATE productos SET costo_promedio = ? WHERE id = ? AND deleted_at IS NULL';
     await this.db.run(sql, [costoPromedio, id]);
+  }
+
+  private validarMontosVenta(venta: Venta): void {
+    const contado = venta.monto_contado;
+    const fiado = venta.monto_fiado;
+
+    if (contado == null || fiado == null || Number.isNaN(contado) || Number.isNaN(fiado)) {
+      throw new Error("Los montos de la venta son obligatorios");
+    }
+
+    if (contado < 0 || fiado < 0) {
+      throw new Error("Los montos de la venta no pueden ser negativos");
+    }
+
+    const total = calcularTotalVenta(venta.precio_venta, venta.cantidad);
+    if (Math.abs((contado + fiado) - total) >= 0.01) {
+      throw new Error("Los montos no coinciden con el total de la venta");
+    }
+
+    if (fiado > 0 && !venta.cliente_id) {
+      throw new Error("Debes seleccionar un cliente para el saldo fiado");
+    }
   }
 }

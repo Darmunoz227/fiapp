@@ -270,6 +270,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-1',
+      monto_contado: 4500,
+      monto_fiado: 0,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
@@ -312,6 +314,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-2',
+      monto_contado: 0,
+      monto_fiado: 4500,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
@@ -442,6 +446,8 @@ describe('DatabaseService', () => {
 
     const venta = crearVentaParcial({
       id: 'venta-3',
+      monto_contado: 4500,
+      monto_fiado: 0,
       producto_id: 'p1',
       cantidad: 3,
       precio_venta: 1500,
