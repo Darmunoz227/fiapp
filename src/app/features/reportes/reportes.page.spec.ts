@@ -60,6 +60,8 @@ describe('ReportesPage', () => {
       crearVentaParcial({
         id: 'v1',
         tipo_pago: 'CONTADO',
+        monto_contado: 2000,
+        monto_fiado: 0,
         precio_venta: 1000,
         cantidad: 2,
         ganancia: 400,
@@ -68,6 +70,8 @@ describe('ReportesPage', () => {
       crearVentaParcial({
         id: 'v2',
         tipo_pago: 'FIADO',
+        monto_contado: 0,
+        monto_fiado: 1500,
         precio_venta: 1500,
         cantidad: 1,
         ganancia: 500,

@@ -50,6 +50,7 @@ export class ReportesPage {
     numeroVentas: 0,
     contadoCount: 0,
     fiadoCount: 0,
+    mixtoCount: 0,
     contadoTotal: 0,
     fiadoTotal: 0,
   };
