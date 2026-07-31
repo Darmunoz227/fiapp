@@ -373,24 +373,22 @@ primitive and must follow the same rule.
 
 ---
 
-## Decision 027 - Amounts are the source of truth; tipo_pago is a projection
+## Decision 028 - Every db.run must declare whether it runs inside a transaction
 
-**Decision:** A sale stores monto_contado and monto_fiado. tipo_pago becomes a PROJECTION derived from those amounts via derivarTipoPago, never written literally. This enables partial payment (abono): part cash, part credit in a single sale.
+**Decision:** All db.run calls in DatabaseService go through a single private wrapper, ejecutarRun(sql, values, dentroDeTx = false), which inverts the flag once and passes it to the plugin. No call site touches this.db.run directly.
 
-**Product rules (Carol):** ONE frozen ganancia for the whole sale - profit does not depend on how the customer paid. ONE VENTA inventory movement for all goods handed over. ONE fiado transaction for the UNPAID balance only. cliente_id required when monto_fiado > 0.
+**Root cause:** @capacitor-community/sqlite has run(statement, values?, transaction?, ...) and that third parameter DEFAULTS TO TRUE. Every db.run opens its own transaction. Inside ejecutarEnTransaccion this produced, on device: "Error beginTransaction: failed rc: 1 message: cannot start a transaction within a transaction".
 
-**Why amounts over a MIXTO label:** a label tells you a sale was mixed but not how many pesos entered the register. The merchant needs the cash figure. Amounts also let the report sum real money instead of counting sales by category.
+**Scope of the damage:** this predates Feature 006. registrarVenta has wrapped its writes in ejecutarEnTransaccion since Feature 004, so EVERY sale was broken on device from Feature 004 onward. Feature 006 only extended the breakage to COMPRA/MERMA/AJUSTE from the inventory UI. For four features the app could create clients and products and nothing else, and no one knew.
 
-**Bug this exposed and fixed:** registrarVenta gated debt creation on tipo_pago === FIADO. A MIXTO sale would hand over goods, record the sale, and never create the client debt - the unpaid balance simply vanished. The same shape of bug existed in the report: an if/else-if on tipo_pago left MIXTO adding to totalVendido but to neither category, so the columns silently stopped adding up. Both are now gated on the amounts, not the label.
+**Why an explicit parameter over hidden state:** crearTransaccion is called from registrarVenta (inside a transaction) and from cliente-detalle.page.ts (standalone). A fixed flag would break one of them. Tracking an internal txActiva boolean was rejected for the same reason as in Decision 026: declare the context, do not guess it. The caller knows; the service should not have to infer.
 
-**Float tolerance:** precio_venta is REAL, so the total is floating-point arithmetic and strict equality would reject valid sales over IEEE-754 noise (0.1 + 0.2 !== 0.3). The invariant uses Math.abs(sum - total) < 0.01. Colombian pesos are whole units in practice, so real business errors are measured in pesos while representation noise is around 1e-10. A guard test pins this: remove the tolerance and it goes red.
+**The grep is the gate, not the tests:** after the change, grep -c "this.db.run" must return 1 and grep -c "this.ejecutarRun" must return 14. Any other number means a call site was missed and the bug survives on that path. No test can tell you this.
 
-**Two-layer defense:** the UI captures only the abono and derives monto_fiado = total - abono, so the invariant holds by construction. The data layer recomputes the total itself and enforces the invariant anyway - it must never trust a caller-supplied total. Same philosophy as Decision 026: make it structurally impossible first, guard it regardless.
+**Hypothesis that was WRONG, recorded so nobody repeats it:** the failure was initially assumed to depend on the schema migration leaving an implicit transaction open, because it first appeared right after a v3-to-v4 upgrade. It was then reproduced on a freshly created v4 database with no migration at all. The bug is structural, not state-dependent.
 
-**Migration v4 to v5:** columns added through BOTH schema routes - crearTablasSiFaltan for new installs and migrarEsquemaSiNecesario for existing ones. Missing either leaves one population broken. Columns are nullable because SQLite cannot ADD COLUMN NOT NULL on a populated table; SQLite also cannot add a CHECK constraint after creation without a full table rebuild, which is why the invariant lives in code and not in the schema. backfillMontosVentas is a separate data step (agregarColumnaSiFalta is DDL only), idempotent via the IS NULL filter.
+**What could NOT be verified, and why:** the v5 backfill of existing sales is untestable in practice. Because registrarVenta was broken on device since Feature 004, no real installation can contain rows in the ventas table. The backfill is kept as defensive code but has never processed a single row and never will.
 
-**Coverage limit - read before trusting green:** Karma stubs the platform to web, so NEITHER schema route, NOR the backfill, NOR the native INSERT is ever executed by the suite. The 96 passing tests say nothing about whether the migration works on a device. On-device verification over an existing v4 database is the only proof.
+**On-device verification performed (the only real proof):** the bug was reproduced on a clean simulator running ed0ba04, then a v4 database was built (client and product), the app was upgraded IN PLACE to this branch, and afterwards: the migration ran with no error, existing data survived, and the COMPRA that had just failed succeeded. Feature 006 flows (CONTADO, FIADO, MIXTO, manual fiado, stock-guard rollback) were verified separately on device.
 
-**Canonical helper:** calcularTotalVenta replaced two duplicated inline formulas. Any new consumer must use it - three copies of one formula is three places for rounding to diverge.
-
-**Deliberately out of scope:** integer cents migration, later abonos against existing debt (those are transacciones), reconciling manual fiado vs venta fiado, multi-method payments, and whether precio_venta for PESO products is per gram or per kilo.
+**The uncomfortable lesson:** Decision 026 described this exact failure mode in the abstract - "no test in this suite can detect a nested SQL transaction" - and it still shipped, twice, across two features. Writing the warning down was not enough. Any feature touching the native write path MUST be run on a device before merge. A green suite is a precondition, never the evidence.
