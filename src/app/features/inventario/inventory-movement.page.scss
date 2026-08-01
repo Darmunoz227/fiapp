@@ -1,9 +1,9 @@
 .inventory-movement-page {
-  --background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
+  --background: var(--ion-background-color);
 }
 
 .inventory-card {
-  background: #fff;
+  background: var(--ion-card-background);
   border-radius: 16px;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
   padding: 16px;
@@ -12,7 +12,7 @@
 
 .inventory-card h2 {
   margin: 0 0 12px;
-  color: #8a8f98;
+  color: var(--ion-color-medium);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -21,7 +21,7 @@
 
 .stock-summary {
   margin: 0;
-  color: #334155;
+  color: var(--ion-text-color);
 }
 
 .stock-summary + .stock-summary {
@@ -29,8 +29,8 @@
 }
 
 .inventory-form ion-item {
-  --background: #f7f8fb;
-  --border-color: #e3e8ef;
+  --background: var(--ion-item-background);
+  --border-color: var(--ion-border-color);
   --border-radius: 12px;
   --padding-start: 12px;
   --inner-padding-end: 12px;
@@ -47,15 +47,15 @@
 }
 
 .movement-item {
-  background: #f7f8fb;
-  border: 1px solid #e3e8ef;
+  background: var(--ion-item-background);
+  border: 1px solid var(--ion-border-color);
   border-radius: 12px;
   padding: 12px;
 }
 
 .movement-item p {
   margin: 6px 0 0;
-  color: #334155;
+  color: var(--ion-text-color);
 }
 
 .movement-item__header {
@@ -63,15 +63,15 @@
   justify-content: space-between;
   gap: 12px;
   align-items: baseline;
-  color: #0f172a;
+  color: var(--ion-text-color);
 }
 
 .movement-item__header span {
-  color: #8a8f98;
+  color: var(--ion-color-medium);
   font-size: 12px;
 }
 
 .empty-state {
   margin: 0;
-  color: #64748b;
+  color: var(--ion-color-medium);
 }

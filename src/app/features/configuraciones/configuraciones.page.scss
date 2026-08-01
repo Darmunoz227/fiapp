@@ -1,11 +1,11 @@
 ion-content {
-	--background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
+	--background: var(--ion-background-color);
 }
 
 .section-title {
 	font-size: 14px;
 	font-weight: 700;
-	color: #8a8f98;
+	color: var(--ion-color-medium);
 	margin: 20px 0 10px;
 	padding-left: 10px;
 	letter-spacing: 0.4px;
@@ -15,7 +15,7 @@ ion-content {
 	border-radius: 16px;
 	overflow: hidden;
 	box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-	background: white;
+	background: var(--ion-card-background);
 }
 
 .business-card {
@@ -23,14 +23,14 @@ ion-content {
 }
 
 .settings-item {
-	--background: white;
+	--background: var(--ion-card-background);
 	--padding-start: 16px;
 	--inner-padding-end: 16px;
 	--min-height: 72px;
 }
 
 .business-item {
-	--background: white;
+	--background: var(--ion-card-background);
 	--padding-start: 16px;
 	--inner-padding-end: 16px;
 	--min-height: 106px;
@@ -38,7 +38,7 @@ ion-content {
 
 .business-label {
 	font-weight: 700;
-	color: #333;
+	color: var(--ion-text-color);
 	margin-bottom: 8px;
 }
 
@@ -47,30 +47,30 @@ ion-content {
 	--padding-bottom: 10px;
 	--padding-start: 12px;
 	--padding-end: 12px;
-	--background: #f7f8fb;
+	--background: var(--ion-item-background);
 	--border-radius: 12px;
-	border: 1px solid #e3e8ef;
+	border: 1px solid var(--ion-border-color);
 	margin-top: 2px;
 }
 
 .business-help {
 	margin: 8px 0 0;
 	font-size: 12px;
-	color: #6b7280;
+	color: var(--ion-color-medium);
 	line-height: 1.35;
 }
 
 .credits-block {
 	text-align: center;
 	margin: 40px 0 16px;
-	color: #888;
+	color: var(--ion-color-medium);
 }
 
 .credits-title {
 	margin: 0;
 	font-size: 14px;
 	font-weight: 700;
-	color: #666;
+	color: var(--ion-color-medium);
 }
 
 .credits-version {
@@ -85,12 +85,12 @@ ion-content {
 
 .item-title {
 	font-weight: 700;
-	color: #333;
+	color: var(--ion-text-color);
 }
 
 .item-text {
 	font-size: 12px;
-	color: #666;
+	color: var(--ion-color-medium);
 }
 
 ion-icon[slot="start"] {
