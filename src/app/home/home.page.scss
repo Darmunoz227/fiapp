@@ -8,6 +8,7 @@ ion-content {
 
 .custom-header-layout {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   width: 100%;
@@ -21,7 +22,7 @@ ion-content {
   flex-direction: column;
   flex: 0 0 auto;
   min-width: 0;
-  max-width: 60%;
+  max-width: 70%;
 }
 
 .app-title {
@@ -44,21 +45,17 @@ ion-content {
 }
 
 .business-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  flex: 1 0 100%;
+  order: 3;
   color: rgba(255,255,255,0.95);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.1;
-  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  padding: 0 8px;
-  max-width: 40%; /* ensure middle area doesn't take over */
+  padding: 2px 0 0;
 }
 
 .header-actions {
