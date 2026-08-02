@@ -23,7 +23,7 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 5;
+  private readonly SCHEMA_VERSION = 6;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -169,6 +169,35 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS ventas_producto_id_idx
       ON ventas(producto_id);
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS venta_items (
+        id TEXT PRIMARY KEY NOT NULL,
+        venta_id TEXT NOT NULL,
+        producto_id TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_venta REAL NOT NULL,
+        costo_unitario REAL NOT NULL,
+        ganancia REAL NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (venta_id) REFERENCES ventas(id),
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS venta_items_venta_id_idx
+      ON venta_items(venta_id);
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS venta_items_producto_id_idx
+      ON venta_items(producto_id);
     `);
   }
 
