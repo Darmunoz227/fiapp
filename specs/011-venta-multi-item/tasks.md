@@ -7,8 +7,8 @@
 ## Phase 1 - Model
 
 - [ ] T002 - RED. Write a failing spec asserting VentaItem exists with venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia and the tombstone fields.
-- [ ] T003 - GREEN. Create VentaItem in src/app/core/models. Reduce Venta to sale-level fields only: id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha and metadata.
-- [ ] T004 - Fix every compile error caused by the reduced Venta. Run npm run build. Commit only when the build is clean.
+- [ ] T003 - GREEN. Create VentaItem in src/app/core/models. Do NOT touch the Venta interface in this phase. This phase is purely ADDITIVE (expand step).
+- [ ] T004 - Run npm run build and the suite. Both must be green with ZERO changes to existing consumers, proving the phase is additive.
 
 ## Phase 2 - Schema (additive, nothing breaks)
 
@@ -40,6 +40,7 @@
 - [ ] T021 - Fix reportes-calculations.ts line 43: gananciaTotal must sum line ganancias, not venta.ganancia.
 - [ ] T022 - Fix reportes.page.html lines 42 and 45: render the lines of each sale instead of a single product and a single ganancia.
 - [ ] T023 - Soft-deleting a sale must soft-delete its lines. Suite green. Commit.
+- [ ] T023b - CONTRACT step. Only now remove producto_id, cantidad, precio_venta, costo_unitario and ganancia from the Venta interface. By this point no consumer references them, so the build must pass with ZERO casts. Any need for a cast (as any), a template escape hatch, or a compiler suppression directive means an earlier phase is incomplete: STOP and fix that phase instead.
 
 ## Phase 6 - UI
 
