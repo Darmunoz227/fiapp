@@ -392,3 +392,25 @@ primitive and must follow the same rule.
 **On-device verification performed (the only real proof):** the bug was reproduced on a clean simulator running ed0ba04, then a v4 database was built (client and product), the app was upgraded IN PLACE to this branch, and afterwards: the migration ran with no error, existing data survived, and the COMPRA that had just failed succeeded. Feature 006 flows (CONTADO, FIADO, MIXTO, manual fiado, stock-guard rollback) were verified separately on device.
 
 **The uncomfortable lesson:** Decision 026 described this exact failure mode in the abstract - "no test in this suite can detect a nested SQL transaction" - and it still shipped, twice, across two features. Writing the warning down was not enough. Any feature touching the native write path MUST be run on a device before merge. A green suite is a precondition, never the evidence.
+
+---
+
+## Decision 029 - Colors must resolve through Ionic variables; brand chrome is fixed
+
+**Decision:** No component may hardcode a color. Backgrounds, text and borders resolve through Ionic CSS variables so they follow the system appearance. The Home toolbar is the single exception: it carries a FIXED brand color and does not invert, the same way a logo does not.
+
+**Root cause of the pilot bug:** global.scss already imported the dark.system palette, so dark mode was active and following the system all along. But six scss files and five HTML templates hardcoded light colors. In dark mode Ionic set the text to white while the cards kept a hardcoded white background: white on white, literally invisible. A pilot merchant could not use the app. Note the irony: dark mode being ACTIVE is what made it unusable. With it disabled the app would have looked plain but stayed readable.
+
+**Scope was measured wrong, twice.** The spec estimated 40 hex values across 5 scss files. Reality: 6 scss files (home.page.scss lives outside features/ and was missed) plus 5 HTML files carrying inline styles. cliente-detalle was explicitly listed as OUT of scope because its scss file is empty - its colors were in the template all along.
+
+**The control had holes.** The verification grep was grep -c "#" over *.scss only. It missed the word "white" (no hash) and every inline style in *.html. Two screens shipped broken past a control that looked sufficient. The correct control also covers *.html and the literal word white.
+
+**Semantic vs decorative colors:** the low-stock badge maps to --ion-color-danger, not to a neutral text color, because red there MEANS something. Money owed moved from danger to warning: a normal debt is the business working, not an alert. Red is reserved for real problems and destructive actions.
+
+**Also shipped here, beyond the original spec:** mixtoCount was finally rendered (computed since Feature 007 but never displayed, so the summary showed 6 sales with contado 3 + fiado 1); the business name got its own header row; the header was narrowed; the subtitle became "Mi Negocio en el Bolsillo" since the app is no longer only about fiados; and the summary now separates counts from pesos, because showing "Contado: 0 (COP7,000)" on one line was arithmetically right and humanly wrong.
+
+**What the suite cannot see:** Karma does not evaluate prefers-color-scheme. Every readability criterion was verified by hand on the simulator in both appearances, toggled with xcrun simctl ui booted appearance dark.
+
+**Still owed:** the pilot who reported this uses ANDROID. All verification here was iOS. Theming can differ; this must be checked on Android before considering the merchant unblocked.
+
+**Found but NOT fixed here:** navigating from Home to a POS module shows both screens overlapping mid-transition. Visible in light mode, hidden in dark because both backgrounds are dark. Deliberately deferred to Feature 010 rather than stretching this feature further.

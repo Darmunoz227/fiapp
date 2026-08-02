@@ -9,8 +9,8 @@
 <ion-content class="ion-padding" color="light">
   
   <div style="margin-top: 10px;">
-    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Valor ($) *</ion-label>
+    <ion-item lines="none" style="--background: var(--ion-item-background); --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">Valor ($) *</ion-label>
       <ion-input
         #montoInput
         type="text"
@@ -22,8 +22,8 @@
       </ion-input>
     </ion-item>
 
-    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">
+    <ion-item lines="none" style="--background: var(--ion-item-background); --border-radius: 12px; margin-bottom: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">
         {{ tipo === 'fiado' ? 'Concepto (Opcional)' : 'Método de pago' }}
       </ion-label>
 

@@ -8,21 +8,21 @@
   
   <div style="margin-top: 10px;">
     <!-- Campo Nombre -->
-    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Nombre completo *</ion-label>
+    <ion-item lines="none" style="--background: var(--ion-item-background); --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">Nombre completo *</ion-label>
       <ion-input type="text" placeholder="Ej. Camila Vecina" [(ngModel)]="nombre"></ion-input>
     </ion-item>
 
     <!-- Campo Teléfono -->
-    <ion-item lines="none" style="--background: white; --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: #666; margin-bottom: 8px;">Teléfono (WhatsApp) *</ion-label>
+    <ion-item lines="none" style="--background: var(--ion-item-background); --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
+      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">Teléfono (WhatsApp) *</ion-label>
       <ion-input type="tel" placeholder="Ej. 312 000 0000" [(ngModel)]="telefono"></ion-input>
     </ion-item>
 
     <!-- Casilla de Habeas Data -->
     <ion-item lines="none" style="--background: transparent; margin-bottom: 30px;">
       <ion-checkbox slot="start" color="success" style="margin-right: 16px;" [(ngModel)]="habeasData"></ion-checkbox>
-      <ion-label style="font-size: 14px; white-space: normal; color: #333; line-height: 1.4;">
+      <ion-label style="font-size: 14px; white-space: normal; color: var(--ion-text-color); line-height: 1.4;">
         El cliente autoriza el registro local de sus datos (Habeas Data).
       </ion-label>
     </ion-item>
