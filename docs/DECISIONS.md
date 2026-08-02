@@ -414,3 +414,19 @@ primitive and must follow the same rule.
 **Still owed:** the pilot who reported this uses ANDROID. All verification here was iOS. Theming can differ; this must be checked on Android before considering the merchant unblocked.
 
 **Found but NOT fixed here:** navigating from Home to a POS module shows both screens overlapping mid-transition. Visible in light mode, hidden in dark because both backgrounds are dark. Deliberately deferred to Feature 010 rather than stretching this feature further.
+
+---
+
+## Decision 030 - Never consume a CSS custom property without a fallback unless the project defines it
+
+**Context:** six page stylesheets declared --background: var(--ion-background-color) with no fallback. Nothing in the project defined that variable. src/theme/variables.scss is empty; src/global.scss only imports Ionic CSS plus dark.system.css.
+
+**Consequence:** in dark mode the variable is defined by dark.system.css, so it resolved and pages were opaque. In light mode it was undefined, var() became invalid at computed-value time, --background collapsed, and ion-content rendered transparent. The outgoing screen showed through the entering screen for the whole navigation animation.
+
+**Root cause origin:** Feature 009 replaced hardcoded light colors with variables and dropped the fallback that Ionic's own rule carries: var(--ion-background-color, #fff).
+
+**Decision:** delete the overrides and let Ionic's native rule apply. Do not redefine the variable in variables.scss, because angular.json loads it AFTER global.scss and media queries add no specificity, so a bare :root rule would override dark mode and regress Feature 009.
+
+**Rule going forward:** if the project does not define a CSS custom property, do not consume it without a fallback.
+
+**Evidence:** confirmed on a Pixel_8 Android emulator in light mode: pages carrying the override overlapped, while cliente-detalle, the only page without it, did not. After the removal, verified BY HAND on Android Pixel_8 AND on the iOS simulator, in BOTH appearances, across Home to Ventas, Reportes, Inventario and Configuraciones. No dark mode regression; the Home toolbar kept its fixed brand color per Decision 029.

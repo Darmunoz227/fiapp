@@ -69,3 +69,7 @@ testem.log
 .DS_Store
 Thumbs.db
 .github/
+
+# Local device recordings and screenshots
+*.mp4
+*.mov

@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #9 are all COMPLETE, tested, and merged to main.
+- Features #2 through #10 are all COMPLETE, tested, and merged to main.
 - Current schema version: v5 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado).
 - 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9) AND on Android emulator Pixel_8 on 2026-08-02, including native SQLite writes. Working branch: main (everything merged).
-- Next up: Carol chooses. Top candidate: screen transition overlap Home to POS (P1, candidate Feature #10). Then multi-item sale (P2).
+- Next up: Carol chooses. Top candidate: multi-item sale (P2), the biggest daily-use friction. Then later abonos against existing debt (P3).
 
 Before doing work, always run:
 
@@ -304,7 +304,7 @@ NEXT (Carol chooses):
 - DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.
 - DONE (P0 from the previous backlog): on-device verification. The v5 migration was run in place over a v4 database: it completed with no error, existing data survived, and a COMPRA that had just failed then succeeded. NOTE: the backfill of old ventas rows is defensive code that will never process a row, because registrarVenta was broken on device from Feature #4 until Feature #8, so no real installation can contain sales.
 - DONE (P0, verified 2026-08-02): dark mode verified on ANDROID. Ran on a Pixel_8 emulator and toggled both appearances live with adb cmd uimode night, without restarting the app. Every checked surface was readable: Home toolbar kept its FIXED brand color and did not invert, business name row visible, cards, inputs and the Reportes summary legible. A client was created and survived a reload, which is the FIRST evidence in this project that native SQLite writes and the schema migrations run correctly on Android. The pilot merchant on Android is confirmed unblocked.
-- P1 - Screen transition overlap: navigating Home to a POS module shows both screens superimposed mid-animation. Visible in light mode, masked in dark. Candidate Feature #10.
+- DONE (Feature #10, Decision 030): screen transition overlap FIXED. Root cause was not the animation: six page stylesheets consumed var(--ion-background-color) with no fallback, and nothing in the project ever defined that variable. In dark mode dark.system.css defined it so pages were opaque; in light mode var() was invalid at computed-value time, --background collapsed and ion-content rendered TRANSPARENT, letting the outgoing screen show through the whole animation. Introduced by Feature #9 when hardcoded colors were replaced by variables and Ionic own fallback was dropped. Fix: delete the six overrides, 24 deletions and zero insertions, letting Ionic native rule apply. Verified by hand on Android Pixel_8 AND iOS simulator, in both appearances. 96 tests.
 - P2 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
 - P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
 - P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
