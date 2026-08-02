@@ -2,7 +2,7 @@
 
 > Purpose: give a new AI supervisor or developer enough verified project context to continue FiApp without relying on chat memory.
 >
-> Last updated: 2026-07-24
+> Last updated: 2026-08-02
 
 ---
 
@@ -46,8 +46,8 @@ As of this handoff:
 - Feature #1 is complete, tested, committed, and pushed.
 - Features #2 through #9 are all COMPLETE, tested, and merged to main.
 - Current schema version: v5 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado).
-- 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9). Working branch: main (everything merged).
-- Next up: Carol chooses. Top candidates: verify dark mode on ANDROID (the pilot who reported it uses Android); screen transition overlap Home to POS; multi-item sale.
+- 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9) AND on Android emulator Pixel_8 on 2026-08-02, including native SQLite writes. Working branch: main (everything merged).
+- Next up: Carol chooses. Top candidate: screen transition overlap Home to POS (P1, candidate Feature #10). Then multi-item sale (P2).
 
 Before doing work, always run:
 
@@ -303,13 +303,13 @@ NEXT (Carol chooses):
 - DONE (Feature #8, Decision 028): every db.run declares its transaction context via ejecutarRun. The plugin defaults transaction to true, which broke EVERY sale on device since Feature #4 and every COMPRA since Feature #6. Reproduced on a clean simulator, fixed, and verified on device including a v4-to-v5 in-place upgrade.
 - DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.
 - DONE (P0 from the previous backlog): on-device verification. The v5 migration was run in place over a v4 database: it completed with no error, existing data survived, and a COMPRA that had just failed then succeeded. NOTE: the backfill of old ventas rows is defensive code that will never process a row, because registrarVenta was broken on device from Feature #4 until Feature #8, so no real installation can contain sales.
-  P0 - Verify dark mode on ANDROID. Feature #9 fixed and verified the theming on iOS, but the pilot merchant who could not use the app is on Android. Until it is checked there, he is not confirmed unblocked.
-  P1 - Screen transition overlap: navigating Home to a POS module shows both screens superimposed mid-animation. Visible in light mode, masked in dark. Candidate Feature #10.
-  P2 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
-  P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
-  P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
-  P5 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
-  P6 - Backup and data export. A lost phone today means lost books.
+- DONE (P0, verified 2026-08-02): dark mode verified on ANDROID. Ran on a Pixel_8 emulator and toggled both appearances live with adb cmd uimode night, without restarting the app. Every checked surface was readable: Home toolbar kept its FIXED brand color and did not invert, business name row visible, cards, inputs and the Reportes summary legible. A client was created and survived a reload, which is the FIRST evidence in this project that native SQLite writes and the schema migrations run correctly on Android. The pilot merchant on Android is confirmed unblocked.
+- P1 - Screen transition overlap: navigating Home to a POS module shows both screens superimposed mid-animation. Visible in light mode, masked in dark. Candidate Feature #10.
+- P2 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
+- P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
+- P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
+- P5 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
+- P6 - Backup and data export. A lost phone today means lost books.
 
 HOW TO START A NEW FEATURE:
 1. Run: git status && git log --oneline -3 (verify clean on main).
@@ -320,3 +320,20 @@ HOW TO START A NEW FEATURE:
 
 Key commands: build = ng build (npm run build); tests = npm test -- --watch=false --browsers=ChromeHeadless.
 Remember: web platform uses in-memory mocks (no persistence across reload/new tab) BY DESIGN; SQLite persists on device.
+
+---
+
+## 11. Android environment (verified 2026-08-02)
+
+The android platform exists, builds and runs. AVD used: Pixel_8.
+
+- Preferred path: npm run build && npx cap sync android && npx cap open android, then press Run in Android Studio.
+- npx cap run android from the CLI fails with "invalid source release: 21" unless JAVA_HOME points to the JBR embedded in Android Studio:
+  export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+- adb is not reliably on the PATH. If adb is not found:
+  export ANDROID_HOME=$HOME/Library/Android/sdk
+  export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator
+- Toggle appearance WITHOUT restarting the app (Android equivalent of xcrun simctl ui booted appearance):
+  adb shell "cmd uimode night yes"
+  adb shell "cmd uimode night no"
+
