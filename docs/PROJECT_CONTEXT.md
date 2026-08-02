@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #8 are all COMPLETE, tested, and merged to main.
+- Features #2 through #9 are all COMPLETE, tested, and merged to main.
 - Current schema version: v5 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado).
-- 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Working branch: main (everything merged).
-- Next up: Carol chooses. Top candidates: UI fixes found on device (mixtoCount not rendered, dark mode unreadable, business name hidden by the header icons); multi-item sale; later abonos against existing debt.
+- 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9). Working branch: main (everything merged).
+- Next up: Carol chooses. Top candidates: verify dark mode on ANDROID (the pilot who reported it uses Android); screen transition overlap Home to POS; multi-item sale.
 
 Before doing work, always run:
 
@@ -296,21 +296,20 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #8 are COMPLETE and merged to main (96 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028).
+Features #1 through #9 are COMPLETE and merged to main (96 tests passing, build green, working tree clean). FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
 
 NEXT (Carol chooses):
+- DONE (Feature #9, Decision 029): UX pass. Colors now resolve through Ionic variables so dark mode is readable; the Home toolbar keeps a FIXED brand color and does not invert. mixtoCount is finally rendered and the summary separates counts from pesos. Business name has its own header row, header narrowed, subtitle is now Mi Negocio en el Bolsillo. Verified by hand on the iOS simulator in BOTH appearances.
 - DONE (Feature #8, Decision 028): every db.run declares its transaction context via ejecutarRun. The plugin defaults transaction to true, which broke EVERY sale on device since Feature #4 and every COMPRA since Feature #6. Reproduced on a clean simulator, fixed, and verified on device including a v4-to-v5 in-place upgrade.
 - DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.
 - DONE (P0 from the previous backlog): on-device verification. The v5 migration was run in place over a v4 database: it completed with no error, existing data survived, and a COMPRA that had just failed then succeeded. NOTE: the backfill of old ventas rows is defensive code that will never process a row, because registrarVenta was broken on device from Feature #4 until Feature #8, so no real installation can contain sales.
-  P0 - UI fixes found on device (candidate Feature #9, one UX pass):
-       (a) mixtoCount is computed but NEVER RENDERED in reportes.page.html. A real report showed 6 sales with contado 3 + fiado 1, which does not add up on screen. Leftover from Feature #7: the field reached the model and the calculation but not the template.
-       (b) Dark mode is unreadable. A pilot merchant literally cannot use the app on a dark-themed phone. Likely hardcoded colors instead of Ionic CSS variables.
-       (c) The business name is squeezed out of the Home header by the reportes/ventas/inventario icons. A regression: the merchant configured it and can no longer see it.
-  P1 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
-  P2 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
-  P3 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
-  P4 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
-  P5 - Backup and data export. A lost phone today means lost books.
+  P0 - Verify dark mode on ANDROID. Feature #9 fixed and verified the theming on iOS, but the pilot merchant who could not use the app is on Android. Until it is checked there, he is not confirmed unblocked.
+  P1 - Screen transition overlap: navigating Home to a POS module shows both screens superimposed mid-animation. Visible in light mode, masked in dark. Candidate Feature #10.
+  P2 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
+  P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
+  P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
+  P5 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
+  P6 - Backup and data export. A lost phone today means lost books.
 
 HOW TO START A NEW FEATURE:
 1. Run: git status && git log --oneline -3 (verify clean on main).

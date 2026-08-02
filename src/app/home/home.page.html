@@ -1,9 +1,9 @@
 <ion-header class="ion-no-border">
-  <ion-toolbar color="dark" class="home-toolbar">
+  <ion-toolbar class="home-toolbar">
     <div class="custom-header-layout">
       <div class="app-branding">
         <span class="app-title">FiApp</span>
-        <span class="app-subtitle">Mi Cuaderno de Fiados</span>
+        <span class="app-subtitle">Mi Negocio en el Bolsillo</span>
       </div>
 
       <div class="business-name" *ngIf="businessName">{{ businessName }}</div>
@@ -42,9 +42,9 @@
       <ion-text color="medium">
         <p>💰 TOTAL QUE ME DEBEN</p>
       </ion-text>
-      <ion-text color="danger">
+      <ion-text color="warning">
         <h1 style="font-weight: bold; font-size: 28px; margin-top: 5px;">
-          $ {{ formatearMonto(totalCartera) }} <span style="font-size: 16px; color: #666;">COP</span>
+          $ {{ formatearMonto(totalCartera) }} <span style="font-size: 16px; color: var(--ion-color-medium);">COP</span>
         </h1>
       </ion-text>
     </ion-card-content>
@@ -53,7 +53,7 @@
  <ion-searchbar placeholder="Buscar cliente..." mode="ios" (ionInput)="buscarCliente($event)"></ion-searchbar>
 
   <ion-list-header class="ion-no-padding" style="margin-bottom: 10px; padding-left: 10px;">
-    <ion-label style="font-size: 12px; font-weight: bold; color: #888;">CLIENTES ACTIVOS</ion-label>
+    <ion-label style="font-size: 12px; font-weight: bold; color: var(--ion-color-medium);">CLIENTES ACTIVOS</ion-label>
   </ion-list-header>
 
   <ion-list class="lista-clientes">
@@ -65,7 +65,7 @@
         <ion-label>
           <h2>{{ cliente.nombre }}</h2>
         </ion-label>
-        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'danger'" class="deuda-texto">
+        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'warning'" class="deuda-texto">
           $ {{ formatearMonto(cliente.deudaTotal) }}
         </ion-note>
       </ion-item>

@@ -1,12 +1,12 @@
 ion-content.inventory-page {
-  --background: linear-gradient(180deg, #f8f9fa 0%, #f1f4f8 100%);
+  --background: var(--ion-background-color);
 }
 
 .inventory-card {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
-  background: white;
+  background: var(--ion-card-background);
   padding: 16px;
   margin-bottom: 18px;
 }
@@ -14,7 +14,7 @@ ion-content.inventory-page {
 .inventory-card h2 {
   font-size: 14px;
   font-weight: 700;
-  color: #8a8f98;
+  color: var(--ion-color-medium);
   margin: 0 0 10px;
   padding-left: 10px;
   letter-spacing: 0.4px;
@@ -25,7 +25,7 @@ ion-content.inventory-page {
 }
 
 .inventory-form ion-item {
-  --background: white;
+  --background: var(--ion-item-background);
   --padding-start: 16px;
   --inner-padding-end: 16px;
   --min-height: 72px;
@@ -38,9 +38,9 @@ ion-content.inventory-page {
   --padding-bottom: 10px;
   --padding-start: 12px;
   --padding-end: 12px;
-  --background: #f7f8fb;
+  --background: var(--ion-item-background);
   --border-radius: 12px;
-  border: 1px solid #e3e8ef;
+  border: 1px solid var(--ion-border-color);
   margin-top: 2px;
 }
 
@@ -51,7 +51,7 @@ ion-content.inventory-page {
 .price-label {
   text-align: right;
   font-weight: 700;
-  color: #333;
+  color: var(--ion-text-color);
 }
 
 .stock-bajo-badge {
@@ -61,7 +61,7 @@ ion-content.inventory-page {
   border-radius: 999px;
   background: rgba(192, 57, 43, 0.1);
   border: 1px solid rgba(192, 57, 43, 0.2);
-  color: #c0392b;
+  color: var(--ion-color-danger);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -71,7 +71,7 @@ ion-content.inventory-page {
   margin: 0;
   padding: 12px 4px;
   text-align: center;
-  color: #6b7280;
+  color: var(--ion-color-medium);
   font-size: 13px;
   line-height: 1.4;
 }
