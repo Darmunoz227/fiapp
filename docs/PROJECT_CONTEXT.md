@@ -2,7 +2,7 @@
 
 > Purpose: give a new AI supervisor or developer enough verified project context to continue FiApp without relying on chat memory.
 >
-> Last updated: 2026-08-02
+> Last updated: 2026-08-03
 
 ---
 
@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #10 are all COMPLETE, tested, and merged to main.
-- Current schema version: v5 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado).
-- 96 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9) AND on Android emulator Pixel_8 on 2026-08-02, including native SQLite writes. Working branch: main (everything merged).
-- Next up: Carol chooses. Top candidate: multi-item sale (P2), the biggest daily-use friction. Then later abonos against existing debt (P3).
+- Features #2 through #11 are all COMPLETE, tested, and merged to main.
+- Current schema version: v6 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado, #11 venta_items with ventas rebuilt to sale-level only).
+- 106 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9) AND on Android emulator Pixel_8 (2026-08-02). Feature #11 verified BY HAND on BOTH platforms (2026-08-03), including an in-place v5 to v6 upgrade over a database containing real sales. Working branch: main (everything merged).
+- Next up: Carol chooses. Top candidate: later abonos against existing debt (P3). Then show manual fiado separately in the report (P4).
 
 Before doing work, always run:
 
@@ -305,7 +305,7 @@ NEXT (Carol chooses):
 - DONE (P0 from the previous backlog): on-device verification. The v5 migration was run in place over a v4 database: it completed with no error, existing data survived, and a COMPRA that had just failed then succeeded. NOTE: the backfill of old ventas rows is defensive code that will never process a row, because registrarVenta was broken on device from Feature #4 until Feature #8, so no real installation can contain sales.
 - DONE (P0, verified 2026-08-02): dark mode verified on ANDROID. Ran on a Pixel_8 emulator and toggled both appearances live with adb cmd uimode night, without restarting the app. Every checked surface was readable: Home toolbar kept its FIXED brand color and did not invert, business name row visible, cards, inputs and the Reportes summary legible. A client was created and survived a reload, which is the FIRST evidence in this project that native SQLite writes and the schema migrations run correctly on Android. The pilot merchant on Android is confirmed unblocked.
 - DONE (Feature #10, Decision 030): screen transition overlap FIXED. Root cause was not the animation: six page stylesheets consumed var(--ion-background-color) with no fallback, and nothing in the project ever defined that variable. In dark mode dark.system.css defined it so pages were opaque; in light mode var() was invalid at computed-value time, --background collapsed and ion-content rendered TRANSPARENT, letting the outgoing screen show through the whole animation. Introduced by Feature #9 when hardcoded colors were replaced by variables and Ionic own fallback was dropped. Fix: delete the six overrides, 24 deletions and zero insertions, letting Ionic native rule apply. Verified by hand on Android Pixel_8 AND iOS simulator, in both appearances. 96 tests.
-- P2 - Multi-item sale. Today a customer buying three products forces three separate sales. Biggest daily-use friction.
+- DONE (Feature #11, Decision 031): multi-item sale. A sale now holds N lines in venta_items; ventas keeps only sale-level data and schema is v6. Amounts stay at SALE level per Decision 027; per-product columns were REMOVED from ventas rather than kept, because with three products claiming the sale belongs to the first one is false. The cart allows removing a line and editing quantity, blocks ONLY the line that exceeds stock so a stale inventory count never costs a whole sale, and allows the same product in separate lines with different prices. Migration follows the official SQLite table-rebuild pattern and is driven by the ACTUAL TABLE SHAPE, never by the version number. Three infrastructure bugs were found ON DEVICE and fixed: the plugin also defaults transaction to true on execute (Decision 028 was incomplete and only covered db.run), createConnection threw on every in-place upgrade so the migration never ran, and initializePlugin swallowed failures silently. Verified BY HAND on Android Pixel_8 and on the iOS simulator, including an in-place v5 to v6 upgrade over a database containing real sales. 106 tests.
 - P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
 - P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
 - P5 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
