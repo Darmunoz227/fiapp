@@ -40,15 +40,25 @@ export class DatabaseService {
         return true;
       }
 
-      this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
-      await this.db.open();
+      const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
+      if (existeConexion) {
+        this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
+      } else {
+        this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
+      }
+
+      const baseDatosAbierta = (await this.db.isDBOpen()).result;
+      if (!baseDatosAbierta) {
+        await this.db.open();
+      }
+
       await this.habilitarForeignKeys();
       await this.asegurarEsquema();
       this.isInitialized = true;
       return true;
     } catch (error) {
       console.error('Error inicializando la base de datos:', error);
-      return false;
+      throw error;
     }
   }
 
