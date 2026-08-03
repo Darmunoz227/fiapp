@@ -23,6 +23,66 @@
   margin-bottom: 12px;
 }
 
+.carrito-list {
+  margin-top: 8px;
+}
+
+.carrito-linea {
+  --background: var(--ion-item-background);
+  --border-color: var(--ion-border-color);
+  --border-radius: 12px;
+  --padding-start: 12px;
+  --inner-padding-end: 12px;
+  margin-bottom: 12px;
+}
+
+.carrito-linea.linea-repetida {
+  --background: rgba(56, 128, 255, 0.06);
+}
+
+.carrito-linea.linea-bloqueada {
+  --background: rgba(245, 61, 61, 0.07);
+}
+
+.linea-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.linea-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.linea-tag {
+  border-radius: 999px;
+  background: rgba(56, 128, 255, 0.12);
+  color: var(--ion-color-primary);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+}
+
+.linea-tag.bloqueada {
+  background: rgba(245, 61, 61, 0.12);
+  color: var(--ion-color-danger);
+}
+
+.linea-cantidad {
+  --background: transparent;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  margin: 12px 0;
+}
+
+.linea-error {
+  color: var(--ion-color-danger);
+  margin: 8px 0 0;
+}
+
 .stock-summary,
 .ganancia-preview {
   margin: 0 0 12px;

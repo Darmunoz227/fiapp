@@ -9,7 +9,7 @@
 
 <ion-content class="ion-padding ventas-page">
   <section class="ventas-card">
-    <h2>Registrar venta</h2>
+    <h2>Armar carrito</h2>
 
     <ion-list lines="full" class="ventas-form">
       <ion-item>
@@ -32,7 +32,7 @@
 
       <ion-item>
         <ion-label position="stacked">Cantidad</ion-label>
-        <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
+        <ion-input type="number" inputmode="numeric" min="1" [(ngModel)]="cantidad"></ion-input>
       </ion-item>
 
       <ion-item>
@@ -63,11 +63,69 @@
     </ion-list>
 
     <p class="ganancia-preview" *ngIf="gananciaEstimada !== null">
-      Ganancia estimada: <strong>{{ gananciaEstimada | currency:'COP':'symbol':'1.0-0' }}</strong>
+      Ganancia estimada de la línea actual: <strong>{{ gananciaEstimada | currency:'COP':'symbol':'1.0-0' }}</strong>
     </p>
 
-    <ion-button expand="block" class="save-button" (click)="registrarVenta()">
-      Registrar venta
+    <ion-button expand="block" class="save-button" (click)="agregarLinea()">
+      Agregar línea
+    </ion-button>
+  </section>
+
+  <section class="ventas-card" *ngIf="carrito.length > 0">
+    <h2>Carrito</h2>
+
+    <ion-list lines="full" class="carrito-list">
+      <ion-item
+        *ngFor="let linea of carrito; let index = index"
+        class="carrito-linea"
+        [class.linea-repetida]="linea.repetida"
+        [class.linea-bloqueada]="linea.bloqueada"
+      >
+        <ion-label>
+          <div class="linea-header">
+            <h3>Línea {{ index + 1 }} - {{ linea.producto.nombre }}</h3>
+            <span class="linea-tag" *ngIf="linea.repetida">Repetida</span>
+            <span class="linea-tag bloqueada" *ngIf="linea.bloqueada">Bloqueada</span>
+          </div>
+
+          <p>Precio: {{ linea.precio_venta | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Costo congelado: {{ linea.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Cantidad disponible: {{ linea.stockDisponible }}</p>
+
+          <ion-item class="linea-cantidad">
+            <ion-label position="stacked">Cantidad</ion-label>
+            <ion-input
+              type="number"
+              inputmode="numeric"
+              min="1"
+              [(ngModel)]="linea.cantidad"
+              (ngModelChange)="onCantidadLineaChange(linea, $event)"
+            ></ion-input>
+          </ion-item>
+
+          <p>Subtotal: {{ subtotalLinea(linea) | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Ganancia: {{ gananciaLinea(linea) | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p class="linea-error" *ngIf="linea.bloqueada">{{ linea.motivoBloqueo }}</p>
+        </ion-label>
+
+        <ion-button fill="clear" color="danger" (click)="eliminarLinea(linea.id)">
+          Eliminar
+        </ion-button>
+      </ion-item>
+    </ion-list>
+
+    <p class="stock-summary">
+      Total del carrito: <strong>{{ totalVenta | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </p>
+    <p class="ganancia-preview">
+      Ganancia estimada del carrito: <strong>{{ gananciaTotal | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </p>
+    <p class="linea-error" *ngIf="tieneLineasBloqueadas">
+      Hay líneas bloqueadas. Revisa la disponibilidad antes de confirmar.
+    </p>
+
+    <ion-button expand="block" class="save-button" [disabled]="!puedeConfirmar" (click)="registrarVenta()">
+      Confirmar venta
     </ion-button>
   </section>
 </ion-content>
