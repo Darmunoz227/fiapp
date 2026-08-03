@@ -55,10 +55,10 @@ export class DatabaseService {
 
   private async asegurarEsquema(): Promise<void> {
     await this.crearTablasSiFaltan();
+    await this.migrarEsquemaSiNecesario();
 
     const versionActual = await this.obtenerVersionEsquema();
     if (versionActual < this.SCHEMA_VERSION) {
-      await this.migrarEsquemaSiNecesario();
       await this.establecerVersionEsquema(this.SCHEMA_VERSION);
     }
   }
@@ -147,11 +147,6 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS ventas (
         id TEXT PRIMARY KEY NOT NULL,
-        producto_id TEXT NOT NULL,
-        cantidad INTEGER NOT NULL,
-        precio_venta REAL NOT NULL,
-        costo_unitario REAL NOT NULL,
-        ganancia REAL NOT NULL,
         tipo_pago TEXT NOT NULL,
         monto_contado REAL DEFAULT NULL,
         monto_fiado REAL DEFAULT NULL,
@@ -161,16 +156,49 @@ export class DatabaseService {
         updated_at INTEGER DEFAULT NULL,
         deleted_at INTEGER DEFAULT NULL,
         store_id TEXT DEFAULT NULL,
-        created_by TEXT DEFAULT NULL,
-        FOREIGN KEY (producto_id) REFERENCES productos(id)
+        created_by TEXT DEFAULT NULL
       );
     `);
 
-    await this.db.execute(`
-      CREATE INDEX IF NOT EXISTS ventas_producto_id_idx
-      ON ventas(producto_id);
-    `);
+    await this.crearIndiceVentasFechaSiFalta();
+    await this.crearVentaItemsSiFaltan();
+  }
 
+  private async migrarEsquemaSiNecesario(): Promise<void> {
+    await this.agregarColumnaSiFalta('clientes', 'created_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('clientes', 'updated_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('clientes', 'deleted_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('clientes', 'store_id', 'TEXT DEFAULT NULL');
+    await this.agregarColumnaSiFalta('clientes', 'created_by', 'TEXT DEFAULT NULL');
+
+    await this.agregarColumnaSiFalta('transacciones', 'created_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'updated_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'deleted_at', 'INTEGER DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'store_id', 'TEXT DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'created_by', 'TEXT DEFAULT NULL');
+
+    await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
+    await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
+    await this.backfillMontosVentas();
+    await this.crearVentaItemsSiFaltan();
+    await this.reconstruirVentasParaMultiItem();
+  }
+
+  private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
+    const columnas = await this.obtenerColumnas(tabla);
+    if (!columnas.has(columna)) {
+      await this.db.execute(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion};`);
+    }
+  }
+
+  private async crearIndiceVentasFechaSiFalta(): Promise<void> {
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS ventas_fecha_idx
+      ON ventas(fecha);
+    `);
+  }
+
+  private async crearVentaItemsSiFaltan(): Promise<void> {
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS venta_items (
         id TEXT PRIMARY KEY NOT NULL,
@@ -201,28 +229,110 @@ export class DatabaseService {
     `);
   }
 
-  private async migrarEsquemaSiNecesario(): Promise<void> {
-    await this.agregarColumnaSiFalta('clientes', 'created_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('clientes', 'updated_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('clientes', 'deleted_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('clientes', 'store_id', 'TEXT DEFAULT NULL');
-    await this.agregarColumnaSiFalta('clientes', 'created_by', 'TEXT DEFAULT NULL');
+  private async reconstruirVentasParaMultiItem(): Promise<void> {
+    const columnasVentas = await this.obtenerColumnas('ventas');
+    if (!columnasVentas.has('producto_id')) {
+      return;
+    }
 
-    await this.agregarColumnaSiFalta('transacciones', 'created_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('transacciones', 'updated_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('transacciones', 'deleted_at', 'INTEGER DEFAULT NULL');
-    await this.agregarColumnaSiFalta('transacciones', 'store_id', 'TEXT DEFAULT NULL');
-    await this.agregarColumnaSiFalta('transacciones', 'created_by', 'TEXT DEFAULT NULL');
+    await this.db.execute('PRAGMA foreign_keys = OFF;');
 
-    await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
-    await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
-    await this.backfillMontosVentas();
-  }
+    try {
+      await this.db.beginTransaction();
 
-  private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
-    const columnas = await this.obtenerColumnas(tabla);
-    if (!columnas.has(columna)) {
-      await this.db.execute(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion};`);
+      try {
+        await this.db.execute('DROP TABLE IF EXISTS ventas_nueva;');
+        await this.db.execute(`
+          CREATE TABLE ventas_nueva (
+            id TEXT PRIMARY KEY NOT NULL,
+            tipo_pago TEXT NOT NULL,
+            monto_contado REAL DEFAULT NULL,
+            monto_fiado REAL DEFAULT NULL,
+            cliente_id TEXT DEFAULT NULL,
+            fecha INTEGER NOT NULL,
+            created_at INTEGER DEFAULT NULL,
+            updated_at INTEGER DEFAULT NULL,
+            deleted_at INTEGER DEFAULT NULL,
+            store_id TEXT DEFAULT NULL,
+            created_by TEXT DEFAULT NULL
+          );
+        `);
+
+        const resultadoVentas = await this.db.query(`
+          SELECT
+            id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha,
+            created_at, updated_at, deleted_at, store_id, created_by,
+            producto_id, cantidad, precio_venta, costo_unitario, ganancia
+          FROM ventas
+          ORDER BY fecha DESC;
+        `);
+        const ventasLegado = (resultadoVentas.values ?? []) as Venta[];
+
+        for (const venta of ventasLegado) {
+          await this.ejecutarRun(
+            `
+              INSERT INTO ventas_nueva (
+                id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha,
+                created_at, updated_at, deleted_at, store_id, created_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+              venta.id,
+              venta.tipo_pago,
+              venta.monto_contado,
+              venta.monto_fiado,
+              venta.cliente_id ?? null,
+              venta.fecha,
+              venta.created_at ?? null,
+              venta.updated_at ?? null,
+              venta.deleted_at ?? null,
+              venta.store_id ?? null,
+              venta.created_by ?? null,
+            ],
+            true,
+          );
+
+          await this.ejecutarRun(
+            `
+              INSERT OR IGNORE INTO venta_items (
+                id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
+                created_at, updated_at, deleted_at, store_id, created_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+              venta.id,
+              venta.id,
+              venta.producto_id,
+              venta.cantidad,
+              venta.precio_venta,
+              venta.costo_unitario,
+              venta.ganancia,
+              venta.created_at ?? null,
+              venta.updated_at ?? null,
+              venta.deleted_at ?? null,
+              venta.store_id ?? null,
+              venta.created_by ?? null,
+            ],
+            true,
+          );
+        }
+
+        await this.db.execute('DROP TABLE ventas;');
+        await this.db.execute('ALTER TABLE ventas_nueva RENAME TO ventas;');
+        await this.crearIndiceVentasFechaSiFalta();
+
+        await this.db.commitTransaction();
+      } catch (error) {
+        await this.db.rollbackTransaction();
+        throw error;
+      }
+
+      const chequeoForeignKeys = await this.db.query('PRAGMA foreign_key_check;');
+      if ((chequeoForeignKeys.values ?? []).length > 0) {
+        throw new Error('La reconstrucción de ventas rompió una restricción foreign key');
+      }
+    } finally {
+      await this.db.execute('PRAGMA foreign_keys = ON;');
     }
   }
 
@@ -652,6 +762,11 @@ export class DatabaseService {
   }
 
   private async backfillMontosVentas(): Promise<void> {
+    const columnasVentas = await this.obtenerColumnas('ventas');
+    if (!columnasVentas.has('precio_venta')) {
+      return;
+    }
+
     await this.ejecutarRun(
       "UPDATE ventas SET monto_contado = precio_venta * cantidad, monto_fiado = 0 WHERE monto_contado IS NULL AND tipo_pago = ?",
       ["CONTADO"],

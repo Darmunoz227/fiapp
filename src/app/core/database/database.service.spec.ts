@@ -905,3 +905,288 @@ describe('DatabaseService', () => {
     expect((await service.obtenerVentas()).length).toBe(1);
   });
 });
+
+type LegacyVentaRow = {
+  id: string;
+  producto_id: string;
+  cantidad: number;
+  precio_venta: number;
+  costo_unitario: number;
+  ganancia: number;
+  tipo_pago: 'CONTADO' | 'FIADO' | 'MIXTO';
+  monto_contado: number | null;
+  monto_fiado: number | null;
+  cliente_id: string | null;
+  fecha: number;
+  created_at: number | null;
+  updated_at: number | null;
+  deleted_at: number | null;
+  store_id: string | null;
+  created_by: string | null;
+};
+
+interface FakeDbState {
+  tables: Map<string, string[]>;
+  rows: Map<string, Array<Record<string, unknown>>>;
+  indexes: Set<string>;
+  userVersion: number;
+}
+
+interface FakeDb {
+  execute: jasmine.Spy;
+  query: jasmine.Spy;
+  run: jasmine.Spy;
+  beginTransaction: jasmine.Spy;
+  commitTransaction: jasmine.Spy;
+  rollbackTransaction: jasmine.Spy;
+}
+
+type DatabaseServiceMigracionInterno = {
+  db: FakeDb;
+  isInitialized: boolean;
+  asegurarEsquema(): Promise<void>;
+};
+
+function crearDbMigracion(ventasRows: LegacyVentaRow[], reducedShape: boolean): { db: FakeDb; state: FakeDbState } {
+  const estado: FakeDbState = {
+    tables: new Map<string, string[]>([
+      [
+        'ventas',
+        reducedShape
+          ? ['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']
+          : ['id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'],
+      ],
+    ]),
+    rows: new Map<string, Array<Record<string, unknown>>>([
+      ['ventas', ventasRows.map((venta) => ({ ...venta }))],
+    ]),
+    indexes: new Set<string>(reducedShape ? ['ventas_fecha_idx'] : ['ventas_producto_id_idx']),
+    userVersion: 6,
+  };
+
+  const columnasVentaReducida = ['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'];
+  const columnasVentaItem = ['id', 'venta_id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'];
+
+  const db: FakeDb = {
+    execute: jasmine.createSpy('execute').and.callFake(async (sql: string) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado === 'PRAGMA foreign_keys = OFF;' || normalizado === 'PRAGMA foreign_keys = ON;') {
+        return;
+      }
+
+      if (normalizado.includes('CREATE TABLE IF NOT EXISTS ventas (') && !estado.tables.has('ventas')) {
+        estado.tables.set('ventas', columnasVentaReducida);
+        estado.rows.set('ventas', []);
+      }
+
+      if (normalizado.includes('DROP TABLE IF EXISTS ventas_nueva;')) {
+        estado.tables.delete('ventas_nueva');
+        estado.rows.delete('ventas_nueva');
+      }
+
+      if (normalizado.includes('CREATE TABLE ventas_nueva (')) {
+        estado.tables.set('ventas_nueva', columnasVentaReducida);
+        estado.rows.set('ventas_nueva', []);
+      }
+
+      if (normalizado.includes('CREATE TABLE IF NOT EXISTS venta_items (') && !estado.tables.has('venta_items')) {
+        estado.tables.set('venta_items', columnasVentaItem);
+        estado.rows.set('venta_items', []);
+      }
+
+      if (normalizado.includes('DROP TABLE ventas;')) {
+        estado.tables.delete('ventas');
+        estado.rows.delete('ventas');
+        estado.indexes.delete('ventas_producto_id_idx');
+        estado.indexes.delete('ventas_fecha_idx');
+      }
+
+      if (normalizado.includes('ALTER TABLE ventas_nueva RENAME TO ventas;')) {
+        const columnas = estado.tables.get('ventas_nueva') ?? columnasVentaReducida;
+        const filas = estado.rows.get('ventas_nueva') ?? [];
+        estado.tables.set('ventas', columnas);
+        estado.rows.set('ventas', filas);
+        estado.tables.delete('ventas_nueva');
+        estado.rows.delete('ventas_nueva');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS ventas_fecha_idx')) {
+        estado.indexes.add('ventas_fecha_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS ventas_producto_id_idx')) {
+        estado.indexes.add('ventas_producto_id_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS venta_items_venta_id_idx')) {
+        estado.indexes.add('venta_items_venta_id_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS venta_items_producto_id_idx')) {
+        estado.indexes.add('venta_items_producto_id_idx');
+      }
+
+      if (normalizado.startsWith('PRAGMA user_version =')) {
+        const version = Number(normalizado.split('=')[1]?.replace(';', '').trim() ?? 0);
+        estado.userVersion = version;
+      }
+    }),
+    query: jasmine.createSpy('query').and.callFake(async (sql: string) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado.startsWith('PRAGMA table_info(')) {
+        const tabla = normalizado.match(/^PRAGMA table_info\(([^)]+)\);?$/)?.[1] ?? '';
+        const columnas = estado.tables.get(tabla) ?? [];
+        return { values: columnas.map((name) => ({ name })) };
+      }
+
+      if (normalizado === 'PRAGMA user_version;') {
+        return { values: [{ user_version: estado.userVersion }] };
+      }
+
+      if (normalizado === 'PRAGMA foreign_key_check;') {
+        return { values: [] };
+      }
+
+      if (normalizado.startsWith('SELECT') && normalizado.includes('FROM ventas')) {
+        return {
+          values: [...(estado.rows.get('ventas') ?? [])].sort((izquierda, derecha) => Number(derecha['fecha']) - Number(izquierda['fecha'])),
+        };
+      }
+
+      return { values: [] };
+    }),
+    run: jasmine.createSpy('run').and.callFake(async (sql: string, values: unknown[]) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado.startsWith('INSERT INTO ventas_nueva')) {
+        const [id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by] = values as [string, string, number | null, number | null, string | null, number, number | null, number | null, number | null, string | null, string | null];
+        const filas = estado.rows.get('ventas_nueva') ?? [];
+        filas.push({ id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by });
+        estado.rows.set('ventas_nueva', filas);
+      }
+
+      if (/^INSERT(?: OR IGNORE)? INTO venta_items\b/.test(normalizado)) {
+        const [id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia, created_at, updated_at, deleted_at, store_id, created_by] = values as [string, string, string, number, number, number, number, number | null, number | null, number | null, string | null, string | null];
+        const filas = estado.rows.get('venta_items') ?? [];
+        filas.push({ id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia, created_at, updated_at, deleted_at, store_id, created_by });
+        estado.rows.set('venta_items', filas);
+      }
+
+      return {};
+    }),
+    beginTransaction: jasmine.createSpy('beginTransaction').and.resolveTo(undefined),
+    commitTransaction: jasmine.createSpy('commitTransaction').and.resolveTo(undefined),
+    rollbackTransaction: jasmine.createSpy('rollbackTransaction').and.resolveTo(undefined),
+  };
+
+  return { db, state: estado };
+}
+
+describe('DatabaseService migration v5->v6', () => {
+  function prepararServicio(db: FakeDb): DatabaseServiceMigracionInterno {
+    const servicio = TestBed.inject(DatabaseService) as unknown as DatabaseServiceMigracionInterno;
+    servicio.db = db;
+    servicio.isInitialized = true;
+    return servicio;
+  }
+
+  it('rebuilds legacy ventas rows into venta_items when the table still has producto_id', async () => {
+    spyOn(Capacitor, 'getPlatform').and.returnValue('android');
+    const { db, state } = crearDbMigracion([
+      {
+        id: 'venta-1',
+        producto_id: 'producto-1',
+        cantidad: 2,
+        precio_venta: 1500,
+        costo_unitario: 1000,
+        ganancia: 1000,
+        tipo_pago: 'CONTADO',
+        monto_contado: 3000,
+        monto_fiado: 0,
+        cliente_id: null,
+        fecha: 1710000000000,
+        created_at: 1710000001000,
+        updated_at: null,
+        deleted_at: null,
+        store_id: 'store-1',
+        created_by: 'user-1',
+      },
+      {
+        id: 'venta-2',
+        producto_id: 'producto-2',
+        cantidad: 3,
+        precio_venta: 2500,
+        costo_unitario: 1200,
+        ganancia: 3900,
+        tipo_pago: 'FIADO',
+        monto_contado: 0,
+        monto_fiado: 7500,
+        cliente_id: 'cliente-1',
+        fecha: 1710000002000,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        store_id: null,
+        created_by: null,
+      },
+    ], false);
+
+    const servicio = prepararServicio(db);
+
+    await servicio.asegurarEsquema();
+
+    expect(state.tables.get('ventas')).toEqual(['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']);
+    expect(state.tables.get('venta_items')).toEqual(['id', 'venta_id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']);
+    expect(state.rows.get('ventas')).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ id: 'venta-2', tipo_pago: 'FIADO', cliente_id: 'cliente-1', fecha: 1710000002000 }),
+      jasmine.objectContaining({ id: 'venta-1', tipo_pago: 'CONTADO', cliente_id: null, fecha: 1710000000000 }),
+    ]));
+    expect(state.rows.get('venta_items')).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ id: 'venta-1', venta_id: 'venta-1', producto_id: 'producto-1', cantidad: 2, precio_venta: 1500, costo_unitario: 1000, ganancia: 1000 }),
+      jasmine.objectContaining({ id: 'venta-2', venta_id: 'venta-2', producto_id: 'producto-2', cantidad: 3, precio_venta: 2500, costo_unitario: 1200, ganancia: 3900 }),
+    ]));
+    expect(state.indexes.has('ventas_fecha_idx')).toBeTrue();
+  });
+
+  it('running the migration twice leaves the database unchanged once ventas is reduced', async () => {
+    spyOn(Capacitor, 'getPlatform').and.returnValue('android');
+    const { db, state } = crearDbMigracion([
+      {
+        id: 'venta-1',
+        producto_id: 'producto-1',
+        cantidad: 1,
+        precio_venta: 1000,
+        costo_unitario: 700,
+        ganancia: 300,
+        tipo_pago: 'CONTADO',
+        monto_contado: 1000,
+        monto_fiado: 0,
+        cliente_id: null,
+        fecha: 1710000003000,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        store_id: null,
+        created_by: null,
+      },
+    ], false);
+
+    const servicio = prepararServicio(db);
+
+    await servicio.asegurarEsquema();
+    const snapshot = {
+      tables: new Map(state.tables),
+      rows: new Map(Array.from(state.rows.entries()).map(([tabla, filas]) => [tabla, filas.map((fila) => ({ ...fila }))])),
+      indexes: new Set(state.indexes),
+    };
+
+    await servicio.asegurarEsquema();
+
+    expect(state.tables).toEqual(snapshot.tables);
+    expect(state.rows).toEqual(snapshot.rows);
+    expect(state.indexes).toEqual(snapshot.indexes);
+    expect((db.run.calls.allArgs().filter(([sql]) => /^INSERT(?: OR IGNORE)? INTO venta_items\b/.test(String(sql).replace(/\s+/g, ' ').trim())).length)).toBe(1);
+  });
+});
