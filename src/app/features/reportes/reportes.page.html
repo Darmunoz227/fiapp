@@ -39,12 +39,21 @@
     <ion-list lines="full" *ngIf="ventasFiltradas.length > 0; else emptyState">
       <ion-item *ngFor="let venta of ventasFiltradas">
         <ion-label class="venta-label">
-          <h3>{{ nombreProducto(venta.producto_id) }}</h3>
-          <p>Cantidad: {{ venta.cantidad }}</p>
-          <p>Total: {{ totalVenta(venta) | currency:'COP':'symbol':'1.0-0' }}</p>
-          <p>Ganancia: {{ venta.ganancia | currency:'COP':'symbol':'1.0-0' }}</p>
-          <p>Pago: {{ venta.tipo_pago }}</p>
-          <p>Fecha: {{ venta.fecha | date:'dd/MM/yyyy, HH:mm' }}</p>
+          <h3>Venta {{ venta.venta.id }}</h3>
+          <p>Pago: {{ venta.venta.tipo_pago }}</p>
+          <p>Fecha: {{ venta.venta.fecha | date:'dd/MM/yyyy, HH:mm' }}</p>
+          <ng-container *ngIf="venta.items.length > 0; else emptyItems">
+            <div class="venta-linea" *ngFor="let item of venta.items">
+              <p>{{ nombreProducto(item.producto_id) }}</p>
+              <p>Cantidad: {{ item.cantidad }}</p>
+              <p>Total: {{ (item.precio_venta * item.cantidad) | currency:'COP':'symbol':'1.0-0' }}</p>
+              <p>Ganancia: {{ item.ganancia | currency:'COP':'symbol':'1.0-0' }}</p>
+            </div>
+            <p>Ganancia total: {{ totalVenta(venta.items) | currency:'COP':'symbol':'1.0-0' }}</p>
+          </ng-container>
+          <ng-template #emptyItems>
+            <p class="empty-state">Sin líneas registradas para esta venta.</p>
+          </ng-template>
         </ion-label>
       </ion-item>
     </ion-list>

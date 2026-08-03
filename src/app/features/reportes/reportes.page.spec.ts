@@ -3,22 +3,42 @@ import { ToastController } from '@ionic/angular/standalone';
 
 import { ReportesPage } from './reportes.page';
 import { DatabaseService } from '../../core/database/database.service';
+import { VentaBase, VentaConItems } from '../../core/models/venta-con-items.model';
+import { VentaItem } from '../../core/models/venta-item.model';
 import { Producto } from '../../core/models/producto.model';
-import { Venta } from '../../core/models/venta.model';
 
-function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
+function crearVentaParcial(overrides: Partial<VentaBase> = {}): VentaBase {
   return {
     id: overrides.id ?? 'venta-1',
-    producto_id: overrides.producto_id ?? 'p1',
-    cantidad: overrides.cantidad ?? 1,
-    precio_venta: overrides.precio_venta ?? 1500,
-    costo_unitario: overrides.costo_unitario ?? 1000,
-    ganancia: overrides.ganancia ?? 500,
     tipo_pago: overrides.tipo_pago ?? 'CONTADO',
     monto_contado: overrides.monto_contado ?? 1500,
     monto_fiado: overrides.monto_fiado ?? 0,
     cliente_id: overrides.cliente_id ?? null,
     fecha: overrides.fecha ?? Date.now(),
+    created_at: overrides.created_at ?? null,
+    updated_at: overrides.updated_at ?? null,
+    deleted_at: overrides.deleted_at ?? null,
+    store_id: overrides.store_id ?? null,
+    created_by: overrides.created_by ?? null,
+  };
+}
+
+function crearVentaConItemsParcial(ventaOverrides: Partial<VentaBase> = {}, items: VentaItem[] = []): VentaConItems {
+  return {
+    venta: crearVentaParcial(ventaOverrides),
+    items,
+  };
+}
+
+function crearVentaItemParcial(overrides: Partial<VentaItem> = {}): VentaItem {
+  return {
+    id: overrides.id ?? 'vi-1',
+    venta_id: overrides.venta_id ?? 'v1',
+    producto_id: overrides.producto_id ?? 'p1',
+    cantidad: overrides.cantidad ?? 1,
+    precio_venta: overrides.precio_venta ?? 1500,
+    costo_unitario: overrides.costo_unitario ?? 1000,
+    ganancia: overrides.ganancia ?? 500,
     created_at: overrides.created_at ?? null,
     updated_at: overrides.updated_at ?? null,
     deleted_at: overrides.deleted_at ?? null,
@@ -57,26 +77,24 @@ describe('ReportesPage', () => {
   beforeEach(waitForAsync(() => {
     databaseServiceMock.obtenerProductos.and.resolveTo(productosMock);
     databaseServiceMock.obtenerVentas.and.resolveTo([
-      crearVentaParcial({
+      crearVentaConItemsParcial({
         id: 'v1',
         tipo_pago: 'CONTADO',
         monto_contado: 2000,
         monto_fiado: 0,
-        precio_venta: 1000,
-        cantidad: 2,
-        ganancia: 400,
         fecha: Date.now(),
-      }),
-      crearVentaParcial({
+      }, [
+        crearVentaItemParcial({ id: 'vi-1', venta_id: 'v1', cantidad: 2, precio_venta: 1000, ganancia: 400 }),
+      ]),
+      crearVentaConItemsParcial({
         id: 'v2',
         tipo_pago: 'FIADO',
         monto_contado: 0,
         monto_fiado: 1500,
-        precio_venta: 1500,
-        cantidad: 1,
-        ganancia: 500,
         fecha: Date.now(),
-      }),
+      }, [
+        crearVentaItemParcial({ id: 'vi-2', venta_id: 'v2', cantidad: 1, precio_venta: 1500, ganancia: 500 }),
+      ]),
     ]);
 
     databaseServiceMock.obtenerVentas.calls.reset();
@@ -114,14 +132,14 @@ describe('ReportesPage', () => {
     const newer = Date.now();
 
     databaseServiceMock.obtenerVentas.and.resolveTo([
-      crearVentaParcial({ id: 'v-old', fecha: older }),
-      crearVentaParcial({ id: 'v-new', fecha: newer }),
+      crearVentaConItemsParcial({ id: 'v-old', fecha: older }, [crearVentaItemParcial({ venta_id: 'v-old' })]),
+      crearVentaConItemsParcial({ id: 'v-new', fecha: newer }, [crearVentaItemParcial({ venta_id: 'v-new' })]),
     ]);
 
     await component.cargar();
 
-    expect(component.ventasFiltradas[0].id).toBe('v-new');
-    expect(component.ventasFiltradas[1].id).toBe('v-old');
+    expect(component.ventasFiltradas[0].venta.id).toBe('v-new');
+    expect(component.ventasFiltradas[1].venta.id).toBe('v-old');
   });
 
   it('nombreProducto returns the product name, or fallback when missing', async () => {
@@ -136,8 +154,8 @@ describe('ReportesPage', () => {
     const haceDiezDias = ahora - 10 * 24 * 60 * 60 * 1000;
 
     databaseServiceMock.obtenerVentas.and.resolveTo([
-      crearVentaParcial({ id: 'v-hoy', fecha: ahora }),
-      crearVentaParcial({ id: 'v-antigua', fecha: haceDiezDias }),
+      crearVentaConItemsParcial({ id: 'v-hoy', fecha: ahora }, [crearVentaItemParcial({ venta_id: 'v-hoy' })]),
+      crearVentaConItemsParcial({ id: 'v-antigua', fecha: haceDiezDias }, [crearVentaItemParcial({ venta_id: 'v-antigua' })]),
     ]);
 
     await component.cargar();

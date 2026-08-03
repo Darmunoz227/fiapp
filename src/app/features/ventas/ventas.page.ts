@@ -23,6 +23,7 @@ import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
+import { VentaItem } from '../../core/models/venta-item.model';
 import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
 import { calcularTotalVenta, derivarTipoPago } from './ventas-calculations';
@@ -192,6 +193,21 @@ export class VentasPage {
       created_by: null,
     };
 
+    const itemVenta: VentaItem = {
+      id: uuidv4(),
+      venta_id: venta.id,
+      producto_id: this.productoId,
+      cantidad,
+      precio_venta: precio,
+      costo_unitario: costoUnitario,
+      ganancia,
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+
     const movimiento: MovimInventario = {
       id: uuidv4(),
       producto_id: this.productoId,
@@ -227,9 +243,9 @@ export class VentasPage {
           created_by: null,
         };
 
-        await this.dbService.registrarVenta(venta, movimiento, transaccionFiado);
+        await this.dbService.registrarVenta(venta, [itemVenta], [movimiento], transaccionFiado);
       } else {
-        await this.dbService.registrarVenta(venta, movimiento);
+        await this.dbService.registrarVenta(venta, [itemVenta], [movimiento]);
       }
 
       await this.onSeleccionarProducto(this.productoId);

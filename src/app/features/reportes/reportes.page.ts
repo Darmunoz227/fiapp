@@ -15,9 +15,9 @@ import {
 } from '@ionic/angular/standalone';
 
 import { DatabaseService } from '../../core/database/database.service';
+import { VentaConItems } from '../../core/models/venta-con-items.model';
+import { VentaItem } from '../../core/models/venta-item.model';
 import { Producto } from '../../core/models/producto.model';
-import { Venta } from '../../core/models/venta.model';
-import { calcularTotalVenta } from '../ventas/ventas-calculations';
 import { calcularResumenVentas, filtrarVentasPorRango, RangoReporte, ResumenVentas } from './reportes-calculations';
 
 @Component({
@@ -42,8 +42,8 @@ import { calcularResumenVentas, filtrarVentasPorRango, RangoReporte, ResumenVent
 })
 export class ReportesPage {
   rango: RangoReporte = 'TODO';
-  ventas: Venta[] = [];
-  ventasFiltradas: Venta[] = [];
+  ventas: VentaConItems[] = [];
+  ventasFiltradas: VentaConItems[] = [];
   resumen: ResumenVentas = {
     totalVendido: 0,
     gananciaTotal: 0,
@@ -71,7 +71,7 @@ export class ReportesPage {
 
   recomputar() {
     const filtradas = filtrarVentasPorRango(this.ventas, this.rango, Date.now());
-    this.ventasFiltradas = [...filtradas].sort((a, b) => b.fecha - a.fecha);
+    this.ventasFiltradas = [...filtradas].sort((a, b) => b.venta.fecha - a.venta.fecha);
     this.resumen = calcularResumenVentas(filtradas);
   }
 
@@ -86,7 +86,7 @@ export class ReportesPage {
     return this.nombrePorProductoId.get(id) ?? 'Producto eliminado';
   }
 
-  totalVenta(venta: Venta): number {
-    return calcularTotalVenta(venta.precio_venta, venta.cantidad);
+  totalVenta(items: VentaItem[]): number {
+    return items.reduce((acumulado, item) => acumulado + (item.precio_venta * item.cantidad), 0);
   }
 }

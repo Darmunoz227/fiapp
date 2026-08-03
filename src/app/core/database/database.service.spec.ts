@@ -5,6 +5,7 @@ import { DatabaseService } from './database.service';
 import { Cliente } from '../models/cliente.model';
 import { calcularStockDerivado } from '../../features/inventario/inventory-calculations';
 import { MovimInventario } from '../models/movim-inventario.model';
+import { VentaConItems } from '../models/venta-con-items.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
 import { VentaItem } from '../models/venta-item.model';
@@ -167,12 +168,42 @@ describe('DatabaseService', () => {
     return (service as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario;
   }
 
-  function obtenerMockVentas(): Venta[] {
-    return (service as unknown as { mockWebVentas: Venta[] }).mockWebVentas;
-  }
-
   function obtenerMockVentaItems(): VentaItem[] {
     return (service as unknown as { mockWebVentaItems: VentaItem[] }).mockWebVentaItems;
+  }
+
+  function obtenerMockVentas(): VentaConItems[] {
+    const ventas = (service as unknown as { mockWebVentas: Array<{
+      id: string;
+      tipo_pago: Venta['tipo_pago'];
+      monto_contado: number;
+      monto_fiado: number;
+      cliente_id: string | null;
+      fecha: number;
+      created_at: number | null;
+      updated_at: number | null;
+      deleted_at: number | null;
+      store_id: string | null;
+      created_by: string | null;
+    }> }).mockWebVentas;
+    const items = obtenerMockVentaItems();
+
+    return ventas.map((venta) => ({
+      venta: {
+        id: venta.id,
+        tipo_pago: venta.tipo_pago,
+        monto_contado: venta.monto_contado,
+        monto_fiado: venta.monto_fiado,
+        cliente_id: venta.cliente_id,
+        fecha: venta.fecha,
+        created_at: venta.created_at,
+        updated_at: venta.updated_at,
+        deleted_at: venta.deleted_at,
+        store_id: venta.store_id,
+        created_by: venta.created_by,
+      },
+      items: items.filter((item) => item.venta_id === venta.id),
+    }));
   }
 
   function registrarVentaExtendida(
@@ -371,11 +402,22 @@ describe('DatabaseService', () => {
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
     expect(ventas).toContain(jasmine.objectContaining({
-      id: 'venta-1',
-      tipo_pago: 'CONTADO',
-      monto_contado: 4500,
-      monto_fiado: 0,
-      cliente_id: null,
+      venta: jasmine.objectContaining({
+        id: 'venta-1',
+        tipo_pago: 'CONTADO',
+        monto_contado: 4500,
+        monto_fiado: 0,
+        cliente_id: null,
+      }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({
+          producto_id: 'p1',
+          cantidad: 3,
+          precio_venta: 1500,
+          costo_unitario: 1000,
+          ganancia: 1500,
+        }),
+      ]),
     }));
     expect(ventaItems).toContain(jasmine.objectContaining({ id: 'venta-item-venta-1', ganancia: 1500 }));
     expect(deudasCliente.length).toBe(0);
@@ -429,7 +471,12 @@ describe('DatabaseService', () => {
     const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
-    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      venta: jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ venta_id: 'venta-2', producto_id: 'p1', cantidad: 3, precio_venta: 1500, costo_unitario: 1000, ganancia: 1500 }),
+      ]),
+    }));
     expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
   });
   it('COMPRA rollback: if the movement insert fails, costo_promedio is NOT modified', async () => {
@@ -557,17 +604,65 @@ describe('DatabaseService', () => {
     }));
 
     const ventas = await service.obtenerVentas();
-    const ventaPersistida = ventas.find((item) => item.id === 'venta-3');
+    const ventaPersistida = ventas.find((item) => item.venta.id === 'venta-3');
     const ventaItemPersistido = obtenerMockVentaItems().find((item) => item.id === 'venta-item-venta-3');
 
     expect(ventaPersistida).toEqual(jasmine.objectContaining({
-      id: 'venta-3',
-      tipo_pago: 'CONTADO',
-      monto_contado: 4500,
-      monto_fiado: 0,
-      cliente_id: null,
+      venta: jasmine.objectContaining({
+        id: 'venta-3',
+        tipo_pago: 'CONTADO',
+        monto_contado: 4500,
+        monto_fiado: 0,
+        cliente_id: null,
+      }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ ganancia: 1500 }),
+      ]),
     }));
     expect(ventaItemPersistido).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
+  });
+
+  it('soft-deleting a sale soft-deletes its lines in the same transaction', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'compra-soft-delete',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-soft-delete-1',
+      producto_id: 'p1',
+      cantidad: 2,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1000,
+      tipo_pago: 'CONTADO',
+      monto_contado: 3000,
+      monto_fiado: 0,
+      cliente_id: null,
+    });
+
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [crearMovimientoParcial({
+      id: 'mov-venta-soft-delete-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 2,
+      costo_unitario: 0,
+    })]);
+
+    await service.softDeleteVenta('venta-soft-delete-1');
+
+    const ventas = await service.obtenerVentas();
+    const ventaEliminada = obtenerMockVentas().find((item) => item.venta.id === 'venta-soft-delete-1');
+
+    expect(ventas.length).toBe(0);
+    expect(ventaEliminada?.venta.deleted_at).not.toBeNull();
+    expect(ventaEliminada?.items.every((item) => item.deleted_at != null)).toBeTrue();
   });
 
   it('VENTA exceeding stock is BLOCKED', async () => {
@@ -941,7 +1036,12 @@ describe('DatabaseService', () => {
     const ventas = await service.obtenerVentas();
     const movimientos = await obtenerMovimientosPorProducto("p1");
     const deudas = await service.obtenerTransaccionesPorCliente("c1");
-    expect(ventas).toContain(jasmine.objectContaining({ id: "v-mix", monto_contado: 10000, monto_fiado: 20000 }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      venta: jasmine.objectContaining({ id: "v-mix", monto_contado: 10000, monto_fiado: 20000 }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ venta_id: "v-mix" }),
+      ]),
+    }));
     expect(movimientos.filter((m) => m.tipo === "VENTA").length).toBe(1);
     expect(deudas).toContain(jasmine.objectContaining({ id: "tx-mix", monto: 20000 }));
   });

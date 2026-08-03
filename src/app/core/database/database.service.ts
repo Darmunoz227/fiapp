@@ -6,6 +6,7 @@ import { MovimInventario } from '../models/movim-inventario.model';
 import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
+import { VentaBase, VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
@@ -13,20 +14,6 @@ import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
-};
-
-type VentaBase = {
-  id: string;
-  tipo_pago: Venta['tipo_pago'];
-  monto_contado: number;
-  monto_fiado: number;
-  cliente_id: string | null;
-  fecha: number;
-  created_at: number | null;
-  updated_at: number | null;
-  deleted_at: number | null;
-  store_id: string | null;
-  created_by: string | null;
 };
 
 @Injectable({
@@ -368,6 +355,37 @@ export class DatabaseService {
     };
   }
 
+  private construirVentaConItems(venta: VentaBase, items: VentaItem[]): VentaConItems {
+    return {
+      venta: {
+        id: venta.id,
+        tipo_pago: venta.tipo_pago,
+        monto_contado: venta.monto_contado,
+        monto_fiado: venta.monto_fiado,
+        cliente_id: venta.cliente_id,
+        fecha: venta.fecha,
+        created_at: venta.created_at,
+        updated_at: venta.updated_at,
+        deleted_at: venta.deleted_at,
+        store_id: venta.store_id,
+        created_by: venta.created_by,
+      },
+      items,
+    };
+  }
+
+  private combinarVentasConItems(ventas: VentaBase[], items: VentaItem[]): VentaConItems[] {
+    const itemsPorVenta = new Map<string, VentaItem[]>();
+
+    for (const item of items) {
+      const itemsVenta = itemsPorVenta.get(item.venta_id) ?? [];
+      itemsVenta.push(item);
+      itemsPorVenta.set(item.venta_id, itemsVenta);
+    }
+
+    return ventas.map((venta) => this.construirVentaConItems(venta, itemsPorVenta.get(venta.id) ?? []));
+  }
+
   private async obtenerColumnas(tabla: string): Promise<Set<string>> {
     const resultado = await this.db.query(`PRAGMA table_info(${tabla});`);
     const filas = (resultado.values ?? []) as Array<{ name?: string }>;
@@ -619,15 +637,41 @@ export class DatabaseService {
     });
   }
 
-  async obtenerVentas(): Promise<Venta[]> {
+  async obtenerVentas(): Promise<VentaConItems[]> {
     if (Capacitor.getPlatform() === 'web') {
-      return this.filtrarActivos(this.mockWebVentas) as Venta[];
+      const ventas = this.filtrarActivos(this.mockWebVentas);
+      const items = this.filtrarActivos(this.mockWebVentaItems);
+      return this.combinarVentasConItems(ventas, items);
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC';
-    const res = await this.db.query(sql);
-    return res.values as Venta[] || [];
+    const ventasRes = await this.db.query('SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    const itemsRes = await this.db.query('SELECT * FROM venta_items WHERE deleted_at IS NULL ORDER BY created_at ASC, id ASC');
+    return this.combinarVentasConItems(
+      (ventasRes.values ?? []) as VentaBase[],
+      (itemsRes.values ?? []) as VentaItem[],
+    );
+  }
+
+  async softDeleteVenta(id: string): Promise<void> {
+    const ahora = Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentas = this.mockWebVentas.map((venta) => (
+        venta.id === id ? { ...venta, deleted_at: ahora } : venta
+      ));
+      this.mockWebVentaItems = this.mockWebVentaItems.map((item) => (
+        item.venta_id === id ? { ...item, deleted_at: ahora } : item
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+
+    return this.ejecutarEnTransaccion(async () => {
+      await this.ejecutarRun('UPDATE ventas SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL', [ahora, id], true);
+      await this.ejecutarRun('UPDATE venta_items SET deleted_at = ? WHERE venta_id = ? AND deleted_at IS NULL', [ahora, id], true);
+    });
   }
 
   async obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {

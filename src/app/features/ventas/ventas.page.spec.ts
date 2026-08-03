@@ -7,6 +7,7 @@ import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
+import { VentaItem } from '../../core/models/venta-item.model';
 import { Venta } from '../../core/models/venta.model';
 
 const productosMock: Producto[] = [
@@ -43,7 +44,7 @@ const clientesMock: Cliente[] = [
 describe('VentasPage', () => {
   let component: VentasPage;
   let fixture: ComponentFixture<VentasPage>;
-  let lastToastConfig: any;
+  let lastToastConfig: unknown;
 
   const databaseServiceMock = jasmine.createSpyObj('DatabaseService', [
     'obtenerProductos',
@@ -66,11 +67,11 @@ describe('VentasPage', () => {
     databaseServiceMock.registrarVenta.calls.reset();
 
     lastToastConfig = undefined;
-    toastControllerMock.create.and.callFake(async (config: any) => {
+    toastControllerMock.create.and.callFake(async (config: unknown) => {
       lastToastConfig = config;
       return {
-        present: () => Promise.resolve(),
-      } as any;
+        present: async () => undefined,
+      };
     });
     toastControllerMock.create.calls.reset();
 
@@ -87,7 +88,7 @@ describe('VentasPage', () => {
     fixture.detectChanges();
   }));
 
-  it('CONTADO sale calls registrarVenta with 2 args and correct frozen snapshot', async () => {
+  it('CONTADO sale calls registrarVenta with sale, one item and one movement', async () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
@@ -101,9 +102,10 @@ describe('VentasPage', () => {
 
     const call = databaseServiceMock.registrarVenta.calls.mostRecent();
     const venta = call.args[0] as Venta;
+    const items = call.args[1] as VentaItem[];
+    const movimientos = call.args[2] as MovimInventario[];
 
-    expect(call.args.length).toBe(2);
-    expect(call.args[2]).toBeUndefined();
+    expect(call.args.length).toBe(3);
     expect(venta).toEqual(jasmine.objectContaining({
       producto_id: 'p1',
       cantidad: 3,
@@ -112,6 +114,22 @@ describe('VentasPage', () => {
       ganancia: 1500,
       tipo_pago: 'CONTADO',
       cliente_id: null,
+    }));
+    expect(items).toHaveSize(1);
+    expect(items[0]).toEqual(jasmine.objectContaining({
+      venta_id: venta.id,
+      producto_id: 'p1',
+      cantidad: 3,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1500,
+    }));
+    expect(movimientos).toHaveSize(1);
+    expect(movimientos[0]).toEqual(jasmine.objectContaining({
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
     }));
   });
 
@@ -133,7 +151,7 @@ describe('VentasPage', () => {
     }));
   });
 
-  it('FIADO with client calls registrarVenta with 3rd transaccionFiado arg', async () => {
+  it('FIADO with client calls registrarVenta with items, movements and transaccionFiado', async () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
@@ -148,9 +166,11 @@ describe('VentasPage', () => {
 
     const call = databaseServiceMock.registrarVenta.calls.mostRecent();
     const venta = call.args[0] as Venta;
-    const transaccionFiado = call.args[2] as Transaccion;
+    const items = call.args[1] as VentaItem[];
+    const movimientos = call.args[2] as MovimInventario[];
+    const transaccionFiado = call.args[3] as Transaccion;
 
-    expect(call.args.length).toBe(3);
+    expect(call.args.length).toBe(4);
     expect(venta).toEqual(jasmine.objectContaining({
       producto_id: 'p1',
       cantidad: 3,
@@ -159,6 +179,22 @@ describe('VentasPage', () => {
       ganancia: 1500,
       tipo_pago: 'FIADO',
       cliente_id: 'c1',
+    }));
+    expect(items).toHaveSize(1);
+    expect(items[0]).toEqual(jasmine.objectContaining({
+      venta_id: venta.id,
+      producto_id: 'p1',
+      cantidad: 3,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1500,
+    }));
+    expect(movimientos).toHaveSize(1);
+    expect(movimientos[0]).toEqual(jasmine.objectContaining({
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 3,
+      costo_unitario: 0,
     }));
     expect(transaccionFiado).toEqual(jasmine.objectContaining({
       cliente_id: 'c1',

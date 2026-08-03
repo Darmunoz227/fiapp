@@ -40,7 +40,7 @@
 - [ ] T021 - Fix reportes-calculations.ts line 43: gananciaTotal must sum line ganancias, not venta.ganancia.
 - [ ] T022 - Fix reportes.page.html lines 42 and 45: render the lines of each sale instead of a single product and a single ganancia.
 - [ ] T023 - Soft-deleting a sale must soft-delete its lines. Suite green. Commit.
-- [ ] T023b - CONTRACT step. Only now remove producto_id, cantidad, precio_venta, costo_unitario and ganancia from the Venta interface. By this point no consumer references them, so the build must pass with ZERO casts. Any need for a cast (as any), a template escape hatch, or a compiler suppression directive means an earlier phase is incomplete: STOP and fix that phase instead.
+- [ ] T023b - CONTRACT step. Phase 5 introduced VentaBase in venta-con-items.model.ts, which duplicates what Venta becomes after this step. Collapse them: reduce Venta, delete VentaBase, and point VentaConItems at Venta. Also replace the `as Venta[]` cast in reconstruirVentasParaMultiItem with a local LegacyVentaRow type, since that cast stops compiling once the legacy fields are gone. Only now remove producto_id, cantidad, precio_venta, costo_unitario and ganancia from the Venta interface. By this point no consumer references them, so the build must pass with ZERO casts. Any need for a cast (as any), a template escape hatch, or a compiler suppression directive means an earlier phase is incomplete: STOP and fix that phase instead.
 
 ## Phase 6 - UI
 
