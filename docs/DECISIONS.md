@@ -430,3 +430,29 @@ primitive and must follow the same rule.
 **Rule going forward:** if the project does not define a CSS custom property, do not consume it without a fallback.
 
 **Evidence:** confirmed on a Pixel_8 Android emulator in light mode: pages carrying the override overlapped, while cliente-detalle, the only page without it, did not. After the removal, verified BY HAND on Android Pixel_8 AND on the iOS simulator, in BOTH appearances, across Home to Ventas, Reportes, Inventario and Configuraciones. No dark mode regression; the Home toolbar kept its fixed brand color per Decision 029.
+
+---
+
+## Decision 031 - Sale lines are the source of truth; the plugin defaults transaction to true on execute too
+
+**Context:** a sale held exactly one product. Feature 011 introduced venta_items, one row per line, and reduced ventas to sale-level data only: id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha and metadata. Schema v6.
+
+**Decision - single source of truth:** producto_id, cantidad, precio_venta, costo_unitario and ganancia were REMOVED from ventas. Keeping them would have recreated the ambiguity that motivated Decision 027: with three products, claiming the sale belongs to the first one is false. The cart code that filled the sale from lineaPrincipal was deleted, not adapted.
+
+**Decision - amounts stay at sale level:** monto_contado and monto_fiado are NOT split per line. A customer paying part of a three-product sale is paying a total, not paying product A in full and product C not at all. Decision 027 stands unchanged.
+
+**Migration:** SQLite cannot drop a NOT NULL constraint with ALTER TABLE, so ventas was rebuilt following the official SQLite table-rebuild pattern: foreign_keys OFF outside the transaction, DROP stale ventas_nueva, rebuild inside one transaction, COMMIT, foreign_key_check, foreign_keys ON in a finally. The rebuild is driven by the ACTUAL SHAPE of the table, checked with obtenerColumnas, NEVER by the version number, because SCHEMA_VERSION was already bumped before the rebuild existed and a version-driven guard would have skipped it forever.
+
+**HARDEST LESSON - Decision 028 was incomplete.** It established that every db.run must declare its transaction context. This feature proved the SAME defect exists in db.execute: the plugin defaults transaction to true there as well. DDL statements running inside a manual transaction threw "Failed in beginTransaction Already in transaction", which killed initializePlugin and left the WHOLE APP unusable. Clients could not be created, and the failure had nothing to do with sales.
+
+**Convention:** dentroDeTx and the plugin transaction flag mean OPPOSITE things. dentroDeTx true means a transaction is already open, so the plugin must receive transaction false. Always negate: execute(sql, !dentroDeTx), run(sql, values, !dentroDeTx). A helper called from both inside and outside a transaction MUST take the parameter; hardcoding either literal breaks one caller. This was gotten wrong twice before landing.
+
+**Connection reuse:** initializePlugin called createConnection unconditionally and threw "Connection fiapp_db already exists" on every in-place upgrade, so asegurarEsquema never ran and the migration never executed. The app worked on clean installs and broke on upgrades, which is the worst possible shape for a bug because development never sees it. Correct order: isConnection, then retrieveConnection when present, then createConnection, and open only when isDBOpen says it is closed.
+
+**Silent failures are banned:** the catch in initializePlugin logged and returned false, so isInitialized stayed false and every later call retried and failed in a silent loop, surfacing much later as a confusing constraint violation. It now rethrows. An initialization failure must be loud and immediate.
+
+**Nullable amounts:** monto_contado and monto_fiado are typed number or null. This is deliberate, not an accident of the contract step: the columns are REAL DEFAULT NULL since v5 and the Feature 007 backfill exists precisely because rows with null amounts were possible.
+
+**Downgrades are not supported:** running older code against a migrated database breaks the write path. Expected in SQLite, recorded here because validating a migration requires switching branches back and forth.
+
+**Evidence:** verified BY HAND on Android emulator Pixel_8 AND on the iOS simulator. An in-place v5 to v6 upgrade preserved existing sales, each converted into exactly one line with identical amounts and ganancia. A three-product sale registered as ONE sale with three lines, stock decreased per product, MIXTO derived correctly, and per-line stock blocking left the remaining lines sellable. 106 tests green, but the suite proves NOTHING about any of this: Karma stubs the platform to web and never executes the native write path.

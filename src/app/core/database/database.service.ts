@@ -6,12 +6,33 @@ import { MovimInventario } from '../models/movim-inventario.model';
 import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
+import { VentaConItems } from '../models/venta-con-items.model';
+import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
+};
+
+type LegacyVentaRow = {
+  id: string;
+  producto_id: string;
+  cantidad: number;
+  precio_venta: number;
+  costo_unitario: number;
+  ganancia: number;
+  tipo_pago: Venta['tipo_pago'];
+  monto_contado: number;
+  monto_fiado: number;
+  cliente_id: string | null;
+  fecha: number;
+  created_at: number | null;
+  updated_at: number | null;
+  deleted_at: number | null;
+  store_id: string | null;
+  created_by: string | null;
 };
 
 @Injectable({
@@ -23,12 +44,13 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 5;
+  private readonly SCHEMA_VERSION = 6;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
   private mockWebMovimInventario: MovimInventario[] = [];
   private mockWebVentas: Venta[] = [];
+  private mockWebVentaItems: VentaItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
     try {
@@ -37,15 +59,25 @@ export class DatabaseService {
         return true;
       }
 
-      this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
-      await this.db.open();
+      const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
+      if (existeConexion) {
+        this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
+      } else {
+        this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
+      }
+
+      const baseDatosAbierta = (await this.db.isDBOpen()).result;
+      if (!baseDatosAbierta) {
+        await this.db.open();
+      }
+
       await this.habilitarForeignKeys();
       await this.asegurarEsquema();
       this.isInitialized = true;
       return true;
     } catch (error) {
       console.error('Error inicializando la base de datos:', error);
-      return false;
+      throw error;
     }
   }
 
@@ -55,10 +87,10 @@ export class DatabaseService {
 
   private async asegurarEsquema(): Promise<void> {
     await this.crearTablasSiFaltan();
+    await this.migrarEsquemaSiNecesario();
 
     const versionActual = await this.obtenerVersionEsquema();
     if (versionActual < this.SCHEMA_VERSION) {
-      await this.migrarEsquemaSiNecesario();
       await this.establecerVersionEsquema(this.SCHEMA_VERSION);
     }
   }
@@ -147,11 +179,6 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE TABLE IF NOT EXISTS ventas (
         id TEXT PRIMARY KEY NOT NULL,
-        producto_id TEXT NOT NULL,
-        cantidad INTEGER NOT NULL,
-        precio_venta REAL NOT NULL,
-        costo_unitario REAL NOT NULL,
-        ganancia REAL NOT NULL,
         tipo_pago TEXT NOT NULL,
         monto_contado REAL DEFAULT NULL,
         monto_fiado REAL DEFAULT NULL,
@@ -161,15 +188,12 @@ export class DatabaseService {
         updated_at INTEGER DEFAULT NULL,
         deleted_at INTEGER DEFAULT NULL,
         store_id TEXT DEFAULT NULL,
-        created_by TEXT DEFAULT NULL,
-        FOREIGN KEY (producto_id) REFERENCES productos(id)
+        created_by TEXT DEFAULT NULL
       );
     `);
 
-    await this.db.execute(`
-      CREATE INDEX IF NOT EXISTS ventas_producto_id_idx
-      ON ventas(producto_id);
-    `);
+    await this.crearIndiceVentasFechaSiFalta();
+    await this.crearVentaItemsSiFaltan();
   }
 
   private async migrarEsquemaSiNecesario(): Promise<void> {
@@ -188,6 +212,8 @@ export class DatabaseService {
     await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
     await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
     await this.backfillMontosVentas();
+    await this.crearVentaItemsSiFaltan();
+    await this.reconstruirVentasParaMultiItem();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -195,6 +221,186 @@ export class DatabaseService {
     if (!columnas.has(columna)) {
       await this.db.execute(`ALTER TABLE ${tabla} ADD COLUMN ${columna} ${definicion};`);
     }
+  }
+
+  private async crearIndiceVentasFechaSiFalta(dentroDeTx = false): Promise<void> {
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS ventas_fecha_idx
+      ON ventas(fecha);
+    `, !dentroDeTx);
+  }
+
+  private async crearVentaItemsSiFaltan(): Promise<void> {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS venta_items (
+        id TEXT PRIMARY KEY NOT NULL,
+        venta_id TEXT NOT NULL,
+        producto_id TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        precio_venta REAL NOT NULL,
+        costo_unitario REAL NOT NULL,
+        ganancia REAL NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (venta_id) REFERENCES ventas(id),
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS venta_items_venta_id_idx
+      ON venta_items(venta_id);
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS venta_items_producto_id_idx
+      ON venta_items(producto_id);
+    `);
+  }
+
+  private async reconstruirVentasParaMultiItem(): Promise<void> {
+    const columnasVentas = await this.obtenerColumnas('ventas');
+    if (!columnasVentas.has('producto_id')) {
+      return;
+    }
+
+    await this.db.execute('PRAGMA foreign_keys = OFF;', false);
+
+    try {
+      await this.db.beginTransaction();
+
+      try {
+        await this.db.execute('DROP TABLE IF EXISTS ventas_nueva;', false);
+        await this.db.execute(`
+          CREATE TABLE ventas_nueva (
+            id TEXT PRIMARY KEY NOT NULL,
+            tipo_pago TEXT NOT NULL,
+            monto_contado REAL DEFAULT NULL,
+            monto_fiado REAL DEFAULT NULL,
+            cliente_id TEXT DEFAULT NULL,
+            fecha INTEGER NOT NULL,
+            created_at INTEGER DEFAULT NULL,
+            updated_at INTEGER DEFAULT NULL,
+            deleted_at INTEGER DEFAULT NULL,
+            store_id TEXT DEFAULT NULL,
+            created_by TEXT DEFAULT NULL
+          );
+        `, false);
+
+        const resultadoVentas = await this.db.query(`
+          SELECT
+            id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha,
+            created_at, updated_at, deleted_at, store_id, created_by,
+            producto_id, cantidad, precio_venta, costo_unitario, ganancia
+          FROM ventas
+          ORDER BY fecha DESC;
+        `);
+        const ventasLegado: LegacyVentaRow[] = resultadoVentas.values ?? [];
+
+        for (const venta of ventasLegado) {
+          await this.ejecutarRun(
+            `
+              INSERT INTO ventas_nueva (
+                id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha,
+                created_at, updated_at, deleted_at, store_id, created_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+              venta.id,
+              venta.tipo_pago,
+              venta.monto_contado,
+              venta.monto_fiado,
+              venta.cliente_id ?? null,
+              venta.fecha,
+              venta.created_at ?? null,
+              venta.updated_at ?? null,
+              venta.deleted_at ?? null,
+              venta.store_id ?? null,
+              venta.created_by ?? null,
+            ],
+            true,
+          );
+
+          await this.ejecutarRun(
+            `
+              INSERT OR IGNORE INTO venta_items (
+                id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
+                created_at, updated_at, deleted_at, store_id, created_by
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `,
+            [
+              venta.id,
+              venta.id,
+              venta.producto_id,
+              venta.cantidad,
+              venta.precio_venta,
+              venta.costo_unitario,
+              venta.ganancia,
+              venta.created_at ?? null,
+              venta.updated_at ?? null,
+              venta.deleted_at ?? null,
+              venta.store_id ?? null,
+              venta.created_by ?? null,
+            ],
+            true,
+          );
+        }
+
+        await this.db.execute('DROP TABLE ventas;', false);
+        await this.db.execute('ALTER TABLE ventas_nueva RENAME TO ventas;', false);
+        await this.crearIndiceVentasFechaSiFalta(true);
+
+        await this.db.commitTransaction();
+      } catch (error) {
+        await this.db.rollbackTransaction();
+        throw error;
+      }
+
+      const chequeoForeignKeys = await this.db.query('PRAGMA foreign_key_check;');
+      if ((chequeoForeignKeys.values ?? []).length > 0) {
+        throw new Error('La reconstrucción de ventas rompió una restricción foreign key');
+      }
+    } finally {
+      await this.db.execute('PRAGMA foreign_keys = ON;', false);
+    }
+  }
+
+  private construirVenta(venta: Venta): Venta {
+    return {
+      id: venta.id,
+      tipo_pago: venta.tipo_pago,
+      monto_contado: venta.monto_contado,
+      monto_fiado: venta.monto_fiado,
+      cliente_id: venta.cliente_id ?? null,
+      fecha: venta.fecha,
+      created_at: venta.created_at ?? null,
+      updated_at: venta.updated_at ?? null,
+      deleted_at: venta.deleted_at ?? null,
+      store_id: venta.store_id ?? null,
+      created_by: venta.created_by ?? null,
+    };
+  }
+
+  private construirVentaConItems(venta: Venta, items: VentaItem[]): VentaConItems {
+    return {
+      venta: this.construirVenta(venta),
+      items,
+    };
+  }
+
+  private combinarVentasConItems(ventas: Venta[], items: VentaItem[]): VentaConItems[] {
+    const itemsPorVenta = new Map<string, VentaItem[]>();
+
+    for (const item of items) {
+      const itemsVenta = itemsPorVenta.get(item.venta_id) ?? [];
+      itemsVenta.push(item);
+      itemsPorVenta.set(item.venta_id, itemsVenta);
+    }
+
+    return ventas.map((venta) => this.construirVentaConItems(venta, itemsPorVenta.get(venta.id) ?? []));
   }
 
   private async obtenerColumnas(tabla: string): Promise<Set<string>> {
@@ -344,6 +550,7 @@ export class DatabaseService {
   private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
     if (Capacitor.getPlatform() === 'web') {
       const snapVentas = [...this.mockWebVentas];
+      const snapVentaItems = [...this.mockWebVentaItems];
       const snapMovim = [...this.mockWebMovimInventario];
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
@@ -352,6 +559,7 @@ export class DatabaseService {
         return await operacion();
       } catch (error) {
         this.mockWebVentas = snapVentas;
+        this.mockWebVentaItems = snapVentaItems;
         this.mockWebMovimInventario = snapMovim;
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
@@ -374,24 +582,18 @@ export class DatabaseService {
 
   private async insertVenta(venta: Venta): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebVentas.push({ ...venta, deleted_at: venta.deleted_at ?? null });
+      this.mockWebVentas.push(this.construirVenta(venta));
       return;
     }
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = `
       INSERT INTO ventas (
-        id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
-        tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       venta.id,
-      venta.producto_id,
-      venta.cantidad,
-      venta.precio_venta,
-      venta.costo_unitario,
-      venta.ganancia,
       venta.tipo_pago,
       venta.monto_contado,
       venta.monto_fiado,
@@ -406,26 +608,86 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, true);
   }
 
-  async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
-    this.validarMontosVenta(venta);
+  private async insertVentaItem(item: VentaItem): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentaItems.push({ ...item, deleted_at: item.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO venta_items (
+        id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
+        created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      item.id,
+      item.venta_id,
+      item.producto_id,
+      item.cantidad,
+      item.precio_venta,
+      item.costo_unitario,
+      item.ganancia,
+      item.created_at ?? null,
+      item.updated_at ?? null,
+      item.deleted_at ?? null,
+      item.store_id ?? null,
+      item.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  async registrarVenta(venta: Venta, items: VentaItem[], movimientos: MovimInventario[], transaccionFiado?: Transaccion): Promise<void> {
+    this.validarMontosVenta(venta, items);
     return this.ejecutarEnTransaccion(async () => {
-      await this.crearMovimientoInterno(movimiento);
       await this.insertVenta(venta);
-      if (venta.monto_fiado > 0 && transaccionFiado) {
+      for (const item of items) {
+        await this.insertVentaItem(item);
+      }
+      for (const movimiento of movimientos) {
+        await this.crearMovimientoInterno(movimiento);
+      }
+      if ((venta.monto_fiado ?? 0) > 0 && transaccionFiado) {
         await this.crearTransaccion(transaccionFiado, true);
       }
     });
   }
 
-  async obtenerVentas(): Promise<Venta[]> {
+  async obtenerVentas(): Promise<VentaConItems[]> {
     if (Capacitor.getPlatform() === 'web') {
-      return this.filtrarActivos(this.mockWebVentas) as Venta[];
+      const ventas = this.filtrarActivos(this.mockWebVentas);
+      const items = this.filtrarActivos(this.mockWebVentaItems);
+      return this.combinarVentasConItems(ventas, items);
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC';
-    const res = await this.db.query(sql);
-    return res.values as Venta[] || [];
+    const ventasRes = await this.db.query('SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    const itemsRes = await this.db.query('SELECT * FROM venta_items WHERE deleted_at IS NULL ORDER BY created_at ASC, id ASC');
+    const ventas: Venta[] = ventasRes.values ?? [];
+    const items: VentaItem[] = itemsRes.values ?? [];
+    return this.combinarVentasConItems(ventas, items);
+  }
+
+  async softDeleteVenta(id: string): Promise<void> {
+    const ahora = Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentas = this.mockWebVentas.map((venta) => (
+        venta.id === id ? { ...venta, deleted_at: ahora } : venta
+      ));
+      this.mockWebVentaItems = this.mockWebVentaItems.map((item) => (
+        item.venta_id === id ? { ...item, deleted_at: ahora } : item
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+
+    return this.ejecutarEnTransaccion(async () => {
+      await this.ejecutarRun('UPDATE ventas SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL', [ahora, id], true);
+      await this.ejecutarRun('UPDATE venta_items SET deleted_at = ? WHERE venta_id = ? AND deleted_at IS NULL', [ahora, id], true);
+    });
   }
 
   async obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {
@@ -600,7 +862,7 @@ export class DatabaseService {
     await this.ejecutarRun(sql, [costoPromedio, id], true);
   }
 
-  private validarMontosVenta(venta: Venta): void {
+  private validarMontosVenta(venta: Venta, items: VentaItem[]): void {
     const contado = venta.monto_contado;
     const fiado = venta.monto_fiado;
 
@@ -612,7 +874,7 @@ export class DatabaseService {
       throw new Error("Los montos de la venta no pueden ser negativos");
     }
 
-    const total = calcularTotalVenta(venta.precio_venta, venta.cantidad);
+    const total = items.reduce((acumulado, item) => acumulado + calcularTotalVenta(item.precio_venta, item.cantidad), 0);
     if (Math.abs((contado + fiado) - total) >= 0.01) {
       throw new Error("Los montos no coinciden con el total de la venta");
     }
@@ -623,6 +885,11 @@ export class DatabaseService {
   }
 
   private async backfillMontosVentas(): Promise<void> {
+    const columnasVentas = await this.obtenerColumnas('ventas');
+    if (!columnasVentas.has('precio_venta')) {
+      return;
+    }
+
     await this.ejecutarRun(
       "UPDATE ventas SET monto_contado = precio_venta * cantidad, monto_fiado = 0 WHERE monto_contado IS NULL AND tipo_pago = ?",
       ["CONTADO"],

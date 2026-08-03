@@ -23,9 +23,22 @@ import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { Transaccion } from '../../core/models/transaccion.model';
+import { VentaItem } from '../../core/models/venta-item.model';
 import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
 import { calcularTotalVenta, derivarTipoPago } from './ventas-calculations';
+
+interface LineaCarritoVenta {
+  id: string;
+  producto: Producto;
+  cantidad: number;
+  precio_venta: number;
+  costo_unitario: number;
+  stockDisponible: number;
+  bloqueada: boolean;
+  repetida: boolean;
+  motivoBloqueo: string | null;
+}
 
 @Component({
   selector: 'app-ventas',
@@ -53,10 +66,13 @@ import { calcularTotalVenta, derivarTipoPago } from './ventas-calculations';
 export class VentasPage {
   productos: Producto[] = [];
   clientes: Cliente[] = [];
+  carrito: LineaCarritoVenta[] = [];
+
+  private stockPorProducto = new Map<string, number>();
 
   productoId = '';
   clienteId = '';
-  cantidad = 0;
+  cantidad = 1;
   precio = 0;
   tipo_pago: TipoPago = 'CONTADO';
   abono = 0;
@@ -84,12 +100,19 @@ export class VentasPage {
   }
 
   get totalVenta(): number {
-    const cantidad = Number(this.cantidad);
-    const precio = Number(this.precio);
-    if (Number.isNaN(cantidad) || Number.isNaN(precio)) {
-      return 0;
-    }
-    return calcularTotalVenta(precio, cantidad);
+    return this.carrito.reduce((acumulado, linea) => acumulado + calcularTotalVenta(linea.precio_venta, linea.cantidad), 0);
+  }
+
+  get gananciaTotal(): number {
+    return this.carrito.reduce((acumulado, linea) => acumulado + this.calcularGananciaLinea(linea), 0);
+  }
+
+  get tieneLineasBloqueadas(): boolean {
+    return this.carrito.some((linea) => linea.bloqueada);
+  }
+
+  get puedeConfirmar(): boolean {
+    return this.carrito.length > 0 && !this.tieneLineasBloqueadas;
   }
 
   get montoContadoCalculado(): number {
@@ -127,11 +150,10 @@ export class VentasPage {
     const producto = this.productos.find((item) => item.id === productoId) ?? null;
     this.precio = producto?.precio_venta ?? 0;
 
-    const movimientos = await this.dbService.obtenerMovimientosPorProducto(productoId);
-    this.stockDerivado = calcularStockDerivado(movimientos);
+    this.stockDerivado = await this.obtenerStockProducto(productoId);
   }
 
-  async registrarVenta() {
+  async agregarLinea() {
     const cantidad = Number(this.cantidad);
     const precio = Number(this.precio);
 
@@ -150,6 +172,54 @@ export class VentasPage {
       return;
     }
 
+    const producto = this.productos.find((item) => item.id === this.productoId) ?? null;
+    if (producto == null) {
+      await this.mostrarToast('Producto no encontrado', 'danger');
+      return;
+    }
+
+    const costoUnitario = producto.costo_promedio;
+    const linea: LineaCarritoVenta = {
+      id: uuidv4(),
+      producto: { ...producto },
+      cantidad,
+      precio_venta: precio,
+      costo_unitario: costoUnitario,
+      stockDisponible: this.stockPorProducto.get(producto.id) ?? 0,
+      bloqueada: false,
+      repetida: false,
+      motivoBloqueo: null,
+    };
+
+    this.carrito = [...this.carrito, linea];
+    await this.revalidarCarrito();
+    this.cantidad = 1;
+  }
+
+  async onCantidadLineaChange(linea: LineaCarritoVenta, valor: number | string) {
+    const cantidad = Number(valor);
+    linea.cantidad = Number.isNaN(cantidad) ? 0 : cantidad;
+    await this.revalidarCarrito();
+  }
+
+  async eliminarLinea(lineaId: string) {
+    this.carrito = this.carrito.filter((linea) => linea.id !== lineaId);
+    await this.revalidarCarrito();
+  }
+
+  async registrarVenta() {
+    await this.revalidarCarrito();
+
+    if (this.carrito.length === 0) {
+      await this.mostrarToast('Debes agregar al menos una línea al carrito', 'danger');
+      return;
+    }
+
+    if (this.tieneLineasBloqueadas) {
+      await this.mostrarToast('Debes resolver las líneas bloqueadas antes de confirmar', 'danger');
+      return;
+    }
+
     if (this.montoContadoCalculado < 0 || this.montoContadoCalculado > this.totalVenta) {
       await this.mostrarToast('El abono debe estar entre 0 y el total de la venta', 'danger');
       return;
@@ -160,26 +230,12 @@ export class VentasPage {
       return;
     }
 
-    const producto = this.productos.find((item) => item.id === this.productoId) ?? null;
-    if (producto == null) {
-      await this.mostrarToast('Producto no encontrado', 'danger');
-      return;
-    }
-
-    const costoUnitario = producto.costo_promedio;
-    const ganancia = (precio - costoUnitario) * cantidad;
     const ahora = Date.now();
-
     const montoContado = this.montoContadoCalculado;
     const montoFiado = this.montoFiadoCalculado;
 
     const venta: Venta = {
       id: uuidv4(),
-      producto_id: this.productoId,
-      cantidad,
-      precio_venta: precio,
-      costo_unitario: costoUnitario,
-      ganancia,
       tipo_pago: derivarTipoPago(montoContado, montoFiado),
       monto_contado: montoContado,
       monto_fiado: montoFiado,
@@ -192,11 +248,26 @@ export class VentasPage {
       created_by: null,
     };
 
-    const movimiento: MovimInventario = {
+    const items: VentaItem[] = this.carrito.map((linea) => ({
       id: uuidv4(),
-      producto_id: this.productoId,
+      venta_id: venta.id,
+      producto_id: linea.producto.id,
+      cantidad: linea.cantidad,
+      precio_venta: linea.precio_venta,
+      costo_unitario: linea.costo_unitario,
+      ganancia: this.calcularGananciaLinea(linea),
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    }));
+
+    const movimientos: MovimInventario[] = this.carrito.map((linea) => ({
+      id: uuidv4(),
+      producto_id: linea.producto.id,
       tipo: 'VENTA',
-      cantidad,
+      cantidad: linea.cantidad,
       costo_unitario: 0,
       motivo: null,
       fecha: ahora,
@@ -209,7 +280,7 @@ export class VentasPage {
       deleted_at: null,
       store_id: null,
       created_by: null,
-    };
+    }));
 
     try {
       if (montoFiado > 0) {
@@ -227,19 +298,17 @@ export class VentasPage {
           created_by: null,
         };
 
-        await this.dbService.registrarVenta(venta, movimiento, transaccionFiado);
+        await this.dbService.registrarVenta(venta, items, movimientos, transaccionFiado);
       } else {
-        await this.dbService.registrarVenta(venta, movimiento);
+        await this.dbService.registrarVenta(venta, items, movimientos);
       }
-
-      await this.onSeleccionarProducto(this.productoId);
 
       const valorGanancia = new Intl.NumberFormat('es-CO', {
         style: 'currency',
         currency: 'COP',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(ganancia);
+      }).format(this.gananciaTotal);
 
       await this.mostrarToast(`Venta registrada. Ganancia: ${valorGanancia}`, 'success');
       this.limpiarFormulario();
@@ -252,11 +321,77 @@ export class VentasPage {
   limpiarFormulario() {
     this.productoId = '';
     this.clienteId = '';
-    this.cantidad = 0;
+    this.carrito = [];
+    this.stockPorProducto.clear();
+    this.cantidad = 1;
     this.precio = 0;
     this.tipo_pago = 'CONTADO';
     this.abono = 0;
     this.stockDerivado = 0;
+  }
+
+  subtotalLinea(linea: LineaCarritoVenta): number {
+    return calcularTotalVenta(linea.precio_venta, linea.cantidad);
+  }
+
+  gananciaLinea(linea: LineaCarritoVenta): number {
+    return this.calcularGananciaLinea(linea);
+  }
+
+  esLineaRepetida(linea: LineaCarritoVenta): boolean {
+    return linea.repetida;
+  }
+
+  private async obtenerStockProducto(productoId: string): Promise<number> {
+    const stockCacheado = this.stockPorProducto.get(productoId);
+    if (stockCacheado != null) {
+      return stockCacheado;
+    }
+
+    const movimientos = await this.dbService.obtenerMovimientosPorProducto(productoId);
+    const stock = calcularStockDerivado(movimientos);
+    this.stockPorProducto.set(productoId, stock);
+    return stock;
+  }
+
+  private async revalidarCarrito(): Promise<void> {
+    const productosEnCarrito = [...new Set(this.carrito.map((linea) => linea.producto.id))];
+    await Promise.all(productosEnCarrito.map(async (productoId) => {
+      await this.obtenerStockProducto(productoId);
+    }));
+
+    const apariciones = new Map<string, number>();
+    const stockRestante = new Map<string, number>();
+
+    for (const linea of this.carrito) {
+      const productoId = linea.producto.id;
+      const stockBase = this.stockPorProducto.get(productoId) ?? 0;
+      const restanteAntes = stockRestante.has(productoId) ? (stockRestante.get(productoId) ?? 0) : stockBase;
+      const cantidad = Number(linea.cantidad);
+
+      apariciones.set(productoId, (apariciones.get(productoId) ?? 0) + 1);
+      linea.repetida = (apariciones.get(productoId) ?? 0) > 1;
+      linea.stockDisponible = Math.max(restanteAntes, 0);
+
+      const cantidadValida = Number.isFinite(cantidad) && cantidad > 0;
+      const excedeStock = cantidadValida && cantidad > restanteAntes;
+      linea.bloqueada = !cantidadValida || excedeStock;
+      linea.motivoBloqueo = !cantidadValida
+        ? 'La cantidad debe ser mayor a 0'
+        : excedeStock
+          ? `Disponible: ${Math.max(restanteAntes, 0)}`
+          : null;
+
+      if (!linea.bloqueada) {
+        stockRestante.set(productoId, restanteAntes - cantidad);
+      } else {
+        stockRestante.set(productoId, restanteAntes);
+      }
+    }
+  }
+
+  private calcularGananciaLinea(linea: LineaCarritoVenta): number {
+    return (linea.precio_venta - linea.costo_unitario) * linea.cantidad;
   }
 
   private async mostrarToast(message: string, color: 'success' | 'danger') {

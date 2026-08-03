@@ -5,8 +5,10 @@ import { DatabaseService } from './database.service';
 import { Cliente } from '../models/cliente.model';
 import { calcularStockDerivado } from '../../features/inventario/inventory-calculations';
 import { MovimInventario } from '../models/movim-inventario.model';
+import { VentaConItems } from '../models/venta-con-items.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
+import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 
 describe('DatabaseService', () => {
@@ -89,7 +91,7 @@ describe('DatabaseService', () => {
     };
   }
 
-  function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
+  function crearVentaParcial(overrides: Partial<LegacyVentaRow> = {}): LegacyVentaRow {
     return {
       id: overrides.id ?? 'venta-1',
       producto_id: overrides.producto_id ?? 'producto-1',
@@ -110,12 +112,90 @@ describe('DatabaseService', () => {
     };
   }
 
+  function crearVentaItemParcial(overrides: Partial<VentaItem> = {}): VentaItem {
+    return {
+      id: overrides.id ?? 'venta-item-1',
+      venta_id: overrides.venta_id ?? 'venta-1',
+      producto_id: overrides.producto_id ?? 'producto-1',
+      cantidad: overrides.cantidad ?? 1,
+      precio_venta: overrides.precio_venta ?? 1500,
+      costo_unitario: overrides.costo_unitario ?? 1000,
+      ganancia: overrides.ganancia ?? 500,
+      created_at: overrides.created_at ?? null,
+      updated_at: overrides.updated_at ?? null,
+      deleted_at: overrides.deleted_at ?? null,
+      store_id: overrides.store_id ?? null,
+      created_by: overrides.created_by ?? null,
+    };
+  }
+
+  function crearVentaItemDesdeVenta(venta: LegacyVentaRow): VentaItem {
+    return crearVentaItemParcial({
+      id: `venta-item-${venta.id}`,
+      venta_id: venta.id,
+      producto_id: venta.producto_id,
+      cantidad: venta.cantidad,
+      precio_venta: venta.precio_venta,
+      costo_unitario: venta.costo_unitario,
+      ganancia: venta.ganancia,
+      created_at: venta.created_at ?? null,
+      updated_at: venta.updated_at ?? null,
+      deleted_at: venta.deleted_at ?? null,
+      store_id: venta.store_id ?? null,
+      created_by: venta.created_by ?? null,
+    });
+  }
+
   function crearMovimiento(movimiento: MovimInventario): Promise<void> {
-    return Promise.resolve().then(() => (service as any).crearMovimiento(movimiento));
+    const servicioInterno = service as unknown as { crearMovimiento(movimiento: MovimInventario): Promise<void> };
+    return Promise.resolve().then(() => servicioInterno.crearMovimiento(movimiento));
   }
 
   function obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {
-    return Promise.resolve().then(() => (service as any).obtenerMovimientosPorProducto(productoId));
+    const servicioInterno = service as unknown as { obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> };
+    return Promise.resolve().then(() => servicioInterno.obtenerMovimientosPorProducto(productoId));
+  }
+
+  function obtenerMockClientes(): Cliente[] {
+    return (service as unknown as { mockWebClientes: Cliente[] }).mockWebClientes;
+  }
+
+  function obtenerMockTransacciones(): Transaccion[] {
+    return (service as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones;
+  }
+
+  function obtenerMockMovimientos(): MovimInventario[] {
+    return (service as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario;
+  }
+
+  function obtenerMockVentaItems(): VentaItem[] {
+    return (service as unknown as { mockWebVentaItems: VentaItem[] }).mockWebVentaItems;
+  }
+
+  function obtenerMockVentas(): VentaConItems[] {
+    const ventas = (service as unknown as { mockWebVentas: Venta[] }).mockWebVentas;
+    const items = obtenerMockVentaItems();
+
+    return ventas.map((venta) => ({
+      venta,
+      items: items.filter((item) => item.venta_id === venta.id),
+    }));
+  }
+
+  function registrarVentaExtendida(
+    venta: Venta,
+    items: VentaItem[],
+    movimientos: MovimInventario[],
+    transaccionFiado?: Transaccion,
+  ): Promise<void> {
+    const registrarVenta = service.registrarVenta.bind(service) as unknown as (
+      venta: Venta,
+      items: VentaItem[],
+      movimientos: MovimInventario[],
+      transaccionFiado?: Transaccion,
+    ) => Promise<void>;
+
+    return registrarVenta(venta, items, movimientos, transaccionFiado);
   }
 
   it('softDeleteCliente hides the client from obtenerClientes but keeps the deleted_at mark internally', async () => {
@@ -127,7 +207,7 @@ describe('DatabaseService', () => {
     const clientesVisibles = await service.obtenerClientes();
     expect(clientesVisibles.length).toBe(0);
 
-    const mockClientes = (service as any).mockWebClientes as Cliente[];
+    const mockClientes = obtenerMockClientes();
     expect(mockClientes.length).toBe(1);
     expect(mockClientes[0].id).toBe('cliente-1');
     expect(mockClientes[0].deleted_at).not.toBeNull();
@@ -172,7 +252,7 @@ describe('DatabaseService', () => {
     const transaccionesVisibles = await service.obtenerTransaccionesPorCliente('cliente-1');
     expect(transaccionesVisibles.length).toBe(0);
 
-    const mockTransacciones = (service as any).mockWebTransacciones as Transaccion[];
+    const mockTransacciones = obtenerMockTransacciones();
     expect(mockTransacciones.length).toBe(1);
     expect(mockTransacciones[0].id).toBe('transaccion-1');
     expect(mockTransacciones[0].deleted_at).not.toBeNull();
@@ -289,14 +369,33 @@ describe('DatabaseService', () => {
       costo_unitario: 0,
     });
 
-    await service.registrarVenta(venta, movimientoVenta);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta]);
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
+    const ventaItems = obtenerMockVentaItems();
     const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
-    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-1', ganancia: 1500 }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      venta: jasmine.objectContaining({
+        id: 'venta-1',
+        tipo_pago: 'CONTADO',
+        monto_contado: 4500,
+        monto_fiado: 0,
+        cliente_id: null,
+      }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({
+          producto_id: 'p1',
+          cantidad: 3,
+          precio_venta: 1500,
+          costo_unitario: 1000,
+          ganancia: 1500,
+        }),
+      ]),
+    }));
+    expect(ventaItems).toContain(jasmine.objectContaining({ id: 'venta-item-venta-1', ganancia: 1500 }));
     expect(deudasCliente.length).toBe(0);
   });
 
@@ -341,14 +440,19 @@ describe('DatabaseService', () => {
       concepto: 'Venta fiada',
     });
 
-    await service.registrarVenta(venta, movimientoVenta, transaccionFiado);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta], transaccionFiado);
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
     const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
-    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      venta: jasmine.objectContaining({ id: 'venta-2', cliente_id: 'c1', tipo_pago: 'FIADO' }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ venta_id: 'venta-2', producto_id: 'p1', cantidad: 3, precio_venta: 1500, costo_unitario: 1000, ganancia: 1500 }),
+      ]),
+    }));
     expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
   });
   it('COMPRA rollback: if the movement insert fails, costo_promedio is NOT modified', async () => {
@@ -366,7 +470,7 @@ describe('DatabaseService', () => {
       .find((producto) => producto.id === 'p1')!.costo_promedio;
     expect(costoAntes).toBe(1000);
 
-    const movimientos = (service as any).mockWebMovimInventario as MovimInventario[];
+    const movimientos = obtenerMockMovimientos();
     spyOn(movimientos, 'push').and.throwError('simulated movement insert failure');
 
     await expectAsync(crearMovimiento(crearMovimientoParcial({
@@ -422,7 +526,7 @@ describe('DatabaseService', () => {
       concepto: 'Venta fiada fallida',
     });
 
-    await expectAsync(service.registrarVenta(venta, movimientoVenta, transaccionFiado)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta], transaccionFiado)).toBeRejected();
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
@@ -465,7 +569,7 @@ describe('DatabaseService', () => {
       costo_unitario: 0,
     });
 
-    await service.registrarVenta(venta, movimientoVenta);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta]);
 
     await crearMovimiento(crearMovimientoParcial({
       id: 'movimiento-compra-2',
@@ -476,9 +580,65 @@ describe('DatabaseService', () => {
     }));
 
     const ventas = await service.obtenerVentas();
-    const ventaPersistida = ventas.find((item) => item.id === 'venta-3');
+    const ventaPersistida = ventas.find((item) => item.venta.id === 'venta-3');
+    const ventaItemPersistido = obtenerMockVentaItems().find((item) => item.id === 'venta-item-venta-3');
 
-    expect(ventaPersistida).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
+    expect(ventaPersistida).toEqual(jasmine.objectContaining({
+      venta: jasmine.objectContaining({
+        id: 'venta-3',
+        tipo_pago: 'CONTADO',
+        monto_contado: 4500,
+        monto_fiado: 0,
+        cliente_id: null,
+      }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ ganancia: 1500 }),
+      ]),
+    }));
+    expect(ventaItemPersistido).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
+  });
+
+  it('soft-deleting a sale soft-deletes its lines in the same transaction', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'compra-soft-delete',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-soft-delete-1',
+      producto_id: 'p1',
+      cantidad: 2,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 1000,
+      tipo_pago: 'CONTADO',
+      monto_contado: 3000,
+      monto_fiado: 0,
+      cliente_id: null,
+    });
+
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [crearMovimientoParcial({
+      id: 'mov-venta-soft-delete-1',
+      producto_id: 'p1',
+      tipo: 'VENTA',
+      cantidad: 2,
+      costo_unitario: 0,
+    })]);
+
+    await service.softDeleteVenta('venta-soft-delete-1');
+
+    const ventas = await service.obtenerVentas();
+    const ventaEliminada = obtenerMockVentas().find((item) => item.venta.id === 'venta-soft-delete-1');
+
+    expect(ventas.length).toBe(0);
+    expect(ventaEliminada?.venta.deleted_at).not.toBeNull();
+    expect(ventaEliminada?.items.every((item) => item.deleted_at != null)).toBeTrue();
   });
 
   it('VENTA exceeding stock is BLOCKED', async () => {
@@ -848,11 +1008,16 @@ describe('DatabaseService', () => {
     const venta = crearVentaParcial({ id: "v-mix", producto_id: "p1", cantidad: 2, precio_venta: 15000, costo_unitario: 1000, ganancia: 28000, tipo_pago: "MIXTO", cliente_id: "c1", monto_contado: 10000, monto_fiado: 20000 });
     const mov = crearMovimientoParcial({ id: "mv-mix", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
     const tx = crearTransaccionParcial({ id: "tx-mix", cliente_id: "c1", tipo: "fiado", monto: 20000, concepto: "Saldo venta mixta" });
-    await service.registrarVenta(venta, mov, tx);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov], tx);
     const ventas = await service.obtenerVentas();
     const movimientos = await obtenerMovimientosPorProducto("p1");
     const deudas = await service.obtenerTransaccionesPorCliente("c1");
-    expect(ventas).toContain(jasmine.objectContaining({ id: "v-mix", monto_contado: 10000, monto_fiado: 20000 }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      venta: jasmine.objectContaining({ id: "v-mix", monto_contado: 10000, monto_fiado: 20000 }),
+      items: jasmine.arrayContaining([
+        jasmine.objectContaining({ venta_id: "v-mix" }),
+      ]),
+    }));
     expect(movimientos.filter((m) => m.tipo === "VENTA").length).toBe(1);
     expect(deudas).toContain(jasmine.objectContaining({ id: "tx-mix", monto: 20000 }));
   });
@@ -863,7 +1028,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-bad", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-bad", producto_id: "p1", cantidad: 2, precio_venta: 15000, cliente_id: "c1", monto_contado: 10000, monto_fiado: 5000 });
     const mov = crearMovimientoParcial({ id: "mv-bad", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -872,7 +1037,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-neg", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-neg", producto_id: "p1", cantidad: 1, precio_venta: 1500, monto_contado: 3000, monto_fiado: -1500 });
     const mov = crearMovimientoParcial({ id: "mv-neg", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -880,10 +1045,9 @@ describe('DatabaseService', () => {
     await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
     await crearMovimiento(crearMovimientoParcial({ id: "mc-null", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-null", producto_id: "p1", cantidad: 1, precio_venta: 1500 });
-    (venta as any).monto_contado = null;
-    (venta as any).monto_fiado = null;
+    const ventaConMontosNulos: LegacyVentaRow = { ...venta, monto_contado: null, monto_fiado: null };
     const mov = crearMovimientoParcial({ id: "mv-null", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(ventaConMontosNulos, [crearVentaItemDesdeVenta(ventaConMontosNulos)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -892,7 +1056,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-nocli", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-nocli", producto_id: "p1", cantidad: 1, precio_venta: 1500, cliente_id: null, monto_contado: 500, monto_fiado: 1000 });
     const mov = crearMovimientoParcial({ id: "mv-nocli", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -901,7 +1065,385 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-float", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1 }));
     const venta = crearVentaParcial({ id: "v-float", producto_id: "p1", cantidad: 3, precio_venta: 1.1, costo_unitario: 1, ganancia: 0.3, monto_contado: 3.3, monto_fiado: 0 });
     const mov = crearMovimientoParcial({ id: "mv-float", producto_id: "p1", tipo: "VENTA", cantidad: 3, costo_unitario: 0 });
-    await service.registrarVenta(venta, mov);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov]);
     expect((await service.obtenerVentas()).length).toBe(1);
+  });
+
+  it('multi-item sale writes one sale, three items and three VENTA movements', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+
+    const productos = [
+      crearProductoParcial({ id: 'p1', costo_promedio: 1000 }),
+      crearProductoParcial({ id: 'p2', costo_promedio: 1500 }),
+      crearProductoParcial({ id: 'p3', costo_promedio: 2500 }),
+    ];
+
+    for (const producto of productos) {
+      await service.crearProducto(producto);
+      await crearMovimiento(crearMovimientoParcial({
+        id: `compra-${producto.id}`,
+        producto_id: producto.id,
+        tipo: 'COMPRA',
+        cantidad: 10,
+        costo_unitario: producto.costo_promedio,
+      }));
+    }
+
+    const venta = crearVentaParcial({
+      id: 'venta-multi-1',
+      producto_id: 'p1',
+      cantidad: 1,
+      precio_venta: 6000,
+      costo_unitario: 1000,
+      ganancia: 1900,
+      tipo_pago: 'CONTADO',
+      monto_contado: 6000,
+      monto_fiado: 0,
+      cliente_id: null,
+    });
+
+    const items = [
+      crearVentaItemParcial({ id: 'vi-1', venta_id: 'venta-multi-1', producto_id: 'p1', cantidad: 1, precio_venta: 1000, costo_unitario: 1000, ganancia: 0 }),
+      crearVentaItemParcial({ id: 'vi-2', venta_id: 'venta-multi-1', producto_id: 'p2', cantidad: 1, precio_venta: 2000, costo_unitario: 1500, ganancia: 500 }),
+      crearVentaItemParcial({ id: 'vi-3', venta_id: 'venta-multi-1', producto_id: 'p3', cantidad: 1, precio_venta: 3000, costo_unitario: 2500, ganancia: 500 }),
+    ];
+
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mv-1', producto_id: 'p1', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+      crearMovimientoParcial({ id: 'mv-2', producto_id: 'p2', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+      crearMovimientoParcial({ id: 'mv-3', producto_id: 'p3', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+    ];
+
+    await registrarVentaExtendida(venta, items, movimientos);
+
+    expect(obtenerMockVentas().length).toBe(1);
+    expect(obtenerMockVentaItems().length).toBe(3);
+    expect(obtenerMockMovimientos().filter((movimiento) => movimiento.tipo === 'VENTA').length).toBe(3);
+  });
+
+  it('if any write fails mid-sale, nothing is persisted', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+
+    const producto = crearProductoParcial({ id: 'p1', costo_promedio: 1000 });
+    await service.crearProducto(producto);
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'compra-p1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-falla-1',
+      producto_id: 'p1',
+      cantidad: 1,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 500,
+      tipo_pago: 'FIADO',
+      monto_contado: 0,
+      monto_fiado: 1500,
+      cliente_id: 'c1',
+    });
+
+    const items = [crearVentaItemParcial({ id: 'vi-falla-1', venta_id: 'venta-falla-1', producto_id: 'p1', cantidad: 1, precio_venta: 1500, costo_unitario: 1000, ganancia: 500 })];
+    const movimientos = [crearMovimientoParcial({ id: 'mv-falla-1', producto_id: 'p1', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 })];
+    const transaccionFiado = crearTransaccionParcial({ id: 'tx-falla-1', cliente_id: 'c1', tipo: 'fiado', monto: 1500, concepto: 'Venta a crédito' });
+
+    const transacciones = obtenerMockTransacciones();
+    spyOn(transacciones, 'push').and.throwError('simulated mid-sale failure');
+
+    await expectAsync(registrarVentaExtendida(venta, items, movimientos, transaccionFiado)).toBeRejected();
+
+    expect(obtenerMockVentas().length).toBe(0);
+    expect(obtenerMockVentaItems().length).toBe(0);
+    expect(obtenerMockMovimientos().filter((movimiento) => movimiento.tipo === 'VENTA').length).toBe(0);
+    expect(obtenerMockTransacciones().length).toBe(0);
+  });
+});
+
+type LegacyVentaRow = {
+  id: string;
+  producto_id: string;
+  cantidad: number;
+  precio_venta: number;
+  costo_unitario: number;
+  ganancia: number;
+  tipo_pago: 'CONTADO' | 'FIADO' | 'MIXTO';
+  monto_contado: number | null;
+  monto_fiado: number | null;
+  cliente_id: string | null;
+  fecha: number;
+  created_at: number | null;
+  updated_at: number | null;
+  deleted_at: number | null;
+  store_id: string | null;
+  created_by: string | null;
+};
+
+interface FakeDbState {
+  tables: Map<string, string[]>;
+  rows: Map<string, Array<Record<string, unknown>>>;
+  indexes: Set<string>;
+  userVersion: number;
+}
+
+interface FakeDb {
+  execute: jasmine.Spy;
+  query: jasmine.Spy;
+  run: jasmine.Spy;
+  beginTransaction: jasmine.Spy;
+  commitTransaction: jasmine.Spy;
+  rollbackTransaction: jasmine.Spy;
+}
+
+type DatabaseServiceMigracionInterno = {
+  db: FakeDb;
+  isInitialized: boolean;
+  asegurarEsquema(): Promise<void>;
+};
+
+function crearDbMigracion(ventasRows: LegacyVentaRow[], reducedShape: boolean): { db: FakeDb; state: FakeDbState } {
+  const estado: FakeDbState = {
+    tables: new Map<string, string[]>([
+      [
+        'ventas',
+        reducedShape
+          ? ['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']
+          : ['id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'],
+      ],
+    ]),
+    rows: new Map<string, Array<Record<string, unknown>>>([
+      ['ventas', ventasRows.map((venta) => ({ ...venta }))],
+    ]),
+    indexes: new Set<string>(reducedShape ? ['ventas_fecha_idx'] : ['ventas_producto_id_idx']),
+    userVersion: 6,
+  };
+
+  const columnasVentaReducida = ['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'];
+  const columnasVentaItem = ['id', 'venta_id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by'];
+
+  const db: FakeDb = {
+    execute: jasmine.createSpy('execute').and.callFake(async (sql: string) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado === 'PRAGMA foreign_keys = OFF;' || normalizado === 'PRAGMA foreign_keys = ON;') {
+        return;
+      }
+
+      if (normalizado.includes('CREATE TABLE IF NOT EXISTS ventas (') && !estado.tables.has('ventas')) {
+        estado.tables.set('ventas', columnasVentaReducida);
+        estado.rows.set('ventas', []);
+      }
+
+      if (normalizado.includes('DROP TABLE IF EXISTS ventas_nueva;')) {
+        estado.tables.delete('ventas_nueva');
+        estado.rows.delete('ventas_nueva');
+      }
+
+      if (normalizado.includes('CREATE TABLE ventas_nueva (')) {
+        estado.tables.set('ventas_nueva', columnasVentaReducida);
+        estado.rows.set('ventas_nueva', []);
+      }
+
+      if (normalizado.includes('CREATE TABLE IF NOT EXISTS venta_items (') && !estado.tables.has('venta_items')) {
+        estado.tables.set('venta_items', columnasVentaItem);
+        estado.rows.set('venta_items', []);
+      }
+
+      if (normalizado.includes('DROP TABLE ventas;')) {
+        estado.tables.delete('ventas');
+        estado.rows.delete('ventas');
+        estado.indexes.delete('ventas_producto_id_idx');
+        estado.indexes.delete('ventas_fecha_idx');
+      }
+
+      if (normalizado.includes('ALTER TABLE ventas_nueva RENAME TO ventas;')) {
+        const columnas = estado.tables.get('ventas_nueva') ?? columnasVentaReducida;
+        const filas = estado.rows.get('ventas_nueva') ?? [];
+        estado.tables.set('ventas', columnas);
+        estado.rows.set('ventas', filas);
+        estado.tables.delete('ventas_nueva');
+        estado.rows.delete('ventas_nueva');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS ventas_fecha_idx')) {
+        estado.indexes.add('ventas_fecha_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS ventas_producto_id_idx')) {
+        estado.indexes.add('ventas_producto_id_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS venta_items_venta_id_idx')) {
+        estado.indexes.add('venta_items_venta_id_idx');
+      }
+
+      if (normalizado.includes('CREATE INDEX IF NOT EXISTS venta_items_producto_id_idx')) {
+        estado.indexes.add('venta_items_producto_id_idx');
+      }
+
+      if (normalizado.startsWith('PRAGMA user_version =')) {
+        const version = Number(normalizado.split('=')[1]?.replace(';', '').trim() ?? 0);
+        estado.userVersion = version;
+      }
+    }),
+    query: jasmine.createSpy('query').and.callFake(async (sql: string) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado.startsWith('PRAGMA table_info(')) {
+        const tabla = normalizado.match(/^PRAGMA table_info\(([^)]+)\);?$/)?.[1] ?? '';
+        const columnas = estado.tables.get(tabla) ?? [];
+        return { values: columnas.map((name) => ({ name })) };
+      }
+
+      if (normalizado === 'PRAGMA user_version;') {
+        return { values: [{ user_version: estado.userVersion }] };
+      }
+
+      if (normalizado === 'PRAGMA foreign_key_check;') {
+        return { values: [] };
+      }
+
+      if (normalizado.startsWith('SELECT') && normalizado.includes('FROM ventas')) {
+        return {
+          values: [...(estado.rows.get('ventas') ?? [])].sort((izquierda, derecha) => Number(derecha['fecha']) - Number(izquierda['fecha'])),
+        };
+      }
+
+      return { values: [] };
+    }),
+    run: jasmine.createSpy('run').and.callFake(async (sql: string, values: unknown[]) => {
+      const normalizado = sql.replace(/\s+/g, ' ').trim();
+
+      if (normalizado.startsWith('INSERT INTO ventas_nueva')) {
+        const [id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by] = values as [string, string, number | null, number | null, string | null, number, number | null, number | null, number | null, string | null, string | null];
+        const filas = estado.rows.get('ventas_nueva') ?? [];
+        filas.push({ id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by });
+        estado.rows.set('ventas_nueva', filas);
+      }
+
+      if (/^INSERT(?: OR IGNORE)? INTO venta_items\b/.test(normalizado)) {
+        const [id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia, created_at, updated_at, deleted_at, store_id, created_by] = values as [string, string, string, number, number, number, number, number | null, number | null, number | null, string | null, string | null];
+        const filas = estado.rows.get('venta_items') ?? [];
+        filas.push({ id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia, created_at, updated_at, deleted_at, store_id, created_by });
+        estado.rows.set('venta_items', filas);
+      }
+
+      return {};
+    }),
+    beginTransaction: jasmine.createSpy('beginTransaction').and.resolveTo(undefined),
+    commitTransaction: jasmine.createSpy('commitTransaction').and.resolveTo(undefined),
+    rollbackTransaction: jasmine.createSpy('rollbackTransaction').and.resolveTo(undefined),
+  };
+
+  return { db, state: estado };
+}
+
+describe('DatabaseService migration v5->v6', () => {
+  function prepararServicio(db: FakeDb): DatabaseServiceMigracionInterno {
+    const servicio = TestBed.inject(DatabaseService) as unknown as DatabaseServiceMigracionInterno;
+    servicio.db = db;
+    servicio.isInitialized = true;
+    return servicio;
+  }
+
+  it('rebuilds legacy ventas rows into venta_items when the table still has producto_id', async () => {
+    spyOn(Capacitor, 'getPlatform').and.returnValue('android');
+    const { db, state } = crearDbMigracion([
+      {
+        id: 'venta-1',
+        producto_id: 'producto-1',
+        cantidad: 2,
+        precio_venta: 1500,
+        costo_unitario: 1000,
+        ganancia: 1000,
+        tipo_pago: 'CONTADO',
+        monto_contado: 3000,
+        monto_fiado: 0,
+        cliente_id: null,
+        fecha: 1710000000000,
+        created_at: 1710000001000,
+        updated_at: null,
+        deleted_at: null,
+        store_id: 'store-1',
+        created_by: 'user-1',
+      },
+      {
+        id: 'venta-2',
+        producto_id: 'producto-2',
+        cantidad: 3,
+        precio_venta: 2500,
+        costo_unitario: 1200,
+        ganancia: 3900,
+        tipo_pago: 'FIADO',
+        monto_contado: 0,
+        monto_fiado: 7500,
+        cliente_id: 'cliente-1',
+        fecha: 1710000002000,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        store_id: null,
+        created_by: null,
+      },
+    ], false);
+
+    const servicio = prepararServicio(db);
+
+    await servicio.asegurarEsquema();
+
+    expect(state.tables.get('ventas')).toEqual(['id', 'tipo_pago', 'monto_contado', 'monto_fiado', 'cliente_id', 'fecha', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']);
+    expect(state.tables.get('venta_items')).toEqual(['id', 'venta_id', 'producto_id', 'cantidad', 'precio_venta', 'costo_unitario', 'ganancia', 'created_at', 'updated_at', 'deleted_at', 'store_id', 'created_by']);
+    expect(state.rows.get('ventas')).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ id: 'venta-2', tipo_pago: 'FIADO', cliente_id: 'cliente-1', fecha: 1710000002000 }),
+      jasmine.objectContaining({ id: 'venta-1', tipo_pago: 'CONTADO', cliente_id: null, fecha: 1710000000000 }),
+    ]));
+    expect(state.rows.get('venta_items')).toEqual(jasmine.arrayContaining([
+      jasmine.objectContaining({ id: 'venta-1', venta_id: 'venta-1', producto_id: 'producto-1', cantidad: 2, precio_venta: 1500, costo_unitario: 1000, ganancia: 1000 }),
+      jasmine.objectContaining({ id: 'venta-2', venta_id: 'venta-2', producto_id: 'producto-2', cantidad: 3, precio_venta: 2500, costo_unitario: 1200, ganancia: 3900 }),
+    ]));
+    expect(state.indexes.has('ventas_fecha_idx')).toBeTrue();
+  });
+
+  it('running the migration twice leaves the database unchanged once ventas is reduced', async () => {
+    spyOn(Capacitor, 'getPlatform').and.returnValue('android');
+    const { db, state } = crearDbMigracion([
+      {
+        id: 'venta-1',
+        producto_id: 'producto-1',
+        cantidad: 1,
+        precio_venta: 1000,
+        costo_unitario: 700,
+        ganancia: 300,
+        tipo_pago: 'CONTADO',
+        monto_contado: 1000,
+        monto_fiado: 0,
+        cliente_id: null,
+        fecha: 1710000003000,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        store_id: null,
+        created_by: null,
+      },
+    ], false);
+
+    const servicio = prepararServicio(db);
+
+    await servicio.asegurarEsquema();
+    const snapshot = {
+      tables: new Map(state.tables),
+      rows: new Map(Array.from(state.rows.entries()).map(([tabla, filas]) => [tabla, filas.map((fila) => ({ ...fila }))])),
+      indexes: new Set(state.indexes),
+    };
+
+    await servicio.asegurarEsquema();
+
+    expect(state.tables).toEqual(snapshot.tables);
+    expect(state.rows).toEqual(snapshot.rows);
+    expect(state.indexes).toEqual(snapshot.indexes);
+    expect((db.run.calls.allArgs().filter(([sql]) => /^INSERT(?: OR IGNORE)? INTO venta_items\b/.test(String(sql).replace(/\s+/g, ' ').trim())).length)).toBe(1);
   });
 });

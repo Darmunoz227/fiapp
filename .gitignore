@@ -73,3 +73,5 @@ Thumbs.db
 # Local device recordings and screenshots
 *.mp4
 *.mov
+
+.vscode/tasks.json

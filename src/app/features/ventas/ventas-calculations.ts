@@ -14,12 +14,15 @@ export function calcularTotalVenta(precioVenta: number, cantidad: number): numbe
  * Amounts are the source of truth. No insert or update may write tipo_pago
  * literally; it must always come from this helper.
  */
-export function derivarTipoPago(montoContado: number, montoFiado: number): TipoPago {
-  if (montoFiado === 0) {
+export function derivarTipoPago(montoContado: number | null, montoFiado: number | null): TipoPago {
+  const contado = montoContado ?? 0;
+  const fiado = montoFiado ?? 0;
+
+  if (fiado === 0) {
     return "CONTADO";
   }
 
-  if (montoContado === 0) {
+  if (contado === 0) {
     return "FIADO";
   }
 
