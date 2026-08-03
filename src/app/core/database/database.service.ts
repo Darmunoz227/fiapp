@@ -204,11 +204,11 @@ export class DatabaseService {
     }
   }
 
-  private async crearIndiceVentasFechaSiFalta(): Promise<void> {
+  private async crearIndiceVentasFechaSiFalta(dentroDeTx = false): Promise<void> {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS ventas_fecha_idx
       ON ventas(fecha);
-    `);
+    `, !dentroDeTx);
   }
 
   private async crearVentaItemsSiFaltan(): Promise<void> {
@@ -248,13 +248,13 @@ export class DatabaseService {
       return;
     }
 
-    await this.db.execute('PRAGMA foreign_keys = OFF;');
+    await this.db.execute('PRAGMA foreign_keys = OFF;', false);
 
     try {
       await this.db.beginTransaction();
 
       try {
-        await this.db.execute('DROP TABLE IF EXISTS ventas_nueva;');
+        await this.db.execute('DROP TABLE IF EXISTS ventas_nueva;', false);
         await this.db.execute(`
           CREATE TABLE ventas_nueva (
             id TEXT PRIMARY KEY NOT NULL,
@@ -269,7 +269,7 @@ export class DatabaseService {
             store_id TEXT DEFAULT NULL,
             created_by TEXT DEFAULT NULL
           );
-        `);
+        `, false);
 
         const resultadoVentas = await this.db.query(`
           SELECT
@@ -330,9 +330,9 @@ export class DatabaseService {
           );
         }
 
-        await this.db.execute('DROP TABLE ventas;');
-        await this.db.execute('ALTER TABLE ventas_nueva RENAME TO ventas;');
-        await this.crearIndiceVentasFechaSiFalta();
+        await this.db.execute('DROP TABLE ventas;', false);
+        await this.db.execute('ALTER TABLE ventas_nueva RENAME TO ventas;', false);
+        await this.crearIndiceVentasFechaSiFalta(true);
 
         await this.db.commitTransaction();
       } catch (error) {
@@ -345,7 +345,7 @@ export class DatabaseService {
         throw new Error('La reconstrucción de ventas rompió una restricción foreign key');
       }
     } finally {
-      await this.db.execute('PRAGMA foreign_keys = ON;');
+      await this.db.execute('PRAGMA foreign_keys = ON;', false);
     }
   }
 
