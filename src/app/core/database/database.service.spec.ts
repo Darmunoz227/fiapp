@@ -7,6 +7,7 @@ import { calcularStockDerivado } from '../../features/inventario/inventory-calcu
 import { MovimInventario } from '../models/movim-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
+import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 
 describe('DatabaseService', () => {
@@ -110,12 +111,84 @@ describe('DatabaseService', () => {
     };
   }
 
+  function crearVentaItemParcial(overrides: Partial<VentaItem> = {}): VentaItem {
+    return {
+      id: overrides.id ?? 'venta-item-1',
+      venta_id: overrides.venta_id ?? 'venta-1',
+      producto_id: overrides.producto_id ?? 'producto-1',
+      cantidad: overrides.cantidad ?? 1,
+      precio_venta: overrides.precio_venta ?? 1500,
+      costo_unitario: overrides.costo_unitario ?? 1000,
+      ganancia: overrides.ganancia ?? 500,
+      created_at: overrides.created_at ?? null,
+      updated_at: overrides.updated_at ?? null,
+      deleted_at: overrides.deleted_at ?? null,
+      store_id: overrides.store_id ?? null,
+      created_by: overrides.created_by ?? null,
+    };
+  }
+
+  function crearVentaItemDesdeVenta(venta: Venta): VentaItem {
+    return crearVentaItemParcial({
+      id: `venta-item-${venta.id}`,
+      venta_id: venta.id,
+      producto_id: venta.producto_id,
+      cantidad: venta.cantidad,
+      precio_venta: venta.precio_venta,
+      costo_unitario: venta.costo_unitario,
+      ganancia: venta.ganancia,
+      created_at: venta.created_at ?? null,
+      updated_at: venta.updated_at ?? null,
+      deleted_at: venta.deleted_at ?? null,
+      store_id: venta.store_id ?? null,
+      created_by: venta.created_by ?? null,
+    });
+  }
+
   function crearMovimiento(movimiento: MovimInventario): Promise<void> {
-    return Promise.resolve().then(() => (service as any).crearMovimiento(movimiento));
+    const servicioInterno = service as unknown as { crearMovimiento(movimiento: MovimInventario): Promise<void> };
+    return Promise.resolve().then(() => servicioInterno.crearMovimiento(movimiento));
   }
 
   function obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> {
-    return Promise.resolve().then(() => (service as any).obtenerMovimientosPorProducto(productoId));
+    const servicioInterno = service as unknown as { obtenerMovimientosPorProducto(productoId: string): Promise<MovimInventario[]> };
+    return Promise.resolve().then(() => servicioInterno.obtenerMovimientosPorProducto(productoId));
+  }
+
+  function obtenerMockClientes(): Cliente[] {
+    return (service as unknown as { mockWebClientes: Cliente[] }).mockWebClientes;
+  }
+
+  function obtenerMockTransacciones(): Transaccion[] {
+    return (service as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones;
+  }
+
+  function obtenerMockMovimientos(): MovimInventario[] {
+    return (service as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario;
+  }
+
+  function obtenerMockVentas(): Venta[] {
+    return (service as unknown as { mockWebVentas: Venta[] }).mockWebVentas;
+  }
+
+  function obtenerMockVentaItems(): VentaItem[] {
+    return (service as unknown as { mockWebVentaItems: VentaItem[] }).mockWebVentaItems;
+  }
+
+  function registrarVentaExtendida(
+    venta: Venta,
+    items: VentaItem[],
+    movimientos: MovimInventario[],
+    transaccionFiado?: Transaccion,
+  ): Promise<void> {
+    const registrarVenta = service.registrarVenta.bind(service) as unknown as (
+      venta: Venta,
+      items: VentaItem[],
+      movimientos: MovimInventario[],
+      transaccionFiado?: Transaccion,
+    ) => Promise<void>;
+
+    return registrarVenta(venta, items, movimientos, transaccionFiado);
   }
 
   it('softDeleteCliente hides the client from obtenerClientes but keeps the deleted_at mark internally', async () => {
@@ -127,7 +200,7 @@ describe('DatabaseService', () => {
     const clientesVisibles = await service.obtenerClientes();
     expect(clientesVisibles.length).toBe(0);
 
-    const mockClientes = (service as any).mockWebClientes as Cliente[];
+    const mockClientes = obtenerMockClientes();
     expect(mockClientes.length).toBe(1);
     expect(mockClientes[0].id).toBe('cliente-1');
     expect(mockClientes[0].deleted_at).not.toBeNull();
@@ -172,7 +245,7 @@ describe('DatabaseService', () => {
     const transaccionesVisibles = await service.obtenerTransaccionesPorCliente('cliente-1');
     expect(transaccionesVisibles.length).toBe(0);
 
-    const mockTransacciones = (service as any).mockWebTransacciones as Transaccion[];
+    const mockTransacciones = obtenerMockTransacciones();
     expect(mockTransacciones.length).toBe(1);
     expect(mockTransacciones[0].id).toBe('transaccion-1');
     expect(mockTransacciones[0].deleted_at).not.toBeNull();
@@ -289,14 +362,22 @@ describe('DatabaseService', () => {
       costo_unitario: 0,
     });
 
-    await service.registrarVenta(venta, movimientoVenta);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta]);
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
+    const ventaItems = obtenerMockVentaItems();
     const deudasCliente = await service.obtenerTransaccionesPorCliente('c1');
 
     expect(calcularStockDerivado(movimientos)).toBe(7);
-    expect(ventas).toContain(jasmine.objectContaining({ id: 'venta-1', ganancia: 1500 }));
+    expect(ventas).toContain(jasmine.objectContaining({
+      id: 'venta-1',
+      tipo_pago: 'CONTADO',
+      monto_contado: 4500,
+      monto_fiado: 0,
+      cliente_id: null,
+    }));
+    expect(ventaItems).toContain(jasmine.objectContaining({ id: 'venta-item-venta-1', ganancia: 1500 }));
     expect(deudasCliente.length).toBe(0);
   });
 
@@ -341,7 +422,7 @@ describe('DatabaseService', () => {
       concepto: 'Venta fiada',
     });
 
-    await service.registrarVenta(venta, movimientoVenta, transaccionFiado);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta], transaccionFiado);
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
@@ -366,7 +447,7 @@ describe('DatabaseService', () => {
       .find((producto) => producto.id === 'p1')!.costo_promedio;
     expect(costoAntes).toBe(1000);
 
-    const movimientos = (service as any).mockWebMovimInventario as MovimInventario[];
+    const movimientos = obtenerMockMovimientos();
     spyOn(movimientos, 'push').and.throwError('simulated movement insert failure');
 
     await expectAsync(crearMovimiento(crearMovimientoParcial({
@@ -422,7 +503,7 @@ describe('DatabaseService', () => {
       concepto: 'Venta fiada fallida',
     });
 
-    await expectAsync(service.registrarVenta(venta, movimientoVenta, transaccionFiado)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta], transaccionFiado)).toBeRejected();
 
     const movimientos = await obtenerMovimientosPorProducto('p1');
     const ventas = await service.obtenerVentas();
@@ -465,7 +546,7 @@ describe('DatabaseService', () => {
       costo_unitario: 0,
     });
 
-    await service.registrarVenta(venta, movimientoVenta);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [movimientoVenta]);
 
     await crearMovimiento(crearMovimientoParcial({
       id: 'movimiento-compra-2',
@@ -477,8 +558,16 @@ describe('DatabaseService', () => {
 
     const ventas = await service.obtenerVentas();
     const ventaPersistida = ventas.find((item) => item.id === 'venta-3');
+    const ventaItemPersistido = obtenerMockVentaItems().find((item) => item.id === 'venta-item-venta-3');
 
-    expect(ventaPersistida).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
+    expect(ventaPersistida).toEqual(jasmine.objectContaining({
+      id: 'venta-3',
+      tipo_pago: 'CONTADO',
+      monto_contado: 4500,
+      monto_fiado: 0,
+      cliente_id: null,
+    }));
+    expect(ventaItemPersistido).toEqual(jasmine.objectContaining({ ganancia: 1500 }));
   });
 
   it('VENTA exceeding stock is BLOCKED', async () => {
@@ -848,7 +937,7 @@ describe('DatabaseService', () => {
     const venta = crearVentaParcial({ id: "v-mix", producto_id: "p1", cantidad: 2, precio_venta: 15000, costo_unitario: 1000, ganancia: 28000, tipo_pago: "MIXTO", cliente_id: "c1", monto_contado: 10000, monto_fiado: 20000 });
     const mov = crearMovimientoParcial({ id: "mv-mix", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
     const tx = crearTransaccionParcial({ id: "tx-mix", cliente_id: "c1", tipo: "fiado", monto: 20000, concepto: "Saldo venta mixta" });
-    await service.registrarVenta(venta, mov, tx);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov], tx);
     const ventas = await service.obtenerVentas();
     const movimientos = await obtenerMovimientosPorProducto("p1");
     const deudas = await service.obtenerTransaccionesPorCliente("c1");
@@ -863,7 +952,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-bad", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-bad", producto_id: "p1", cantidad: 2, precio_venta: 15000, cliente_id: "c1", monto_contado: 10000, monto_fiado: 5000 });
     const mov = crearMovimientoParcial({ id: "mv-bad", producto_id: "p1", tipo: "VENTA", cantidad: 2, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -872,7 +961,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-neg", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-neg", producto_id: "p1", cantidad: 1, precio_venta: 1500, monto_contado: 3000, monto_fiado: -1500 });
     const mov = crearMovimientoParcial({ id: "mv-neg", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -880,10 +969,9 @@ describe('DatabaseService', () => {
     await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
     await crearMovimiento(crearMovimientoParcial({ id: "mc-null", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-null", producto_id: "p1", cantidad: 1, precio_venta: 1500 });
-    (venta as any).monto_contado = null;
-    (venta as any).monto_fiado = null;
+    const ventaConMontosNulos = { ...venta, monto_contado: null, monto_fiado: null } as unknown as Venta;
     const mov = crearMovimientoParcial({ id: "mv-null", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(ventaConMontosNulos, [crearVentaItemDesdeVenta(ventaConMontosNulos)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -892,7 +980,7 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-nocli", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-nocli", producto_id: "p1", cantidad: 1, precio_venta: 1500, cliente_id: null, monto_contado: 500, monto_fiado: 1000 });
     const mov = crearMovimientoParcial({ id: "mv-nocli", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
-    await expectAsync(service.registrarVenta(venta, mov)).toBeRejected();
+    await expectAsync(registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);
   });
 
@@ -901,8 +989,101 @@ describe('DatabaseService', () => {
     await crearMovimiento(crearMovimientoParcial({ id: "mc-float", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1 }));
     const venta = crearVentaParcial({ id: "v-float", producto_id: "p1", cantidad: 3, precio_venta: 1.1, costo_unitario: 1, ganancia: 0.3, monto_contado: 3.3, monto_fiado: 0 });
     const mov = crearMovimientoParcial({ id: "mv-float", producto_id: "p1", tipo: "VENTA", cantidad: 3, costo_unitario: 0 });
-    await service.registrarVenta(venta, mov);
+    await registrarVentaExtendida(venta, [crearVentaItemDesdeVenta(venta)], [mov]);
     expect((await service.obtenerVentas()).length).toBe(1);
+  });
+
+  it('multi-item sale writes one sale, three items and three VENTA movements', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+
+    const productos = [
+      crearProductoParcial({ id: 'p1', costo_promedio: 1000 }),
+      crearProductoParcial({ id: 'p2', costo_promedio: 1500 }),
+      crearProductoParcial({ id: 'p3', costo_promedio: 2500 }),
+    ];
+
+    for (const producto of productos) {
+      await service.crearProducto(producto);
+      await crearMovimiento(crearMovimientoParcial({
+        id: `compra-${producto.id}`,
+        producto_id: producto.id,
+        tipo: 'COMPRA',
+        cantidad: 10,
+        costo_unitario: producto.costo_promedio,
+      }));
+    }
+
+    const venta = crearVentaParcial({
+      id: 'venta-multi-1',
+      producto_id: 'p1',
+      cantidad: 1,
+      precio_venta: 6000,
+      costo_unitario: 1000,
+      ganancia: 1900,
+      tipo_pago: 'CONTADO',
+      monto_contado: 6000,
+      monto_fiado: 0,
+      cliente_id: null,
+    });
+
+    const items = [
+      crearVentaItemParcial({ id: 'vi-1', venta_id: 'venta-multi-1', producto_id: 'p1', cantidad: 1, precio_venta: 1000, costo_unitario: 1000, ganancia: 0 }),
+      crearVentaItemParcial({ id: 'vi-2', venta_id: 'venta-multi-1', producto_id: 'p2', cantidad: 1, precio_venta: 2000, costo_unitario: 1500, ganancia: 500 }),
+      crearVentaItemParcial({ id: 'vi-3', venta_id: 'venta-multi-1', producto_id: 'p3', cantidad: 1, precio_venta: 3000, costo_unitario: 2500, ganancia: 500 }),
+    ];
+
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mv-1', producto_id: 'p1', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+      crearMovimientoParcial({ id: 'mv-2', producto_id: 'p2', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+      crearMovimientoParcial({ id: 'mv-3', producto_id: 'p3', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 }),
+    ];
+
+    await registrarVentaExtendida(venta, items, movimientos);
+
+    expect(obtenerMockVentas().length).toBe(1);
+    expect(obtenerMockVentaItems().length).toBe(3);
+    expect(obtenerMockMovimientos().filter((movimiento) => movimiento.tipo === 'VENTA').length).toBe(3);
+  });
+
+  it('if any write fails mid-sale, nothing is persisted', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1' }));
+
+    const producto = crearProductoParcial({ id: 'p1', costo_promedio: 1000 });
+    await service.crearProducto(producto);
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'compra-p1',
+      producto_id: 'p1',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 1000,
+    }));
+
+    const venta = crearVentaParcial({
+      id: 'venta-falla-1',
+      producto_id: 'p1',
+      cantidad: 1,
+      precio_venta: 1500,
+      costo_unitario: 1000,
+      ganancia: 500,
+      tipo_pago: 'FIADO',
+      monto_contado: 0,
+      monto_fiado: 1500,
+      cliente_id: 'c1',
+    });
+
+    const items = [crearVentaItemParcial({ id: 'vi-falla-1', venta_id: 'venta-falla-1', producto_id: 'p1', cantidad: 1, precio_venta: 1500, costo_unitario: 1000, ganancia: 500 })];
+    const movimientos = [crearMovimientoParcial({ id: 'mv-falla-1', producto_id: 'p1', tipo: 'VENTA', cantidad: 1, costo_unitario: 0 })];
+    const transaccionFiado = crearTransaccionParcial({ id: 'tx-falla-1', cliente_id: 'c1', tipo: 'fiado', monto: 1500, concepto: 'Venta a crédito' });
+
+    const transacciones = obtenerMockTransacciones();
+    spyOn(transacciones, 'push').and.throwError('simulated mid-sale failure');
+
+    await expectAsync(registrarVentaExtendida(venta, items, movimientos, transaccionFiado)).toBeRejected();
+
+    expect(obtenerMockVentas().length).toBe(0);
+    expect(obtenerMockVentaItems().length).toBe(0);
+    expect(obtenerMockMovimientos().filter((movimiento) => movimiento.tipo === 'VENTA').length).toBe(0);
+    expect(obtenerMockTransacciones().length).toBe(0);
   });
 });
 

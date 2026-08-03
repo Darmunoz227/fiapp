@@ -6,12 +6,27 @@ import { MovimInventario } from '../models/movim-inventario.model';
 import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
+import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
+};
+
+type VentaBase = {
+  id: string;
+  tipo_pago: Venta['tipo_pago'];
+  monto_contado: number;
+  monto_fiado: number;
+  cliente_id: string | null;
+  fecha: number;
+  created_at: number | null;
+  updated_at: number | null;
+  deleted_at: number | null;
+  store_id: string | null;
+  created_by: string | null;
 };
 
 @Injectable({
@@ -28,7 +43,8 @@ export class DatabaseService {
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
   private mockWebMovimInventario: MovimInventario[] = [];
-  private mockWebVentas: Venta[] = [];
+  private mockWebVentas: VentaBase[] = [];
+  private mockWebVentaItems: VentaItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
     try {
@@ -336,6 +352,22 @@ export class DatabaseService {
     }
   }
 
+  private construirVentaBase(venta: Venta): VentaBase {
+    return {
+      id: venta.id,
+      tipo_pago: venta.tipo_pago,
+      monto_contado: venta.monto_contado,
+      monto_fiado: venta.monto_fiado,
+      cliente_id: venta.cliente_id ?? null,
+      fecha: venta.fecha,
+      created_at: venta.created_at ?? null,
+      updated_at: venta.updated_at ?? null,
+      deleted_at: venta.deleted_at ?? null,
+      store_id: venta.store_id ?? null,
+      created_by: venta.created_by ?? null,
+    };
+  }
+
   private async obtenerColumnas(tabla: string): Promise<Set<string>> {
     const resultado = await this.db.query(`PRAGMA table_info(${tabla});`);
     const filas = (resultado.values ?? []) as Array<{ name?: string }>;
@@ -483,6 +515,7 @@ export class DatabaseService {
   private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
     if (Capacitor.getPlatform() === 'web') {
       const snapVentas = [...this.mockWebVentas];
+      const snapVentaItems = [...this.mockWebVentaItems];
       const snapMovim = [...this.mockWebMovimInventario];
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
@@ -491,6 +524,7 @@ export class DatabaseService {
         return await operacion();
       } catch (error) {
         this.mockWebVentas = snapVentas;
+        this.mockWebVentaItems = snapVentaItems;
         this.mockWebMovimInventario = snapMovim;
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
@@ -513,24 +547,18 @@ export class DatabaseService {
 
   private async insertVenta(venta: Venta): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebVentas.push({ ...venta, deleted_at: venta.deleted_at ?? null });
+      this.mockWebVentas.push(this.construirVentaBase(venta));
       return;
     }
 
     if (!this.isInitialized) await this.initializePlugin();
     const sql = `
       INSERT INTO ventas (
-        id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
-        tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       venta.id,
-      venta.producto_id,
-      venta.cantidad,
-      venta.precio_venta,
-      venta.costo_unitario,
-      venta.ganancia,
       venta.tipo_pago,
       venta.monto_contado,
       venta.monto_fiado,
@@ -545,11 +573,46 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, true);
   }
 
-  async registrarVenta(venta: Venta, movimiento: MovimInventario, transaccionFiado?: Transaccion): Promise<void> {
-    this.validarMontosVenta(venta);
+  private async insertVentaItem(item: VentaItem): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentaItems.push({ ...item, deleted_at: item.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO venta_items (
+        id, venta_id, producto_id, cantidad, precio_venta, costo_unitario, ganancia,
+        created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      item.id,
+      item.venta_id,
+      item.producto_id,
+      item.cantidad,
+      item.precio_venta,
+      item.costo_unitario,
+      item.ganancia,
+      item.created_at ?? null,
+      item.updated_at ?? null,
+      item.deleted_at ?? null,
+      item.store_id ?? null,
+      item.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  async registrarVenta(venta: Venta, items: VentaItem[], movimientos: MovimInventario[], transaccionFiado?: Transaccion): Promise<void> {
+    this.validarMontosVenta(venta, items);
     return this.ejecutarEnTransaccion(async () => {
-      await this.crearMovimientoInterno(movimiento);
       await this.insertVenta(venta);
+      for (const item of items) {
+        await this.insertVentaItem(item);
+      }
+      for (const movimiento of movimientos) {
+        await this.crearMovimientoInterno(movimiento);
+      }
       if (venta.monto_fiado > 0 && transaccionFiado) {
         await this.crearTransaccion(transaccionFiado, true);
       }
@@ -739,7 +802,7 @@ export class DatabaseService {
     await this.ejecutarRun(sql, [costoPromedio, id], true);
   }
 
-  private validarMontosVenta(venta: Venta): void {
+  private validarMontosVenta(venta: Venta, items: VentaItem[]): void {
     const contado = venta.monto_contado;
     const fiado = venta.monto_fiado;
 
@@ -751,7 +814,7 @@ export class DatabaseService {
       throw new Error("Los montos de la venta no pueden ser negativos");
     }
 
-    const total = calcularTotalVenta(venta.precio_venta, venta.cantidad);
+    const total = items.reduce((acumulado, item) => acumulado + calcularTotalVenta(item.precio_venta, item.cantidad), 0);
     if (Math.abs((contado + fiado) - total) >= 0.01) {
       throw new Error("Los montos no coinciden con el total de la venta");
     }
