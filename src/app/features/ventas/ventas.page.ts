@@ -231,20 +231,11 @@ export class VentasPage {
     }
 
     const ahora = Date.now();
-    const cantidadTotal = this.carrito.reduce((acumulado, linea) => acumulado + linea.cantidad, 0);
-    const lineaPrincipal = this.carrito[0];
-    const gananciaTotal = this.gananciaTotal;
-
     const montoContado = this.montoContadoCalculado;
     const montoFiado = this.montoFiadoCalculado;
 
     const venta: Venta = {
       id: uuidv4(),
-      producto_id: lineaPrincipal.producto.id,
-      cantidad: cantidadTotal,
-      precio_venta: this.totalVenta,
-      costo_unitario: lineaPrincipal.costo_unitario,
-      ganancia: gananciaTotal,
       tipo_pago: derivarTipoPago(montoContado, montoFiado),
       monto_contado: montoContado,
       monto_fiado: montoFiado,
@@ -317,7 +308,7 @@ export class VentasPage {
         currency: 'COP',
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
-      }).format(gananciaTotal);
+      }).format(this.gananciaTotal);
 
       await this.mostrarToast(`Venta registrada. Ganancia: ${valorGanancia}`, 'success');
       this.limpiarFormulario();

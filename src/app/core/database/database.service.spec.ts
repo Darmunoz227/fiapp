@@ -91,7 +91,7 @@ describe('DatabaseService', () => {
     };
   }
 
-  function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
+  function crearVentaParcial(overrides: Partial<LegacyVentaRow> = {}): LegacyVentaRow {
     return {
       id: overrides.id ?? 'venta-1',
       producto_id: overrides.producto_id ?? 'producto-1',
@@ -129,7 +129,7 @@ describe('DatabaseService', () => {
     };
   }
 
-  function crearVentaItemDesdeVenta(venta: Venta): VentaItem {
+  function crearVentaItemDesdeVenta(venta: LegacyVentaRow): VentaItem {
     return crearVentaItemParcial({
       id: `venta-item-${venta.id}`,
       venta_id: venta.id,
@@ -173,35 +173,11 @@ describe('DatabaseService', () => {
   }
 
   function obtenerMockVentas(): VentaConItems[] {
-    const ventas = (service as unknown as { mockWebVentas: Array<{
-      id: string;
-      tipo_pago: Venta['tipo_pago'];
-      monto_contado: number;
-      monto_fiado: number;
-      cliente_id: string | null;
-      fecha: number;
-      created_at: number | null;
-      updated_at: number | null;
-      deleted_at: number | null;
-      store_id: string | null;
-      created_by: string | null;
-    }> }).mockWebVentas;
+    const ventas = (service as unknown as { mockWebVentas: Venta[] }).mockWebVentas;
     const items = obtenerMockVentaItems();
 
     return ventas.map((venta) => ({
-      venta: {
-        id: venta.id,
-        tipo_pago: venta.tipo_pago,
-        monto_contado: venta.monto_contado,
-        monto_fiado: venta.monto_fiado,
-        cliente_id: venta.cliente_id,
-        fecha: venta.fecha,
-        created_at: venta.created_at,
-        updated_at: venta.updated_at,
-        deleted_at: venta.deleted_at,
-        store_id: venta.store_id,
-        created_by: venta.created_by,
-      },
+      venta,
       items: items.filter((item) => item.venta_id === venta.id),
     }));
   }
@@ -1069,7 +1045,7 @@ describe('DatabaseService', () => {
     await service.crearProducto(crearProductoParcial({ id: "p1", costo_promedio: 1000 }));
     await crearMovimiento(crearMovimientoParcial({ id: "mc-null", producto_id: "p1", tipo: "COMPRA", cantidad: 10, costo_unitario: 1000 }));
     const venta = crearVentaParcial({ id: "v-null", producto_id: "p1", cantidad: 1, precio_venta: 1500 });
-    const ventaConMontosNulos = { ...venta, monto_contado: null, monto_fiado: null } as unknown as Venta;
+    const ventaConMontosNulos: LegacyVentaRow = { ...venta, monto_contado: null, monto_fiado: null };
     const mov = crearMovimientoParcial({ id: "mv-null", producto_id: "p1", tipo: "VENTA", cantidad: 1, costo_unitario: 0 });
     await expectAsync(registrarVentaExtendida(ventaConMontosNulos, [crearVentaItemDesdeVenta(ventaConMontosNulos)], [mov])).toBeRejected();
     expect((await service.obtenerVentas()).length).toBe(0);

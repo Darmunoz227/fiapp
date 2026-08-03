@@ -1,8 +1,9 @@
 import { filtrarVentasPorRango, calcularResumenVentas, RangoReporte, ResumenVentas } from './reportes-calculations';
-import { VentaBase, VentaConItems } from '../../core/models/venta-con-items.model';
+import { VentaConItems } from '../../core/models/venta-con-items.model';
+import { Venta } from '../../core/models/venta.model';
 import { VentaItem } from '../../core/models/venta-item.model';
 
-function crearVentaParcial(overrides: Partial<VentaBase> = {}): VentaBase {
+function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
   return {
     id: overrides.id ?? 'venta-1',
     tipo_pago: overrides.tipo_pago ?? 'CONTADO',
@@ -35,7 +36,7 @@ function crearVentaItemParcial(overrides: Partial<VentaItem> = {}): VentaItem {
   };
 }
 
-function crearVentaConItemsParcial(ventaOverrides: Partial<VentaBase> = {}, items: VentaItem[] = []): VentaConItems {
+function crearVentaConItemsParcial(ventaOverrides: Partial<Venta> = {}, items: VentaItem[] = []): VentaConItems {
   return {
     venta: crearVentaParcial(ventaOverrides),
     items,

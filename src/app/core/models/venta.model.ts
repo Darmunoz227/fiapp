@@ -2,14 +2,9 @@ export type TipoPago = 'CONTADO' | 'FIADO' | 'MIXTO';
 
 export interface Venta {
   id: string;
-  producto_id: string;
-  cantidad: number;
-  precio_venta: number;
-  costo_unitario: number;
-  ganancia: number;
   tipo_pago: TipoPago;
-  monto_contado: number;
-  monto_fiado: number;
+  monto_contado: number | null;
+  monto_fiado: number | null;
   cliente_id?: string | null;
   fecha: number;
   created_at?: number | null;

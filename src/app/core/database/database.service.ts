@@ -6,7 +6,7 @@ import { MovimInventario } from '../models/movim-inventario.model';
 import { ResumenInventario } from '../models/resumen-inventario.model';
 import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
-import { VentaBase, VentaConItems } from '../models/venta-con-items.model';
+import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
@@ -14,6 +14,25 @@ import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
+};
+
+type LegacyVentaRow = {
+  id: string;
+  producto_id: string;
+  cantidad: number;
+  precio_venta: number;
+  costo_unitario: number;
+  ganancia: number;
+  tipo_pago: Venta['tipo_pago'];
+  monto_contado: number;
+  monto_fiado: number;
+  cliente_id: string | null;
+  fecha: number;
+  created_at: number | null;
+  updated_at: number | null;
+  deleted_at: number | null;
+  store_id: string | null;
+  created_by: string | null;
 };
 
 @Injectable({
@@ -30,7 +49,7 @@ export class DatabaseService {
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
   private mockWebMovimInventario: MovimInventario[] = [];
-  private mockWebVentas: VentaBase[] = [];
+  private mockWebVentas: Venta[] = [];
   private mockWebVentaItems: VentaItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
@@ -279,7 +298,7 @@ export class DatabaseService {
           FROM ventas
           ORDER BY fecha DESC;
         `);
-        const ventasLegado = (resultadoVentas.values ?? []) as Venta[];
+        const ventasLegado: LegacyVentaRow[] = resultadoVentas.values ?? [];
 
         for (const venta of ventasLegado) {
           await this.ejecutarRun(
@@ -349,7 +368,7 @@ export class DatabaseService {
     }
   }
 
-  private construirVentaBase(venta: Venta): VentaBase {
+  private construirVenta(venta: Venta): Venta {
     return {
       id: venta.id,
       tipo_pago: venta.tipo_pago,
@@ -365,26 +384,14 @@ export class DatabaseService {
     };
   }
 
-  private construirVentaConItems(venta: VentaBase, items: VentaItem[]): VentaConItems {
+  private construirVentaConItems(venta: Venta, items: VentaItem[]): VentaConItems {
     return {
-      venta: {
-        id: venta.id,
-        tipo_pago: venta.tipo_pago,
-        monto_contado: venta.monto_contado,
-        monto_fiado: venta.monto_fiado,
-        cliente_id: venta.cliente_id,
-        fecha: venta.fecha,
-        created_at: venta.created_at,
-        updated_at: venta.updated_at,
-        deleted_at: venta.deleted_at,
-        store_id: venta.store_id,
-        created_by: venta.created_by,
-      },
+      venta: this.construirVenta(venta),
       items,
     };
   }
 
-  private combinarVentasConItems(ventas: VentaBase[], items: VentaItem[]): VentaConItems[] {
+  private combinarVentasConItems(ventas: Venta[], items: VentaItem[]): VentaConItems[] {
     const itemsPorVenta = new Map<string, VentaItem[]>();
 
     for (const item of items) {
@@ -575,7 +582,7 @@ export class DatabaseService {
 
   private async insertVenta(venta: Venta): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebVentas.push(this.construirVentaBase(venta));
+      this.mockWebVentas.push(this.construirVenta(venta));
       return;
     }
 
@@ -641,7 +648,7 @@ export class DatabaseService {
       for (const movimiento of movimientos) {
         await this.crearMovimientoInterno(movimiento);
       }
-      if (venta.monto_fiado > 0 && transaccionFiado) {
+      if ((venta.monto_fiado ?? 0) > 0 && transaccionFiado) {
         await this.crearTransaccion(transaccionFiado, true);
       }
     });
@@ -657,10 +664,9 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const ventasRes = await this.db.query('SELECT * FROM ventas WHERE deleted_at IS NULL ORDER BY fecha DESC');
     const itemsRes = await this.db.query('SELECT * FROM venta_items WHERE deleted_at IS NULL ORDER BY created_at ASC, id ASC');
-    return this.combinarVentasConItems(
-      (ventasRes.values ?? []) as VentaBase[],
-      (itemsRes.values ?? []) as VentaItem[],
-    );
+    const ventas: Venta[] = ventasRes.values ?? [];
+    const items: VentaItem[] = itemsRes.values ?? [];
+    return this.combinarVentasConItems(ventas, items);
   }
 
   async softDeleteVenta(id: string): Promise<void> {

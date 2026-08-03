@@ -3,11 +3,12 @@ import { ToastController } from '@ionic/angular/standalone';
 
 import { ReportesPage } from './reportes.page';
 import { DatabaseService } from '../../core/database/database.service';
-import { VentaBase, VentaConItems } from '../../core/models/venta-con-items.model';
+import { VentaConItems } from '../../core/models/venta-con-items.model';
+import { Venta } from '../../core/models/venta.model';
 import { VentaItem } from '../../core/models/venta-item.model';
 import { Producto } from '../../core/models/producto.model';
 
-function crearVentaParcial(overrides: Partial<VentaBase> = {}): VentaBase {
+function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
   return {
     id: overrides.id ?? 'venta-1',
     tipo_pago: overrides.tipo_pago ?? 'CONTADO',
@@ -23,7 +24,7 @@ function crearVentaParcial(overrides: Partial<VentaBase> = {}): VentaBase {
   };
 }
 
-function crearVentaConItemsParcial(ventaOverrides: Partial<VentaBase> = {}, items: VentaItem[] = []): VentaConItems {
+function crearVentaConItemsParcial(ventaOverrides: Partial<Venta> = {}, items: VentaItem[] = []): VentaConItems {
   return {
     venta: crearVentaParcial(ventaOverrides),
     items,
