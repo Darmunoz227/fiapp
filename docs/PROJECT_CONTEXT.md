@@ -2,7 +2,7 @@
 
 > Purpose: give a new AI supervisor or developer enough verified project context to continue FiApp without relying on chat memory.
 >
-> Last updated: 2026-08-03
+> Last updated: 2026-08-04
 
 ---
 
@@ -44,10 +44,10 @@ Carol accepts responsibility for what is merged.
 As of this handoff:
 
 - Feature #1 is complete, tested, committed, and pushed.
-- Features #2 through #11 are all COMPLETE, tested, and merged to main.
-- Current schema version: v6 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado, #11 venta_items with ventas rebuilt to sale-level only).
-- 106 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS simulator (Feature #9) AND on Android emulator Pixel_8 (2026-08-02). Feature #11 verified BY HAND on BOTH platforms (2026-08-03), including an in-place v5 to v6 upgrade over a database containing real sales. Working branch: main (everything merged).
-- Next up: Carol chooses. Top candidate: later abonos against existing debt (P3). Then show manual fiado separately in the report (P4).
+- Features #2 through #12 are all COMPLETE, tested, and merged to main.
+- Current schema version: v7 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado, #11 venta_items with ventas rebuilt to sale-level only, #12 transacciones.venta_id origin marker).
+- 117 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS and Android (Feature #9 and P0). Features #11 and #12 verified BY HAND on BOTH platforms over in-place upgrades with real data. Working branch: main (everything merged).
+- Next up: Carol chooses. TOP PRIORITY is now P6, real backup: the existing JSON export only covers clientes and transacciones, so productos, movim_inventario, ventas and venta_items are NOT backed up despite a button that says "Exportar respaldo". A merchant could wipe data believing they are protected. Then P8 (inventory reset) and P10 (readable report).
 
 Before doing work, always run:
 
@@ -307,7 +307,7 @@ NEXT (Carol chooses):
 - DONE (Feature #10, Decision 030): screen transition overlap FIXED. Root cause was not the animation: six page stylesheets consumed var(--ion-background-color) with no fallback, and nothing in the project ever defined that variable. In dark mode dark.system.css defined it so pages were opaque; in light mode var() was invalid at computed-value time, --background collapsed and ion-content rendered TRANSPARENT, letting the outgoing screen show through the whole animation. Introduced by Feature #9 when hardcoded colors were replaced by variables and Ionic own fallback was dropped. Fix: delete the six overrides, 24 deletions and zero insertions, letting Ionic native rule apply. Verified by hand on Android Pixel_8 AND iOS simulator, in both appearances. 96 tests.
 - DONE (Feature #11, Decision 031): multi-item sale. A sale now holds N lines in venta_items; ventas keeps only sale-level data and schema is v6. Amounts stay at SALE level per Decision 027; per-product columns were REMOVED from ventas rather than kept, because with three products claiming the sale belongs to the first one is false. The cart allows removing a line and editing quantity, blocks ONLY the line that exceeds stock so a stale inventory count never costs a whole sale, and allows the same product in separate lines with different prices. Migration follows the official SQLite table-rebuild pattern and is driven by the ACTUAL TABLE SHAPE, never by the version number. Three infrastructure bugs were found ON DEVICE and fixed: the plugin also defaults transaction to true on execute (Decision 028 was incomplete and only covered db.run), createConnection threw on every in-place upgrade so the migration never ran, and initializePlugin swallowed failures silently. Verified BY HAND on Android Pixel_8 and on the iOS simulator, including an in-place v5 to v6 upgrade over a database containing real sales. 106 tests.
 - P3 - Later abonos against existing debt. A payment toward an existing fiado is a transaccion, not a venta; today debt is recorded but never paid down.
-- P4 - Show manual fiado separately in the report (approved: option B). Observed on device: a client owed 11.000 while the report showed 9.000. The 2.000 gap was a manual fiado, which lives in transacciones and never reaches the ventas-based report. The merchant must be able to tell debt from delivered goods apart from a plain loan.
+- DONE (Feature #12, Decision 032): fiado traceability. transacciones now carries venta_id as an explicit ORIGIN MARKER: NULL means registered by hand, a value means created by a sale. Schema v7 via ADD COLUMN, no rebuild. The report shows the CLIENT NAME on credit sales and lists manual fiados and abonos in a SEPARATE section, excluding sale-linked ones so debt is never double counted. Credit sales now write a concept naming the actual products instead of the hardcoded "Venta a credito", so Cliente Detalle finally shows WHAT was sold on credit. Two preexisting bugs surfaced and were fixed: crearTransaccion was silently dropping five tombstone columns, and initializePlugin had NO concurrency guard, so parallel reads ran the migration twice and threw duplicate column name. Verified on Android Pixel_8 and iOS. 117 tests.
 - P5 - Integer-cents migration for money. Would remove the float tolerance from Decision 027, but touches Features #4, #5 and #7.
 - P6 - Backup and data export. A lost phone today means lost books.
 
@@ -337,3 +337,8 @@ The android platform exists, builds and runs. AVD used: Pixel_8.
   adb shell "cmd uimode night yes"
   adb shell "cmd uimode night no"
 
+
+- P7 - Report performance. Reportes renders every record with ion-list plus ngFor and NO virtualization, same as Home. Fine today, but the TODO range loads full history and the page now reads FOUR sources in parallel. Rough estimate: 20 movements a day is about 6000 rows a year. Candidate fix: virtual scroll plus an ESTE MES range. Do NOT optimize before a real merchant reports slowness.
+- P8 - Merchant-facing data reset, option B: wipe productos, movim_inventario, ventas and venta_items, but KEEP clientes and their debt. Requested by a real merchant who wants to restart inventory without losing who owes him. Wiping everything is already possible from Android app settings and needs no code.
+- P9 - Harden the freemium. puedeAgregarCliente is the ONLY guard today, so once blocked the merchant can still sell, fiar, collect and manage inventory forever with the clients they already have. A shop with 7 regulars never needs to contact me. Candidate: per-device activation code exchanged over the WhatsApp link already in FreemiumService.
+- P10 - Readable report generated BY THE APP, shareable over WhatsApp. Does NOT need an AI: every figure already exists in reportes-calculations. Today the merchant would have to paste raw JSON into a chatbot.
