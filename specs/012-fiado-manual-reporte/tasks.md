@@ -42,5 +42,5 @@
 - [ ] T023 - On device: register a credit sale of three products, open Cliente Detalle and confirm the concept names the products. Verify the report shows the client name and the separate section.
 - [ ] T024 - Same in-place upgrade and checks on the iOS simulator.
 - [ ] T025 - Write Decision 032 in docs/DECISIONS.md covering the venta_id origin marker, why concepto filtering was rejected, and the crearTransaccion INSERT that was silently dropping columns. Verify with grep -n "^## Decision" and tail -3.
-- [ ] T026 - Sync docs/PROJECT_CONTEXT.md: close P4 in section 10, update section 3 and the schema version to v7.
+- [ ] T026 - Sync docs/PROJECT_CONTEXT.md: close P4 in section 10, update section 3 and the schema version to v7. Also ADD two new backlog entries: P7 - report performance. Reportes renders every record with ion-list plus ngFor and no virtualization, same as Home. Fine today, but the TODO range loads full history and the page now reads FOUR sources in parallel instead of two. Rough estimate: 20 movements a day is about 6000 rows a year. Candidate fix: virtual scroll plus an ESTE MES range. Do NOT optimize before a real merchant reports slowness. P8 - merchant-facing data reset, see below.
 - [ ] T027 - Merge to main with --no-ff, suite green on main, push to origin-privado.

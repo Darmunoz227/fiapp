@@ -23,6 +23,29 @@ describe('DatabaseService', () => {
     spyOn(Capacitor, 'getPlatform').and.returnValue('web');
   });
 
+  function crearConexionInicializacion(): { sqlite: any; db: any } {
+    const db = {
+      isDBOpen: jasmine.createSpy('isDBOpen').and.resolveTo({ result: true }),
+      open: jasmine.createSpy('open').and.resolveTo(undefined),
+      query: jasmine.createSpy('query').and.callFake((sql: string) => {
+        if (sql.includes('PRAGMA user_version')) {
+          return Promise.resolve({ values: [{ user_version: 0 }] });
+        }
+
+        return Promise.resolve({ values: [] });
+      }),
+      execute: jasmine.createSpy('execute').and.resolveTo(undefined),
+    };
+
+    const sqlite = {
+      isConnection: jasmine.createSpy('isConnection').and.resolveTo({ result: false }),
+      retrieveConnection: jasmine.createSpy('retrieveConnection').and.resolveTo(db),
+      createConnection: jasmine.createSpy('createConnection').and.resolveTo(db),
+    };
+
+    return { sqlite, db };
+  }
+
   function crearClienteParcial(overrides: Partial<Cliente> = {}): Cliente {
     return {
       id: overrides.id ?? 'cliente-1',
@@ -186,6 +209,23 @@ describe('DatabaseService', () => {
       items: items.filter((item) => item.venta_id === venta.id),
     }));
   }
+
+  it('reuses the in-flight initialization promise so concurrent callers only run once', async () => {
+    (Capacitor.getPlatform as jasmine.Spy).and.returnValue('android');
+
+    const { sqlite, db } = crearConexionInicializacion();
+    (service as unknown as { sqlite: typeof sqlite }).sqlite = sqlite;
+
+    const primera = service.initializePlugin();
+    const segunda = service.initializePlugin();
+
+    await expectAsync(primera).toBeResolvedTo(true);
+    await expectAsync(segunda).toBeResolvedTo(true);
+
+    expect(sqlite.isConnection).toHaveBeenCalledTimes(1);
+    expect(sqlite.createConnection).toHaveBeenCalledTimes(1);
+    expect(db.execute).toHaveBeenCalled();
+  });
 
   function registrarVentaExtendida(
     venta: Venta,

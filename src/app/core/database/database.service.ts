@@ -42,6 +42,7 @@ export class DatabaseService {
   private sqlite: SQLiteConnection = new SQLiteConnection(CapacitorSQLite);
   private db!: SQLiteDBConnection;
   private isInitialized = false;
+  private initializationPromise: Promise<boolean> | null = null;
 
   private readonly DB_NAME = 'fiapp_db';
   private readonly SCHEMA_VERSION = 7;
@@ -53,32 +54,46 @@ export class DatabaseService {
   private mockWebVentaItems: VentaItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
-    try {
-      if (Capacitor.getPlatform() === 'web') {
+    if (this.isInitialized) {
+      return true;
+    }
+
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = (async () => {
+      try {
+        if (Capacitor.getPlatform() === 'web') {
+          this.isInitialized = true;
+          return true;
+        }
+
+        const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
+        if (existeConexion) {
+          this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
+        } else {
+          this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
+        }
+
+        const baseDatosAbierta = (await this.db.isDBOpen()).result;
+        if (!baseDatosAbierta) {
+          await this.db.open();
+        }
+
+        await this.habilitarForeignKeys();
+        await this.asegurarEsquema();
         this.isInitialized = true;
         return true;
+      } catch (error) {
+        console.error('Error inicializando la base de datos:', error);
+        throw error;
+      } finally {
+        this.initializationPromise = null;
       }
+    })();
 
-      const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
-      if (existeConexion) {
-        this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
-      } else {
-        this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
-      }
-
-      const baseDatosAbierta = (await this.db.isDBOpen()).result;
-      if (!baseDatosAbierta) {
-        await this.db.open();
-      }
-
-      await this.habilitarForeignKeys();
-      await this.asegurarEsquema();
-      this.isInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('Error inicializando la base de datos:', error);
-      throw error;
-    }
+    return this.initializationPromise;
   }
 
   private async habilitarForeignKeys(): Promise<void> {
