@@ -14,9 +14,14 @@ export interface ResumenVentas {
   fiadoTotal: number;
 }
 
-export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoReporte, ahora: number): VentaConItems[] {
+export function filtrarPorRangoFecha<T>(
+  registros: T[],
+  rango: RangoReporte,
+  ahora: number,
+  obtenerFecha: (registro: T) => number,
+): T[] {
   if (rango === 'TODO') {
-    return ventas;
+    return registros;
   }
 
   const fechaActual = new Date(ahora);
@@ -31,7 +36,14 @@ export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoRepor
   ).getTime();
   const startOfNextDay = startOfDay + 24 * 60 * 60 * 1000;
 
-  return ventas.filter((venta) => venta.venta.fecha >= startOfDay && venta.venta.fecha < startOfNextDay);
+  return registros.filter((registro) => {
+    const fecha = obtenerFecha(registro);
+    return fecha >= startOfDay && fecha < startOfNextDay;
+  });
+}
+
+export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoReporte, ahora: number): VentaConItems[] {
+  return filtrarPorRangoFecha(ventas, rango, ahora, (venta) => venta.venta.fecha);
 }
 
 export function calcularResumenVentas(ventas: VentaConItems[]): ResumenVentas {

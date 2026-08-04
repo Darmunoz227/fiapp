@@ -1,4 +1,4 @@
-import { filtrarVentasPorRango, calcularResumenVentas, RangoReporte, ResumenVentas } from './reportes-calculations';
+import { filtrarPorRangoFecha, filtrarVentasPorRango, calcularResumenVentas, RangoReporte, ResumenVentas } from './reportes-calculations';
 import { VentaConItems } from '../../core/models/venta-con-items.model';
 import { Venta } from '../../core/models/venta.model';
 import { VentaItem } from '../../core/models/venta-item.model';
@@ -43,6 +43,13 @@ function crearVentaConItemsParcial(ventaOverrides: Partial<Venta> = {}, items: V
   };
 }
 
+function crearRegistroConFecha(fecha: number) {
+  return {
+    id: `registro-${fecha}`,
+    fecha,
+  };
+}
+
 describe('reportes-calculations', () => {
   describe('filtrarVentasPorRango', () => {
     it('TODO returns all ventas', () => {
@@ -70,6 +77,25 @@ describe('reportes-calculations', () => {
       const resultado = filtrarVentasPorRango(ventas, 'HOY', ahora);
 
       expect(resultado.map((venta) => venta.venta.id)).toEqual(['a', 'c']);
+    });
+  });
+
+  describe('filtrarPorRangoFecha', () => {
+    it('filters any record type by fecha using the same HOY boundaries', () => {
+      const ahora = new Date(2026, 6, 24, 15, 0, 0).getTime();
+      const startOfToday = new Date(2026, 6, 24, 0, 0, 0).getTime();
+      const registros = [
+        crearRegistroConFecha(startOfToday),
+        crearRegistroConFecha(startOfToday - 1),
+        crearRegistroConFecha(ahora),
+      ];
+
+      const resultado = filtrarPorRangoFecha(registros, 'HOY', ahora, (registro) => registro.fecha);
+
+      expect(resultado.map((registro) => registro.id)).toEqual([
+        `registro-${startOfToday}`,
+        `registro-${ahora}`,
+      ]);
     });
   });
 

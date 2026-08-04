@@ -730,6 +730,18 @@ export class DatabaseService {
     return res.values as Transaccion[] || [];
   }
 
+  async obtenerTransacciones(): Promise<Transaccion[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebTransacciones)
+        .sort((a, b) => b.fecha - a.fecha) as Transaccion[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM transacciones WHERE deleted_at IS NULL ORDER BY fecha DESC';
+    const res = await this.db.query(sql);
+    return res.values as Transaccion[] || [];
+  }
+
   async obtenerProductos(): Promise<Producto[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.filtrarActivos(this.mockWebProductos) as Producto[];
