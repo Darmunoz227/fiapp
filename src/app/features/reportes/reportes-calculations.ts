@@ -1,4 +1,5 @@
 import { VentaConItems } from '../../core/models/venta-con-items.model';
+import { Transaccion } from '../../core/models/transaccion.model';
 import { calcularTotalVenta, derivarTipoPago } from '../ventas/ventas-calculations';
 
 export type RangoReporte = 'HOY' | 'TODO';
@@ -13,6 +14,13 @@ export interface ResumenVentas {
   contadoTotal: number;
   fiadoTotal: number;
 }
+
+export interface ResumenTransacciones {
+  fiadoManualTotal: number;
+  abonoTotal: number;
+}
+
+export type ResumenReporte = ResumenVentas & ResumenTransacciones;
 
 export function filtrarPorRangoFecha<T>(
   registros: T[],
@@ -81,6 +89,26 @@ export function calcularResumenVentas(ventas: VentaConItems[]): ResumenVentas {
       mixtoCount: 0,
       contadoTotal: 0,
       fiadoTotal: 0,
+    },
+  );
+}
+
+export function calcularResumenTransacciones(transacciones: Transaccion[]): ResumenTransacciones {
+  const transaccionesManuales = transacciones.filter((transaccion) => transaccion.venta_id == null);
+
+  return transaccionesManuales.reduce<ResumenTransacciones>(
+    (resumen, transaccion) => {
+      if (transaccion.tipo === 'fiado') {
+        resumen.fiadoManualTotal += transaccion.monto;
+      } else {
+        resumen.abonoTotal += transaccion.monto;
+      }
+
+      return resumen;
+    },
+    {
+      fiadoManualTotal: 0,
+      abonoTotal: 0,
     },
   );
 }

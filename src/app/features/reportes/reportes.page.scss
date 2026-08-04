@@ -30,6 +30,17 @@
   color: var(--ion-text-color);
 }
 
+.movimientos-card {
+  border-left: 4px solid var(--ion-color-secondary);
+}
+
+.movimiento-label h3 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ion-color-secondary);
+}
+
 .empty-state {
   margin: 0;
   padding: 12px 4px;

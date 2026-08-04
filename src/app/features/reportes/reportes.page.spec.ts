@@ -7,6 +7,8 @@ import { VentaConItems } from '../../core/models/venta-con-items.model';
 import { Venta } from '../../core/models/venta.model';
 import { VentaItem } from '../../core/models/venta-item.model';
 import { Producto } from '../../core/models/producto.model';
+import { Cliente } from '../../core/models/cliente.model';
+import { Transaccion } from '../../core/models/transaccion.model';
 
 function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
   return {
@@ -48,6 +50,38 @@ function crearVentaItemParcial(overrides: Partial<VentaItem> = {}): VentaItem {
   };
 }
 
+function crearClienteParcial(overrides: Partial<Cliente> = {}): Cliente {
+  return {
+    id: overrides.id ?? 'c1',
+    nombre: overrides.nombre ?? 'Cliente 1',
+    telefono: overrides.telefono ?? '3000000000',
+    habeas_data_flag: overrides.habeas_data_flag ?? true,
+    fecha_creacion: overrides.fecha_creacion ?? Date.now(),
+    created_at: overrides.created_at ?? null,
+    updated_at: overrides.updated_at ?? null,
+    deleted_at: overrides.deleted_at ?? null,
+    store_id: overrides.store_id ?? null,
+    created_by: overrides.created_by ?? null,
+  };
+}
+
+function crearTransaccionParcial(overrides: Partial<Transaccion> = {}): Transaccion {
+  return {
+    id: overrides.id ?? 'tx-1',
+    cliente_id: overrides.cliente_id ?? 'c1',
+    venta_id: overrides.venta_id ?? null,
+    tipo: overrides.tipo ?? 'fiado',
+    monto: overrides.monto ?? 1000,
+    concepto: overrides.concepto ?? 'Fiado manual',
+    fecha: overrides.fecha ?? Date.now(),
+    created_at: overrides.created_at ?? null,
+    updated_at: overrides.updated_at ?? null,
+    deleted_at: overrides.deleted_at ?? null,
+    store_id: overrides.store_id ?? null,
+    created_by: overrides.created_by ?? null,
+  };
+}
+
 describe('ReportesPage', () => {
   let component: ReportesPage;
   let fixture: ComponentFixture<ReportesPage>;
@@ -55,6 +89,8 @@ describe('ReportesPage', () => {
   const databaseServiceMock = jasmine.createSpyObj('DatabaseService', [
     'obtenerVentas',
     'obtenerProductos',
+    'obtenerClientes',
+    'obtenerTransacciones',
   ]);
 
   const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
@@ -75,8 +111,20 @@ describe('ReportesPage', () => {
     },
   ];
 
+  const clientesMock: Cliente[] = [
+    crearClienteParcial({ id: 'c1', nombre: 'Cliente 1' }),
+  ];
+
+  const transaccionesMock: Transaccion[] = [
+    crearTransaccionParcial({ id: 'tx-manual', cliente_id: 'c1', tipo: 'fiado', monto: 2000, concepto: 'Fiado manual', fecha: Date.now() }),
+    crearTransaccionParcial({ id: 'tx-linked', cliente_id: 'c1', venta_id: 'v1', tipo: 'fiado', monto: 1500, concepto: 'Venta a crédito', fecha: Date.now() }),
+    crearTransaccionParcial({ id: 'tx-abono', cliente_id: 'c1', tipo: 'abono', monto: 500, concepto: 'Abono parcial', fecha: Date.now() }),
+  ];
+
   beforeEach(waitForAsync(() => {
     databaseServiceMock.obtenerProductos.and.resolveTo(productosMock);
+    databaseServiceMock.obtenerClientes.and.resolveTo(clientesMock);
+    databaseServiceMock.obtenerTransacciones.and.resolveTo(transaccionesMock);
     databaseServiceMock.obtenerVentas.and.resolveTo([
       crearVentaConItemsParcial({
         id: 'v1',
@@ -100,6 +148,8 @@ describe('ReportesPage', () => {
 
     databaseServiceMock.obtenerVentas.calls.reset();
     databaseServiceMock.obtenerProductos.calls.reset();
+    databaseServiceMock.obtenerClientes.calls.reset();
+    databaseServiceMock.obtenerTransacciones.calls.reset();
 
     toastControllerMock.create.calls.reset();
 
@@ -121,9 +171,13 @@ describe('ReportesPage', () => {
 
     expect(databaseServiceMock.obtenerVentas).toHaveBeenCalledTimes(1);
     expect(databaseServiceMock.obtenerProductos).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.obtenerClientes).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.obtenerTransacciones).toHaveBeenCalledTimes(1);
     expect(component.resumen.numeroVentas).toBe(2);
     expect(component.resumen.totalVendido).toBe(3500);
     expect(component.resumen.gananciaTotal).toBe(900);
+    expect(component.resumen.fiadoManualTotal).toBe(2000);
+    expect(component.resumen.abonoTotal).toBe(500);
     expect(component.resumen.contadoCount).toBe(1);
     expect(component.resumen.fiadoCount).toBe(1);
   });
@@ -148,6 +202,21 @@ describe('ReportesPage', () => {
 
     expect(component.nombreProducto('p1')).toBe('Producto 1');
     expect(component.nombreProducto('nope')).toBe('Producto eliminado');
+  });
+
+  it('nombreCliente returns the client name, or fallback when missing', async () => {
+    await component.cargar();
+
+    expect(component.nombreCliente('c1')).toBe('Cliente 1');
+    expect(component.nombreCliente('nope')).toBe('Cliente eliminado');
+  });
+
+  it('manual transactions exclude linked sale transactions from the separate section', async () => {
+    await component.cargar();
+
+    expect(component.transaccionesManualFiltradas.map((transaccion) => transaccion.id)).toEqual(['tx-manual', 'tx-abono']);
+    expect(component.resumen.fiadoManualTotal).toBe(2000);
+    expect(component.resumen.abonoTotal).toBe(500);
   });
 
   it("cambiarRango('HOY') recomputes for today", async () => {

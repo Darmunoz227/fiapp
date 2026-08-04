@@ -30,6 +30,8 @@
       <p>N.º de ventas: <strong>{{ resumen.numeroVentas }}</strong> (contado {{ resumen.contadoCount }} - fiado {{ resumen.fiadoCount }} - mixtas {{ resumen.mixtoCount }})</p>
       <p>Recibido al momento de la venta: <strong>{{ resumen.contadoTotal | currency:'COP':'symbol':'1.0-0' }}</strong></p>
       <p>Saldo fiado: <strong>{{ resumen.fiadoTotal | currency:'COP':'symbol':'1.0-0' }}</strong></p>
+      <p>Fiado manual: <strong>{{ resumen.fiadoManualTotal | currency:'COP':'symbol':'1.0-0' }}</strong></p>
+      <p>Abonos: <strong>{{ resumen.abonoTotal | currency:'COP':'symbol':'1.0-0' }}</strong></p>
     </div>
   </section>
 
@@ -41,6 +43,7 @@
         <ion-label class="venta-label">
           <h3>Venta {{ venta.venta.id }}</h3>
           <p>Pago: {{ venta.venta.tipo_pago }}</p>
+          <p *ngIf="venta.venta.cliente_id">Cliente: {{ nombreCliente(venta.venta.cliente_id) }}</p>
           <p>Fecha: {{ venta.venta.fecha | date:'dd/MM/yyyy, HH:mm' }}</p>
           <ng-container *ngIf="venta.items.length > 0; else emptyItems">
             <div class="venta-linea" *ngFor="let item of venta.items">
@@ -60,6 +63,26 @@
 
     <ng-template #emptyState>
       <p class="empty-state">No hay ventas en este periodo.</p>
+    </ng-template>
+  </section>
+
+  <section class="reportes-card movimientos-card">
+    <h2>Fiados manuales y abonos</h2>
+
+    <ion-list lines="full" *ngIf="transaccionesManualFiltradas.length > 0; else emptyMovimientos">
+      <ion-item *ngFor="let transaccion of transaccionesManualFiltradas">
+        <ion-label class="movimiento-label">
+          <h3>{{ etiquetaTransaccion(transaccion) }}</h3>
+          <p>Cliente: {{ nombreCliente(transaccion.cliente_id) }}</p>
+          <p>Concepto: {{ transaccion.concepto }}</p>
+          <p>Monto: {{ transaccion.monto | currency:'COP':'symbol':'1.0-0' }}</p>
+          <p>Fecha: {{ transaccion.fecha | date:'dd/MM/yyyy, HH:mm' }}</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+
+    <ng-template #emptyMovimientos>
+      <p class="empty-state">No hay fiados manuales ni abonos en este periodo.</p>
     </ng-template>
   </section>
 </ion-content>
