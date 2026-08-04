@@ -26,7 +26,7 @@ import { Transaccion } from '../../core/models/transaccion.model';
 import { VentaItem } from '../../core/models/venta-item.model';
 import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
-import { calcularTotalVenta, derivarTipoPago } from './ventas-calculations';
+import { calcularTotalVenta, derivarTipoPago, generarConceptoFiado } from './ventas-calculations';
 
 interface LineaCarritoVenta {
   id: string;
@@ -284,12 +284,20 @@ export class VentasPage {
 
     try {
       if (montoFiado > 0) {
+        const conceptoFiado = generarConceptoFiado(
+          this.carrito.map((linea) => ({
+            cantidad: linea.cantidad,
+            nombre: linea.producto.nombre,
+          })),
+        );
+
         const transaccionFiado: Transaccion = {
           id: uuidv4(),
           cliente_id: this.clienteId,
+          venta_id: venta.id,
           tipo: 'fiado',
           monto: montoFiado,
-          concepto: 'Venta a crédito',
+          concepto: conceptoFiado,
           fecha: ahora,
           created_at: null,
           updated_at: null,
