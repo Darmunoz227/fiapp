@@ -2,11 +2,12 @@ export type TipoTransaccion = 'fiado' | 'abono';
 
 export interface Transaccion {
   id: string;
-  cliente_id: string; 
-  tipo: TipoTransaccion; 
-  monto: number; 
-  concepto: string; 
-  fecha: number; 
+  cliente_id: string;
+  venta_id?: string | null;
+  tipo: TipoTransaccion;
+  monto: number;
+  concepto: string;
+  fecha: number;
   created_at?: number | null;
   updated_at?: number | null;
   deleted_at?: number | null;

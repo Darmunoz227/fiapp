@@ -42,6 +42,7 @@ describe('DatabaseService', () => {
     return {
       id: overrides.id ?? 'transaccion-1',
       cliente_id: overrides.cliente_id ?? 'cliente-1',
+      venta_id: overrides.venta_id ?? null,
       tipo: overrides.tipo ?? 'fiado',
       monto: overrides.monto ?? 100,
       concepto: overrides.concepto ?? 'Fiado inicial',

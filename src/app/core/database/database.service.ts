@@ -44,7 +44,7 @@ export class DatabaseService {
   private isInitialized = false;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 6;
+  private readonly SCHEMA_VERSION = 7;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -115,6 +115,7 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS transacciones (
         id TEXT PRIMARY KEY NOT NULL,
         cliente_id TEXT NOT NULL,
+        venta_id TEXT DEFAULT NULL,
         tipo TEXT NOT NULL,
         monto REAL NOT NULL,
         concepto TEXT,
@@ -208,6 +209,7 @@ export class DatabaseService {
     await this.agregarColumnaSiFalta('transacciones', 'deleted_at', 'INTEGER DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'store_id', 'TEXT DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'created_by', 'TEXT DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'venta_id', 'TEXT DEFAULT NULL');
 
     await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
     await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
@@ -464,12 +466,25 @@ export class DatabaseService {
 
   async crearTransaccion(transaccion: Transaccion, dentroDeTx = false): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebTransacciones.push({ ...transaccion, deleted_at: transaccion.deleted_at ?? null });
+      this.mockWebTransacciones.push({ ...transaccion, venta_id: transaccion.venta_id ?? null, deleted_at: transaccion.deleted_at ?? null });
       return;
     }
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO transacciones (id, cliente_id, tipo, monto, concepto, fecha) VALUES (?, ?, ?, ?, ?, ?)';
-    const values = [transaccion.id, transaccion.cliente_id, transaccion.tipo, transaccion.monto, transaccion.concepto || '', transaccion.fecha];
+    const sql = 'INSERT INTO transacciones (id, cliente_id, venta_id, tipo, monto, concepto, fecha, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [
+      transaccion.id,
+      transaccion.cliente_id,
+      transaccion.venta_id ?? null,
+      transaccion.tipo,
+      transaccion.monto,
+      transaccion.concepto || '',
+      transaccion.fecha,
+      transaccion.created_at ?? null,
+      transaccion.updated_at ?? null,
+      transaccion.deleted_at ?? null,
+      transaccion.store_id ?? null,
+      transaccion.created_by ?? null,
+    ];
     await this.ejecutarRun(sql, values, dentroDeTx);
   }
 
