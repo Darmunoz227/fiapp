@@ -1,7 +1,8 @@
-import { filtrarVentasPorRango, calcularResumenVentas, RangoReporte, ResumenVentas } from './reportes-calculations';
+import { filtrarPorRangoFecha, filtrarVentasPorRango, calcularResumenVentas, calcularResumenTransacciones, RangoReporte, ResumenVentas } from './reportes-calculations';
 import { VentaConItems } from '../../core/models/venta-con-items.model';
 import { Venta } from '../../core/models/venta.model';
 import { VentaItem } from '../../core/models/venta-item.model';
+import { Transaccion } from '../../core/models/transaccion.model';
 
 function crearVentaParcial(overrides: Partial<Venta> = {}): Venta {
   return {
@@ -43,6 +44,30 @@ function crearVentaConItemsParcial(ventaOverrides: Partial<Venta> = {}, items: V
   };
 }
 
+function crearRegistroConFecha(fecha: number) {
+  return {
+    id: `registro-${fecha}`,
+    fecha,
+  };
+}
+
+function crearTransaccionParcial(overrides: Partial<Transaccion> = {}): Transaccion {
+  return {
+    id: overrides.id ?? 'tx-1',
+    cliente_id: overrides.cliente_id ?? 'c1',
+    venta_id: overrides.venta_id ?? null,
+    tipo: overrides.tipo ?? 'fiado',
+    monto: overrides.monto ?? 1000,
+    concepto: overrides.concepto ?? 'Fiado manual',
+    fecha: overrides.fecha ?? Date.now(),
+    created_at: overrides.created_at ?? null,
+    updated_at: overrides.updated_at ?? null,
+    deleted_at: overrides.deleted_at ?? null,
+    store_id: overrides.store_id ?? null,
+    created_by: overrides.created_by ?? null,
+  };
+}
+
 describe('reportes-calculations', () => {
   describe('filtrarVentasPorRango', () => {
     it('TODO returns all ventas', () => {
@@ -70,6 +95,25 @@ describe('reportes-calculations', () => {
       const resultado = filtrarVentasPorRango(ventas, 'HOY', ahora);
 
       expect(resultado.map((venta) => venta.venta.id)).toEqual(['a', 'c']);
+    });
+  });
+
+  describe('filtrarPorRangoFecha', () => {
+    it('filters any record type by fecha using the same HOY boundaries', () => {
+      const ahora = new Date(2026, 6, 24, 15, 0, 0).getTime();
+      const startOfToday = new Date(2026, 6, 24, 0, 0, 0).getTime();
+      const registros = [
+        crearRegistroConFecha(startOfToday),
+        crearRegistroConFecha(startOfToday - 1),
+        crearRegistroConFecha(ahora),
+      ];
+
+      const resultado = filtrarPorRangoFecha(registros, 'HOY', ahora, (registro) => registro.fecha);
+
+      expect(resultado.map((registro) => registro.id)).toEqual([
+        `registro-${startOfToday}`,
+        `registro-${ahora}`,
+      ]);
     });
   });
 
@@ -121,6 +165,32 @@ describe('reportes-calculations', () => {
       };
 
       expect(resumen).toEqual(esperado);
+    });
+  });
+
+  describe('calcularResumenTransacciones', () => {
+    it('adds only manual fiados and abonos', () => {
+      const resumen = calcularResumenTransacciones([
+        crearTransaccionParcial({ id: 'manual-fiado', tipo: 'fiado', monto: 2000, venta_id: null }),
+        crearTransaccionParcial({ id: 'manual-abono', tipo: 'abono', monto: 500, venta_id: null }),
+        crearTransaccionParcial({ id: 'linked', tipo: 'fiado', monto: 999, venta_id: 'venta-1' }),
+      ]);
+
+      expect(resumen).toEqual({
+        fiadoManualTotal: 2000,
+        abonoTotal: 500,
+      });
+    });
+
+    it('returns zeros when every transaction is linked to a sale', () => {
+      const resumen = calcularResumenTransacciones([
+        crearTransaccionParcial({ id: 'linked', tipo: 'fiado', monto: 999, venta_id: 'venta-1' }),
+      ]);
+
+      expect(resumen).toEqual({
+        fiadoManualTotal: 0,
+        abonoTotal: 0,
+      });
     });
   });
 

@@ -1,4 +1,5 @@
 import { VentaConItems } from '../../core/models/venta-con-items.model';
+import { Transaccion } from '../../core/models/transaccion.model';
 import { calcularTotalVenta, derivarTipoPago } from '../ventas/ventas-calculations';
 
 export type RangoReporte = 'HOY' | 'TODO';
@@ -14,9 +15,21 @@ export interface ResumenVentas {
   fiadoTotal: number;
 }
 
-export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoReporte, ahora: number): VentaConItems[] {
+export interface ResumenTransacciones {
+  fiadoManualTotal: number;
+  abonoTotal: number;
+}
+
+export type ResumenReporte = ResumenVentas & ResumenTransacciones;
+
+export function filtrarPorRangoFecha<T>(
+  registros: T[],
+  rango: RangoReporte,
+  ahora: number,
+  obtenerFecha: (registro: T) => number,
+): T[] {
   if (rango === 'TODO') {
-    return ventas;
+    return registros;
   }
 
   const fechaActual = new Date(ahora);
@@ -31,7 +44,14 @@ export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoRepor
   ).getTime();
   const startOfNextDay = startOfDay + 24 * 60 * 60 * 1000;
 
-  return ventas.filter((venta) => venta.venta.fecha >= startOfDay && venta.venta.fecha < startOfNextDay);
+  return registros.filter((registro) => {
+    const fecha = obtenerFecha(registro);
+    return fecha >= startOfDay && fecha < startOfNextDay;
+  });
+}
+
+export function filtrarVentasPorRango(ventas: VentaConItems[], rango: RangoReporte, ahora: number): VentaConItems[] {
+  return filtrarPorRangoFecha(ventas, rango, ahora, (venta) => venta.venta.fecha);
 }
 
 export function calcularResumenVentas(ventas: VentaConItems[]): ResumenVentas {
@@ -69,6 +89,26 @@ export function calcularResumenVentas(ventas: VentaConItems[]): ResumenVentas {
       mixtoCount: 0,
       contadoTotal: 0,
       fiadoTotal: 0,
+    },
+  );
+}
+
+export function calcularResumenTransacciones(transacciones: Transaccion[]): ResumenTransacciones {
+  const transaccionesManuales = transacciones.filter((transaccion) => transaccion.venta_id == null);
+
+  return transaccionesManuales.reduce<ResumenTransacciones>(
+    (resumen, transaccion) => {
+      if (transaccion.tipo === 'fiado') {
+        resumen.fiadoManualTotal += transaccion.monto;
+      } else {
+        resumen.abonoTotal += transaccion.monto;
+      }
+
+      return resumen;
+    },
+    {
+      fiadoManualTotal: 0,
+      abonoTotal: 0,
     },
   );
 }

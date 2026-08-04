@@ -42,9 +42,10 @@ export class DatabaseService {
   private sqlite: SQLiteConnection = new SQLiteConnection(CapacitorSQLite);
   private db!: SQLiteDBConnection;
   private isInitialized = false;
+  private initializationPromise: Promise<boolean> | null = null;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 6;
+  private readonly SCHEMA_VERSION = 7;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -53,32 +54,46 @@ export class DatabaseService {
   private mockWebVentaItems: VentaItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
-    try {
-      if (Capacitor.getPlatform() === 'web') {
+    if (this.isInitialized) {
+      return true;
+    }
+
+    if (this.initializationPromise) {
+      return this.initializationPromise;
+    }
+
+    this.initializationPromise = (async () => {
+      try {
+        if (Capacitor.getPlatform() === 'web') {
+          this.isInitialized = true;
+          return true;
+        }
+
+        const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
+        if (existeConexion) {
+          this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
+        } else {
+          this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
+        }
+
+        const baseDatosAbierta = (await this.db.isDBOpen()).result;
+        if (!baseDatosAbierta) {
+          await this.db.open();
+        }
+
+        await this.habilitarForeignKeys();
+        await this.asegurarEsquema();
         this.isInitialized = true;
         return true;
+      } catch (error) {
+        console.error('Error inicializando la base de datos:', error);
+        throw error;
+      } finally {
+        this.initializationPromise = null;
       }
+    })();
 
-      const existeConexion = (await this.sqlite.isConnection(this.DB_NAME, false)).result;
-      if (existeConexion) {
-        this.db = await this.sqlite.retrieveConnection(this.DB_NAME, false);
-      } else {
-        this.db = await this.sqlite.createConnection(this.DB_NAME, false, 'no-encryption', 1, false);
-      }
-
-      const baseDatosAbierta = (await this.db.isDBOpen()).result;
-      if (!baseDatosAbierta) {
-        await this.db.open();
-      }
-
-      await this.habilitarForeignKeys();
-      await this.asegurarEsquema();
-      this.isInitialized = true;
-      return true;
-    } catch (error) {
-      console.error('Error inicializando la base de datos:', error);
-      throw error;
-    }
+    return this.initializationPromise;
   }
 
   private async habilitarForeignKeys(): Promise<void> {
@@ -115,6 +130,7 @@ export class DatabaseService {
       CREATE TABLE IF NOT EXISTS transacciones (
         id TEXT PRIMARY KEY NOT NULL,
         cliente_id TEXT NOT NULL,
+        venta_id TEXT DEFAULT NULL,
         tipo TEXT NOT NULL,
         monto REAL NOT NULL,
         concepto TEXT,
@@ -208,6 +224,7 @@ export class DatabaseService {
     await this.agregarColumnaSiFalta('transacciones', 'deleted_at', 'INTEGER DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'store_id', 'TEXT DEFAULT NULL');
     await this.agregarColumnaSiFalta('transacciones', 'created_by', 'TEXT DEFAULT NULL');
+    await this.agregarColumnaSiFalta('transacciones', 'venta_id', 'TEXT DEFAULT NULL');
 
     await this.agregarColumnaSiFalta('ventas', 'monto_contado', 'REAL DEFAULT NULL');
     await this.agregarColumnaSiFalta('ventas', 'monto_fiado', 'REAL DEFAULT NULL');
@@ -464,12 +481,25 @@ export class DatabaseService {
 
   async crearTransaccion(transaccion: Transaccion, dentroDeTx = false): Promise<void> {
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebTransacciones.push({ ...transaccion, deleted_at: transaccion.deleted_at ?? null });
+      this.mockWebTransacciones.push({ ...transaccion, venta_id: transaccion.venta_id ?? null, deleted_at: transaccion.deleted_at ?? null });
       return;
     }
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO transacciones (id, cliente_id, tipo, monto, concepto, fecha) VALUES (?, ?, ?, ?, ?, ?)';
-    const values = [transaccion.id, transaccion.cliente_id, transaccion.tipo, transaccion.monto, transaccion.concepto || '', transaccion.fecha];
+    const sql = 'INSERT INTO transacciones (id, cliente_id, venta_id, tipo, monto, concepto, fecha, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [
+      transaccion.id,
+      transaccion.cliente_id,
+      transaccion.venta_id ?? null,
+      transaccion.tipo,
+      transaccion.monto,
+      transaccion.concepto || '',
+      transaccion.fecha,
+      transaccion.created_at ?? null,
+      transaccion.updated_at ?? null,
+      transaccion.deleted_at ?? null,
+      transaccion.store_id ?? null,
+      transaccion.created_by ?? null,
+    ];
     await this.ejecutarRun(sql, values, dentroDeTx);
   }
 
@@ -712,6 +742,18 @@ export class DatabaseService {
     if (!this.isInitialized) await this.initializePlugin();
     const sql = 'SELECT * FROM transacciones WHERE cliente_id = ? AND deleted_at IS NULL ORDER BY fecha DESC';
     const res = await this.db.query(sql, [clienteId]);
+    return res.values as Transaccion[] || [];
+  }
+
+  async obtenerTransacciones(): Promise<Transaccion[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebTransacciones)
+        .sort((a, b) => b.fecha - a.fecha) as Transaccion[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'SELECT * FROM transacciones WHERE deleted_at IS NULL ORDER BY fecha DESC';
+    const res = await this.db.query(sql);
     return res.values as Transaccion[] || [];
   }
 

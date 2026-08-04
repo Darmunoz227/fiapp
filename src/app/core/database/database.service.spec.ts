@@ -23,6 +23,29 @@ describe('DatabaseService', () => {
     spyOn(Capacitor, 'getPlatform').and.returnValue('web');
   });
 
+  function crearConexionInicializacion(): { sqlite: any; db: any } {
+    const db = {
+      isDBOpen: jasmine.createSpy('isDBOpen').and.resolveTo({ result: true }),
+      open: jasmine.createSpy('open').and.resolveTo(undefined),
+      query: jasmine.createSpy('query').and.callFake((sql: string) => {
+        if (sql.includes('PRAGMA user_version')) {
+          return Promise.resolve({ values: [{ user_version: 0 }] });
+        }
+
+        return Promise.resolve({ values: [] });
+      }),
+      execute: jasmine.createSpy('execute').and.resolveTo(undefined),
+    };
+
+    const sqlite = {
+      isConnection: jasmine.createSpy('isConnection').and.resolveTo({ result: false }),
+      retrieveConnection: jasmine.createSpy('retrieveConnection').and.resolveTo(db),
+      createConnection: jasmine.createSpy('createConnection').and.resolveTo(db),
+    };
+
+    return { sqlite, db };
+  }
+
   function crearClienteParcial(overrides: Partial<Cliente> = {}): Cliente {
     return {
       id: overrides.id ?? 'cliente-1',
@@ -42,6 +65,7 @@ describe('DatabaseService', () => {
     return {
       id: overrides.id ?? 'transaccion-1',
       cliente_id: overrides.cliente_id ?? 'cliente-1',
+      venta_id: overrides.venta_id ?? null,
       tipo: overrides.tipo ?? 'fiado',
       monto: overrides.monto ?? 100,
       concepto: overrides.concepto ?? 'Fiado inicial',
@@ -164,6 +188,10 @@ describe('DatabaseService', () => {
     return (service as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones;
   }
 
+  async function obtenerMockTransaccionesOrdenadas(): Promise<Transaccion[]> {
+    return service.obtenerTransacciones();
+  }
+
   function obtenerMockMovimientos(): MovimInventario[] {
     return (service as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario;
   }
@@ -181,6 +209,23 @@ describe('DatabaseService', () => {
       items: items.filter((item) => item.venta_id === venta.id),
     }));
   }
+
+  it('reuses the in-flight initialization promise so concurrent callers only run once', async () => {
+    (Capacitor.getPlatform as jasmine.Spy).and.returnValue('android');
+
+    const { sqlite, db } = crearConexionInicializacion();
+    (service as unknown as { sqlite: typeof sqlite }).sqlite = sqlite;
+
+    const primera = service.initializePlugin();
+    const segunda = service.initializePlugin();
+
+    await expectAsync(primera).toBeResolvedTo(true);
+    await expectAsync(segunda).toBeResolvedTo(true);
+
+    expect(sqlite.isConnection).toHaveBeenCalledTimes(1);
+    expect(sqlite.createConnection).toHaveBeenCalledTimes(1);
+    expect(db.execute).toHaveBeenCalled();
+  });
 
   function registrarVentaExtendida(
     venta: Venta,
@@ -269,6 +314,35 @@ describe('DatabaseService', () => {
     expect(transaccionesVisibles.length).toBe(1);
     expect(transaccionesVisibles[0].id).toBe('transaccion-1');
     expect(transaccionesVisibles[0].deleted_at ?? null).toBeNull();
+  });
+
+  it('obtenerTransacciones returns all non-deleted transactions ordered by fecha DESC on the web mock path', async () => {
+    await service.crearTransaccion(crearTransaccionParcial({ id: 'tx-old', fecha: 10, cliente_id: 'cliente-1' }));
+    await service.crearTransaccion(crearTransaccionParcial({ id: 'tx-mid', fecha: 20, cliente_id: 'cliente-2' }));
+    await service.crearTransaccion(crearTransaccionParcial({ id: 'tx-new', fecha: 30, cliente_id: 'cliente-3' }));
+    await service.softDeleteTransaccion('tx-mid');
+
+    const transacciones = await obtenerMockTransaccionesOrdenadas();
+
+    expect(transacciones.map((transaccion) => transaccion.id)).toEqual(['tx-new', 'tx-old']);
+    expect(transacciones.every((transaccion) => transaccion.deleted_at == null)).toBeTrue();
+  });
+
+  it('obtenerTransacciones queries the native path ordered by fecha DESC and excludes deleted rows', async () => {
+    (Capacitor.getPlatform as jasmine.Spy).and.returnValue('android');
+
+    const rows: Transaccion[] = [
+      crearTransaccionParcial({ id: 'tx-old', fecha: 10, deleted_at: null }),
+      crearTransaccionParcial({ id: 'tx-new', fecha: 30, deleted_at: null }),
+    ];
+    const querySpy = jasmine.createSpy('query').and.resolveTo({ values: rows } as { values: Transaccion[] });
+    (service as unknown as { db: { query: jasmine.Spy }; isInitialized: boolean }).db = { query: querySpy };
+    (service as unknown as { isInitialized: boolean }).isInitialized = true;
+
+    const transacciones = await service.obtenerTransacciones();
+
+    expect(querySpy).toHaveBeenCalledWith('SELECT * FROM transacciones WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    expect(transacciones).toEqual(rows);
   });
 
   it('stores and retrieves a product with the expected persisted fields', async () => {

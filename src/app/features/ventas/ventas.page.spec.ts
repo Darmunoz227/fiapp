@@ -303,7 +303,8 @@ describe('VentasPage', () => {
       cliente_id: 'c1',
       tipo: 'fiado',
       monto: 2800,
-      concepto: 'Venta a crédito',
+      venta_id: venta.id,
+      concepto: '2 Producto 1, 1 Producto 1',
     }));
   });
 
@@ -354,7 +355,8 @@ describe('VentasPage', () => {
       cliente_id: 'c1',
       tipo: 'fiado',
       monto: 3000,
-      concepto: 'Venta a crédito',
+      venta_id: venta.id,
+      concepto: '2 Producto 1',
     }));
   });
 });

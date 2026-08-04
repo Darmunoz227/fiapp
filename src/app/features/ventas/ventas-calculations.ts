@@ -9,6 +9,21 @@ export function calcularTotalVenta(precioVenta: number, cantidad: number): numbe
   return precioVenta * cantidad;
 }
 
+export type LineaConceptoFiado = {
+  cantidad: number;
+  nombre: string;
+};
+
+export function generarConceptoFiado(lineas: LineaConceptoFiado[]): string {
+  const primerasLineas = lineas.slice(0, 2).map((linea) => `${linea.cantidad} ${linea.nombre}`);
+
+  if (lineas.length <= 2) {
+    return primerasLineas.join(', ');
+  }
+
+  return `${primerasLineas.join(', ')} y ${lineas.length - 2} mas`;
+}
+
 /**
  * tipo_pago is a PROJECTION of the amounts, never authored by hand.
  * Amounts are the source of truth. No insert or update may write tipo_pago

@@ -456,3 +456,25 @@ primitive and must follow the same rule.
 **Downgrades are not supported:** running older code against a migrated database breaks the write path. Expected in SQLite, recorded here because validating a migration requires switching branches back and forth.
 
 **Evidence:** verified BY HAND on Android emulator Pixel_8 AND on the iOS simulator. An in-place v5 to v6 upgrade preserved existing sales, each converted into exactly one line with identical amounts and ganancia. A three-product sale registered as ONE sale with three lines, stock decreased per product, MIXTO derived correctly, and per-line stock blocking left the remaining lines sellable. 106 tests green, but the suite proves NOTHING about any of this: Karma stubs the platform to web and never executes the native write path.
+
+---
+
+## Decision 032 - A transaction must record its ORIGIN; concept text is never an identity
+
+**Context:** the merchant could not tell WHO owed money nor WHAT was sold on credit. Reportes never rendered the client although Venta.cliente_id was already stored, every credit sale wrote the same hardcoded concept "Venta a credito", and manual fiados lived in transacciones and never reached the ventas-based report. Observed on device: a client owed 11.000 while the report showed 9.000.
+
+**The blocker:** a transaccion created by a credit sale looked IDENTICAL to a manual one. Same tipo, same cliente_id, same shape. Summing both would have counted every credit sale TWICE, which is worse than the original bug.
+
+**Decision:** transacciones carries venta_id TEXT DEFAULT NULL as an explicit ORIGIN MARKER. NULL means registered by hand, a value means created by a sale. Schema v7 via the existing idempotent agregarColumnaSiFalta, no rebuild, no backfill, because NULL is the correct default for existing rows.
+
+**Rejected - filtering by concepto:** the same feature replaces that literal with the real product names, so a text filter would have broken on the very commit that introduced it. Identity must never be inferred from display text.
+
+**Rejected - inferring the link from cliente_id plus timestamp:** fragile, and wrong the moment two sales hit the same client in the same minute.
+
+**Bug found while implementing:** crearTransaccion inserted only SIX columns and silently dropped created_at, updated_at, deleted_at, store_id and created_by. It had been discarding them since the table was created. Adding venta_id to the model without fixing that INSERT would have left the column always NULL, making every sale-linked transaccion look manual and double counting all debt. The INSERT now writes all twelve columns.
+
+**HARDEST LESSON - initializePlugin had no concurrency guard.** isInitialized was only set at the END, so concurrent callers all entered and ran the migration in parallel. Feature 012 introduced Promise.all with FOUR parallel reads in the report page, and logcat showed every schema statement executed twice within the same millisecond: CREATE TABLE twice, CREATE INDEX twice, PRAGMA table_info twelve times, and ALTER TABLE ADD COLUMN venta_id twice. The second one threw duplicate column name, initializePlugin rethrew, the page load died halfway, and the manual fiados section rendered its empty state even though the rows existed in the database. Note that agregarColumnaSiFalta is idempotent in SEQUENCE but NOT under concurrency: it reads the columns and then writes, so two parallel callers both read before either writes. Fixed with a shared in-flight promise returned to concurrent callers and cleared in finally so a failure can retry.
+
+**Rule going forward:** any method that mutates schema or global state must be safe under concurrent callers, not merely idempotent when called one after another.
+
+**Evidence:** verified BY HAND on Android emulator Pixel_8 and on the iOS simulator, over an in-place v6 to v7 upgrade with real data. A manual fiado registered from Cliente Detalle appears in its own report section, sale-linked transacciones are excluded from it, the client name renders on credit sales, and a credit sale writes a concept naming its products. 117 tests green, but the suite proves NOTHING about the race: Karma stubs the platform to web and never runs a migration.

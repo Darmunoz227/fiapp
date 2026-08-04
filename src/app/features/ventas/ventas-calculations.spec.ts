@@ -1,4 +1,4 @@
-import { calcularTotalVenta, derivarTipoPago } from "./ventas-calculations";
+import { calcularTotalVenta, derivarTipoPago, generarConceptoFiado } from "./ventas-calculations";
 
 describe("ventas-calculations", () => {
   describe("calcularTotalVenta", () => {
@@ -30,6 +30,29 @@ describe("ventas-calculations", () => {
 
     it("returns CONTADO for the degenerate zero-value sale", () => {
       expect(derivarTipoPago(0, 0)).toBe("CONTADO");
+    });
+  });
+
+  describe('generarConceptoFiado', () => {
+    it('names the first two lines plus the remainder for three lines', () => {
+      expect(generarConceptoFiado([
+        { cantidad: 2, nombre: 'Carne molida' },
+        { cantidad: 1, nombre: 'Panela' },
+        { cantidad: 1, nombre: 'Lechuga' },
+      ])).toBe('2 Carne molida, 1 Panela y 1 mas');
+    });
+
+    it('omits the remainder suffix for one line', () => {
+      expect(generarConceptoFiado([
+        { cantidad: 3, nombre: 'Carne molida' },
+      ])).toBe('3 Carne molida');
+    });
+
+    it('omits the remainder suffix for two lines', () => {
+      expect(generarConceptoFiado([
+        { cantidad: 2, nombre: 'Carne molida' },
+        { cantidad: 1, nombre: 'Panela' },
+      ])).toBe('2 Carne molida, 1 Panela');
     });
   });
 });
