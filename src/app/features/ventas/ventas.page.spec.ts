@@ -3,6 +3,7 @@ import { ToastController } from '@ionic/angular/standalone';
 
 import { VentasPage } from './ventas.page';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
@@ -73,6 +74,7 @@ describe('VentasPage', () => {
     'obtenerMovimientosPorProducto',
     'registrarVenta',
   ]);
+  const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 
   const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
 
@@ -87,11 +89,13 @@ describe('VentasPage', () => {
       return [];
     });
     databaseServiceMock.registrarVenta.and.resolveTo(undefined);
+    freemiumServiceMock.puedeEscribir.and.resolveTo(true);
 
     databaseServiceMock.obtenerProductos.calls.reset();
     databaseServiceMock.obtenerClientes.calls.reset();
     databaseServiceMock.obtenerMovimientosPorProducto.calls.reset();
     databaseServiceMock.registrarVenta.calls.reset();
+    freemiumServiceMock.puedeEscribir.calls.reset();
 
     lastToastConfig = undefined;
     toastControllerMock.create.and.callFake(async (config: unknown) => {
@@ -106,6 +110,7 @@ describe('VentasPage', () => {
       imports: [VentasPage],
       providers: [
         { provide: DatabaseService, useValue: databaseServiceMock },
+        { provide: FreemiumService, useValue: freemiumServiceMock },
         { provide: ToastController, useValue: toastControllerMock },
       ],
     }).compileComponents();
@@ -214,10 +219,26 @@ describe('VentasPage', () => {
     await component.registrarVenta();
 
     expect(databaseServiceMock.registrarVenta).not.toHaveBeenCalled();
+    expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
     expect(toastControllerMock.create).toHaveBeenCalledWith(jasmine.objectContaining({
       message: 'Debes seleccionar un cliente para el saldo fiado',
       color: 'danger',
     }));
+  });
+
+  it('blocks registrarVenta before validation when freemium is expired', async () => {
+    await component.cargarProductos();
+
+    freemiumServiceMock.puedeEscribir.and.resolveTo(false);
+    component.productoId = 'p1';
+    component.precio = 1500;
+    component.cantidad = 2;
+    await component.agregarLinea();
+
+    await component.registrarVenta();
+
+    expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.registrarVenta).not.toHaveBeenCalled();
   });
 
   it('invalid cantidad (0 or negative) is rejected at add time', async () => {

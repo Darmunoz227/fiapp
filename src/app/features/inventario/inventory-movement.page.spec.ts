@@ -4,6 +4,7 @@ import { ToastController } from '@ionic/angular/standalone';
 
 import { InventoryMovementPage } from './inventory-movement.page';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { calcularStockDerivado } from './inventory-calculations';
@@ -37,6 +38,7 @@ describe('InventoryMovementPage', () => {
     'softDeleteMovimiento',
     'restoreMovimiento',
   ]);
+  const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 
   const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
 
@@ -77,6 +79,7 @@ describe('InventoryMovementPage', () => {
     databaseServiceMock.crearMovimiento.and.callFake(async (movimiento: MovimInventario) => {
       movimientosMock = [...movimientosMock, movimiento];
     });
+    freemiumServiceMock.puedeEscribir.and.resolveTo(true);
     databaseServiceMock.softDeleteMovimiento.and.resolveTo(undefined);
     databaseServiceMock.restoreMovimiento.and.resolveTo(undefined);
 
@@ -85,6 +88,7 @@ describe('InventoryMovementPage', () => {
     databaseServiceMock.obtenerMovimientosPorProducto.calls.reset();
     databaseServiceMock.softDeleteMovimiento.calls.reset();
     databaseServiceMock.restoreMovimiento.calls.reset();
+    freemiumServiceMock.puedeEscribir.calls.reset();
 
     lastToastConfig = undefined;
     toastControllerMock.create.and.callFake(async (config: any) => {
@@ -99,6 +103,7 @@ describe('InventoryMovementPage', () => {
       imports: [InventoryMovementPage],
       providers: [
         { provide: DatabaseService, useValue: databaseServiceMock },
+        { provide: FreemiumService, useValue: freemiumServiceMock },
         { provide: ToastController, useValue: toastControllerMock },
         { provide: ActivatedRoute, useValue: activatedRouteMock },
       ],
@@ -146,6 +151,19 @@ describe('InventoryMovementPage', () => {
     expect(component.cantidad).toBe(0);
     expect(component.costo_unitario).toBe(0);
     expect(component.motivo).toBe('');
+  });
+
+  it('blocks a movement write when freemium is expired', async () => {
+    freemiumServiceMock.puedeEscribir.and.resolveTo(false);
+    component.tipo = 'COMPRA';
+    component.cantidad = 10;
+    component.costo_unitario = 1200;
+    component.motivo = 'Entrada inicial';
+
+    await component.registrarMovimiento();
+
+    expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.crearMovimiento).not.toHaveBeenCalled();
   });
 
   it('registers a VENTA and applies the derived stock change', async () => {

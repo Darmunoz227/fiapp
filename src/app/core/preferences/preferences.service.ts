@@ -6,6 +6,7 @@ export class PreferencesService {
   private readonly KEY_NOMBRE_NEGOCIO = 'nombreNegocio';
   private readonly KEY_FECHA_INSTALACION = 'fecha_instalacion';
   private readonly KEY_LICENCIA_PREMIUM = 'licencia_premium';
+  private readonly KEY_TRIAL_BLOQUEADO = 'trial_bloqueado';
 
   constructor() {}
 
@@ -108,6 +109,24 @@ export class PreferencesService {
     } catch (e) {
       console.error('Preferences.ensure licencia_premium error', e);
       return false;
+    }
+  }
+
+  async getTrialBloqueado(): Promise<boolean> {
+    try {
+      const { value } = await Preferences.get({ key: this.KEY_TRIAL_BLOQUEADO });
+      return value === 'true';
+    } catch (e) {
+      console.error('Preferences.get trial_bloqueado error', e);
+      return false;
+    }
+  }
+
+  async setTrialBloqueado(bloqueado: boolean): Promise<void> {
+    try {
+      await Preferences.set({ key: this.KEY_TRIAL_BLOQUEADO, value: bloqueado ? 'true' : 'false' });
+    } catch (e) {
+      console.error('Preferences.set trial_bloqueado error', e);
     }
   }
 }

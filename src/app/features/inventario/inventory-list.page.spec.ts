@@ -3,10 +3,12 @@ import { ToastController } from '@ionic/angular/standalone';
 
 import { InventoryListPage } from './inventory-list.page';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 
 const databaseServiceMock = jasmine.createSpyObj('DatabaseService', ['crearProducto', 'obtenerProductos', 'obtenerResumenInventario']);
+const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
 
 describe('InventoryListPage', () => {
@@ -17,9 +19,11 @@ describe('InventoryListPage', () => {
     databaseServiceMock.crearProducto.and.resolveTo(undefined);
     databaseServiceMock.obtenerProductos.and.resolveTo([]);
     databaseServiceMock.obtenerResumenInventario.and.resolveTo([]);
+    freemiumServiceMock.puedeEscribir.and.resolveTo(true);
     databaseServiceMock.crearProducto.calls.reset();
     databaseServiceMock.obtenerProductos.calls.reset();
     databaseServiceMock.obtenerResumenInventario.calls.reset();
+    freemiumServiceMock.puedeEscribir.calls.reset();
 
     toastControllerMock.create.and.callFake(async (_config: any) => {
       return {
@@ -32,6 +36,7 @@ describe('InventoryListPage', () => {
       imports: [InventoryListPage],
       providers: [
         { provide: DatabaseService, useValue: databaseServiceMock },
+        { provide: FreemiumService, useValue: freemiumServiceMock },
         { provide: ToastController, useValue: toastControllerMock },
       ],
     }).compileComponents();
@@ -57,6 +62,20 @@ describe('InventoryListPage', () => {
       minimo_stock: 3,
       costo_promedio: 0,
     }));
+  });
+
+  it('blocks product creation when freemium is expired', async () => {
+    freemiumServiceMock.puedeEscribir.and.resolveTo(false);
+
+    component.nombre = 'Carne molida';
+    component.precio_venta = 12500;
+    component.tipo_venta = 'UNIDAD';
+    component.minimo_stock = 3;
+
+    await component.crearProducto();
+
+    expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.crearProducto).not.toHaveBeenCalled();
   });
 
   it('does not create a product when the name is empty', async () => {

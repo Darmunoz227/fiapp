@@ -8,6 +8,7 @@ import {
   ToastController
 } from '@ionic/angular/standalone';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { v4 as uuidv4 } from 'uuid';
@@ -32,6 +33,7 @@ export class InventoryListPage {
 
   constructor(
     private dbService: DatabaseService,
+    private freemiumService: FreemiumService,
     private toastCtrl: ToastController
   ) {}
 
@@ -54,6 +56,11 @@ export class InventoryListPage {
   }
 
   async crearProducto() {
+    const puedeEscribir = await this.freemiumService.puedeEscribir();
+    if (!puedeEscribir) {
+      return;
+    }
+
     const nombre = this.nombre.trim();
     const precioVenta = Number(this.precio_venta);
     const minimoStock = Number(this.minimo_stock);

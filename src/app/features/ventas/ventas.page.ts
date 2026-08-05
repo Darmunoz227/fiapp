@@ -19,6 +19,7 @@ import {
 } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
@@ -80,6 +81,7 @@ export class VentasPage {
 
   constructor(
     private dbService: DatabaseService,
+    private freemiumService: FreemiumService,
     private toastCtrl: ToastController,
   ) {}
 
@@ -208,6 +210,11 @@ export class VentasPage {
   }
 
   async registrarVenta() {
+    const puedeEscribir = await this.freemiumService.puedeEscribir();
+    if (!puedeEscribir) {
+      return;
+    }
+
     await this.revalidarCarrito();
 
     if (this.carrito.length === 0) {

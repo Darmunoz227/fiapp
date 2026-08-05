@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 
 import { ClienteDetallePage } from './cliente-detalle.page';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { TransaccionDeleteUndoService } from './transaccion-delete-undo.service';
 
@@ -27,6 +28,7 @@ const databaseServiceMock = jasmine.createSpyObj('DatabaseService', [
   'softDeleteTransaccion',
   'restoreTransaccion',
 ]);
+const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 const preferencesServiceMock = jasmine.createSpyObj('PreferencesService', ['getNombreNegocio']);
 let alertConfig: any;
 let toastConfig: any;
@@ -83,6 +85,7 @@ describe('ClienteDetallePage', () => {
     databaseServiceMock.crearTransaccion.and.resolveTo(undefined);
     databaseServiceMock.softDeleteTransaccion.and.resolveTo(undefined);
     databaseServiceMock.restoreTransaccion.and.resolveTo(undefined);
+    freemiumServiceMock.puedeEscribir.and.resolveTo(true);
     preferencesServiceMock.getNombreNegocio.and.resolveTo('');
 
     TestBed.configureTestingModule({
@@ -94,6 +97,7 @@ describe('ClienteDetallePage', () => {
         { provide: ToastController, useValue: toastControllerMock },
         { provide: Router, useValue: routerMock },
         { provide: DatabaseService, useValue: databaseServiceMock },
+        { provide: FreemiumService, useValue: freemiumServiceMock },
         { provide: PreferencesService, useValue: preferencesServiceMock },
       ],
     }).compileComponents();
@@ -181,6 +185,43 @@ describe('ClienteDetallePage', () => {
 
     expect(databaseServiceMock.restoreTransaccion).toHaveBeenCalledWith('transaccion-1');
     expect(component.cargarDatos).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks manual fiado when freemium is expired but allows abono', async () => {
+    component.cliente = {
+      id: 'dummy-id',
+      nombre: 'Cliente Prueba',
+      telefono: '3001234567',
+      habeas_data_flag: true,
+      fecha_creacion: Date.now(),
+      deleted_at: null,
+      created_at: null,
+      updated_at: null,
+      store_id: null,
+      created_by: null,
+    };
+
+    modalControllerMock.create.and.resolveTo({
+      present: () => Promise.resolve(),
+      onWillDismiss: () => Promise.resolve({ data: { tipo: 'fiado', monto: 1000, concepto: '' }, role: null }),
+    } as any);
+
+    freemiumServiceMock.puedeEscribir.and.resolveTo(false);
+
+    await component.abrirModalTransaccion('fiado');
+    expect(databaseServiceMock.crearTransaccion).not.toHaveBeenCalled();
+    expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
+
+    freemiumServiceMock.puedeEscribir.calls.reset();
+    databaseServiceMock.crearTransaccion.calls.reset();
+    modalControllerMock.create.and.resolveTo({
+      present: () => Promise.resolve(),
+      onWillDismiss: () => Promise.resolve({ data: { tipo: 'abono', monto: 1000, concepto: '' }, role: null }),
+    } as any);
+
+    await component.abrirModalTransaccion('abono');
+    expect(databaseServiceMock.crearTransaccion).toHaveBeenCalledTimes(1);
+    expect(freemiumServiceMock.puedeEscribir).not.toHaveBeenCalled();
   });
 
   it('should create', () => {
