@@ -1,7 +1,5 @@
-export function calcularPosicionCursor(textoCrudo: string, posicionCursor: number, textoFormateado: string): number {
-  const digitosAntes = textoCrudo.slice(0, posicionCursor).replace(/\D/g, "").length;
-
-  if (digitosAntes === 0) {
+export function posicionTrasNDigitos(textoFormateado: string, cantidadDigitos: number): number {
+  if (cantidadDigitos <= 0) {
     return 0;
   }
 
@@ -12,10 +10,15 @@ export function calcularPosicionCursor(textoCrudo: string, posicionCursor: numbe
       digitosVistos++;
     }
 
-    if (digitosVistos === digitosAntes) {
+    if (digitosVistos === cantidadDigitos) {
       return i + 1;
     }
   }
 
   return textoFormateado.length;
+}
+
+export function calcularPosicionCursor(textoCrudo: string, posicionCursor: number, textoFormateado: string): number {
+  const digitosAntes = textoCrudo.slice(0, posicionCursor).replace(/\D/g, "").length;
+  return posicionTrasNDigitos(textoFormateado, digitosAntes);
 }

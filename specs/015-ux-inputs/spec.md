@@ -6,10 +6,6 @@ The merchant types money into fields that start at 0 and show no thousands separ
 
 The correct pattern ALREADY EXISTS in nueva-transaccion (manual fiado): a text input with inputmode numeric, a string field that starts empty, and handlers that reformat while preserving the caret position. The task is to EXTRACT that pattern, not to invent a new one.
 
-## Bug found while reading the source, IN SCOPE
-
-handlePaste computes the new caret position with the same loop as onMontoInput and then never applies it. There is no setSelectionRange call. Pasting a value therefore leaves the caret in the wrong place. Copying this code into three more files would multiply the defect, so it is fixed as part of the extraction.
-
 ## Scope
 
 Four MONEY fields receive the pattern:

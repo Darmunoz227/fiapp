@@ -8,7 +8,7 @@ T002. GREEN. Implement the pure function in shared/utils. Zero framework imports
 
 T003. Migrate nueva-transaccion: onMontoInput and handlePaste both call the extracted function and the duplicated loop is deleted. Behaviour must not change. Verify with git diff that no test was removed.
 
-T004. Fix the paste bug: handlePaste applies the caret position it computes. Commit T003 and T004 together with the suite green.
+T004. REMOVED. The paste bug did not exist: handlePaste already applies setSelectionRange. The claim came from reading a truncated range of the file. Recorded here so nobody looks for a fix that was never needed.
 
 T005. Audit every consumer of precio, abono, costo_unitario and precio_venta before changing their type. Record which ones do arithmetic on the bound value. No code until this is written down.
 
