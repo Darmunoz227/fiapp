@@ -451,6 +451,48 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values);
   }
 
+  async leerCrudoClientes(): Promise<Cliente[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebClientes;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM clientes");
+    return (res.values as Cliente[]) ?? [];
+  }
+
+  async leerCrudoTransacciones(): Promise<Transaccion[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebTransacciones;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM transacciones");
+    return (res.values as Transaccion[]) ?? [];
+  }
+
+  async leerCrudoProductos(): Promise<Producto[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProductos;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM productos");
+    return (res.values as Producto[]) ?? [];
+  }
+
+  async leerCrudoMovimInventario(): Promise<MovimInventario[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebMovimInventario;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM movim_inventario");
+    return (res.values as MovimInventario[]) ?? [];
+  }
+
+  async leerCrudoVentas(): Promise<Venta[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebVentas;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM ventas");
+    return (res.values as Venta[]) ?? [];
+  }
+
+  async leerCrudoVentaItems(): Promise<VentaItem[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebVentaItems;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM venta_items");
+    return (res.values as VentaItem[]) ?? [];
+  }
+
   async obtenerClientes(): Promise<Cliente[]> {
     if (Capacitor.getPlatform() === 'web') return this.filtrarActivos(this.mockWebClientes) as Cliente[];
     if (!this.isInitialized) await this.initializePlugin();
