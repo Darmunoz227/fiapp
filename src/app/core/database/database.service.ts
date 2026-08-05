@@ -11,6 +11,7 @@ import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
+import { SCHEMA_VERSION } from './schema-version';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
@@ -45,7 +46,6 @@ export class DatabaseService {
   private initializationPromise: Promise<boolean> | null = null;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 7;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -105,8 +105,8 @@ export class DatabaseService {
     await this.migrarEsquemaSiNecesario();
 
     const versionActual = await this.obtenerVersionEsquema();
-    if (versionActual < this.SCHEMA_VERSION) {
-      await this.establecerVersionEsquema(this.SCHEMA_VERSION);
+    if (versionActual < SCHEMA_VERSION) {
+      await this.establecerVersionEsquema(SCHEMA_VERSION);
     }
   }
 
@@ -449,6 +449,48 @@ export class DatabaseService {
     const sql = 'INSERT INTO clientes (id, nombre, telefono, habeas_data_flag, fecha_creacion) VALUES (?, ?, ?, ?, ?)';
     const values = [cliente.id, cliente.nombre, cliente.telefono, cliente.habeas_data_flag ? 1 : 0, cliente.fecha_creacion];
     await this.ejecutarRun(sql, values);
+  }
+
+  async leerCrudoClientes(): Promise<Cliente[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebClientes;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM clientes");
+    return (res.values as Cliente[]) ?? [];
+  }
+
+  async leerCrudoTransacciones(): Promise<Transaccion[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebTransacciones;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM transacciones");
+    return (res.values as Transaccion[]) ?? [];
+  }
+
+  async leerCrudoProductos(): Promise<Producto[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProductos;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM productos");
+    return (res.values as Producto[]) ?? [];
+  }
+
+  async leerCrudoMovimInventario(): Promise<MovimInventario[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebMovimInventario;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM movim_inventario");
+    return (res.values as MovimInventario[]) ?? [];
+  }
+
+  async leerCrudoVentas(): Promise<Venta[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebVentas;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM ventas");
+    return (res.values as Venta[]) ?? [];
+  }
+
+  async leerCrudoVentaItems(): Promise<VentaItem[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebVentaItems;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM venta_items");
+    return (res.values as VentaItem[]) ?? [];
   }
 
   async obtenerClientes(): Promise<Cliente[]> {
