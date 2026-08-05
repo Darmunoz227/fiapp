@@ -26,7 +26,7 @@ RF-01. The caret-position logic MUST be extracted into a PURE function in shared
 
 RF-02. nueva-transaccion MUST be migrated to the extracted function. Its behaviour MUST NOT change. The suite staying green is the safety net for this step.
 
-RF-03. The paste handler MUST apply the caret position it computes.
+RF-03. REMOVED. handlePaste already applies setSelectionRange; the defect claimed here never existed and the claim came from reading a truncated range of the source file.
 
 RF-04. Every money field MUST start EMPTY, never at 0. The bound field is a string, and the numeric value is derived through parseCurrencyInput.
 
@@ -48,7 +48,7 @@ AC-03. Every money field renders empty on open. No 0 to delete.
 
 AC-04. Typing 15000 into a money field displays 15.000 while typing, and the caret stays where the merchant expects.
 
-AC-05. Pasting a value into a money field leaves the caret after the pasted digits.
+AC-05. Pasting a value into a money field still leaves the caret after the pasted digits. This is a NO-REGRESSION check: the behaviour already works in nueva-transaccion and must survive the extraction.
 
 AC-06. A sale by weight with a decimal quantity still works. Quantity fields show no thousands separator.
 
