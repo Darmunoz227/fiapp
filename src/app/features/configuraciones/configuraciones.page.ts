@@ -9,7 +9,9 @@ import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { App } from '@capacitor/app';
 // Importamos la herramienta nativa de compartir
-import { Share } from '@capacitor/share'; 
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { construirRespaldo } from '../../core/respaldo/respaldo-builder';
 
 @Component({
   selector: 'app-configuraciones',
@@ -128,37 +130,59 @@ export class ConfiguracionesPage {
     await toast.present();
   }
 
-  // --- RF-07: EXPORTACIÓN DE RESPALDO JSON NATIVO ---
+  // --- RF-07: EXPORTACION DE RESPALDO JSON COMPLETO (Feature 014) ---
   async exportarRespaldoJSON() {
+    let uriArchivo: string;
+
     try {
-      // 1. Recolectamos todos los datos de la base de datos igual que antes
-      const clientes = await this.dbService.obtenerClientes();
-      const respaldoCompleto = [];
+      const data = {
+        clientes: await this.dbService.leerCrudoClientes(),
+        transacciones: await this.dbService.leerCrudoTransacciones(),
+        productos: await this.dbService.leerCrudoProductos(),
+        movim_inventario: await this.dbService.leerCrudoMovimInventario(),
+        ventas: await this.dbService.leerCrudoVentas(),
+        venta_items: await this.dbService.leerCrudoVentaItems(),
+      };
 
-      for (const cliente of clientes) {
-        const transacciones = await this.dbService.obtenerTransaccionesPorCliente(cliente.id);
-        respaldoCompleto.push({
-          perfil: cliente,
-          movimientos: transacciones
-        });
-      }
+      const respaldo = construirRespaldo(data, new Date().toISOString());
+      const contenido = JSON.stringify(respaldo, null, 2);
+      const fecha = new Date().toISOString().slice(0, 10);
+      const nombre = "fiapp-respaldo-" + fecha + ".json";
 
-      // 2. Lo convertimos a texto JSON
-      const dataStr = JSON.stringify(respaldoCompleto, null, 2);
-      
-      // 3. ¡MAGIA NATIVA!: Abrimos el menú del iPhone/Android para compartir el texto directamente
-      const fechaActual = new Date().toLocaleDateString().replace(/\//g, '-');
-      
-      await Share.share({
-        title: 'Respaldo FiApp - ' + fechaActual,
-        text: dataStr, // Metemos todo el JSON como texto plano seguro
-        dialogTitle: 'Guardar o enviar respaldo de FiApp'
+      const escrito = await Filesystem.writeFile({
+        path: nombre,
+        data: contenido,
+        directory: Directory.Cache,
+        encoding: Encoding.UTF8,
       });
 
+      uriArchivo = escrito.uri;
     } catch (error) {
-      console.error('Error al exportar nativamente:', error);
-      // Nota: Si el usuario cancela el menú de compartir sin elegir ninguna app, 
-      // entrará aquí, así que no es necesario alarmar con un alert de error fatal.
+      console.error("Error al generar el respaldo:", error);
+      await this.mostrarToastRespaldoFallido();
+      return;
     }
+
+    try {
+      await Share.share({
+        title: "Respaldo FiApp",
+        files: [uriArchivo],
+        dialogTitle: "Guardar o enviar respaldo de FiApp",
+      });
+    } catch {
+      // El usuario cancelo la hoja de compartir. El archivo YA existe en disco,
+      // asi que el respaldo se genero correctamente y no hay nada que reportar.
+    }
+  }
+
+  async mostrarToastRespaldoFallido() {
+    const toast = await this.toastCtrl.create({
+      message: "No se pudo generar el respaldo. Intenta de nuevo.",
+      duration: 3000,
+      position: "bottom",
+      color: "danger"
+    });
+
+    await toast.present();
   }
 }
