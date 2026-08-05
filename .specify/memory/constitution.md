@@ -1,4 +1,4 @@
-<!-- Sync Impact Report Version change: template -> 1.0.0 (initial adoption) Modified principles: none (initial adoption) Added sections: all (initial adoption) Removed sections: none Templates reviewed: ✅ plan-template.md; ✅ spec-template.md; ✅ tasks-template.md Deferred items: none --> # FiApp Constitution
+<!-- Sync Impact Report Version change: template -> 1.0.0 (initial adoption) Modified principles: none (initial adoption) Added sections: all (initial adoption) Removed sections: none Templates reviewed: ✅ plan-template.md; ✅ spec-template.md; ✅ tasks-template.md Deferred items: none. AMENDMENT 1.1.0 (2026-08-05): Modified sections: Restricciones de Alcance, added EXCEPCION TEMPORAL for the Feature #13 hardcoded activation password. Principles changed: none. Templates reviewed: no changes required --> # FiApp Constitution
 
 ## Core Principles
 
@@ -53,6 +53,14 @@ electronica DIAN, funcionalidades de IA, contabilidad completa (balance general
 y libro mayor), FIFO o manejo por lotes, marketplace y cualquier mecanismo con
 contrasenas de activacion hardcodeadas.
 
+EXCEPCION TEMPORAL v1.1.0: se autoriza la contrasena de activacion
+hardcodeada implementada en Feature #13, unicamente como mecanismo de
+friccion para el piloto. Sus limites estan registrados en la Decision 033:
+la contrasena es legible en el bundle JS y reinstalar reinicia el contador
+de dias. La excepcion caduca cuando existan codigos de activacion por
+dispositivo, momento en el que la restriccion original vuelve a aplicar sin
+enmienda adicional.
+
 ## Governance
 
 Esta constitucion prevalece sobre practicas informales y plantillas genericas.
@@ -62,4 +70,4 @@ principios, MINOR para agregar principios o secciones sustantivas y PATCH para
 aclaraciones de redaccion sin impacto normativo. Toda revision de codigo MUST
 incluir validacion explicita de cumplimiento constitucional.
 
-**Version**: 1.0.0 | **Ratified**: 2026-07-13 | **Last Amended**: 2026-07-13
+**Version**: 1.1.0 | **Ratified**: 2026-07-13 | **Last Amended**: 2026-08-05

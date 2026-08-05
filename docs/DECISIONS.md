@@ -498,3 +498,17 @@ primitive and must follow the same rule.
 **Honest limits:** the activation password is hardcoded in the JS bundle and readable by anyone who unzips the APK. The install date lives in Preferences, so reinstalling resets the 20 day counter. This feature raises FRICTION so the easy path is to contact me. It does not make the app tamper proof. A per-device activation code is the real answer and remains future work.
 
 **Evidence:** verified BY HAND on Android. With the trial expired a sale, a manual fiado, an inventory movement and a new product are all blocked, an ABONO still succeeds, every read screen still loads, and unlocking premium restores everything. The bypass was reproduced and confirmed closed: blocked at 7 clients, deleted one, still blocked.
+
+---
+
+## Decision 034 - Constitutional amendment 1.1.0: temporary exception for the hardcoded activation password
+
+**Decision:** the constitution is amended from 1.0.0 to 1.1.0. Restricciones de Alcance now carries an EXCEPCION TEMPORAL authorizing the hardcoded activation password shipped in Feature 013.
+
+**Why an amendment and not a rollback:** the constitution listed "cualquier mecanismo con contrasenas de activacion hardcodeadas" as out of scope until a constitutional amendment. Feature 013 shipped exactly that and was merged without the explicit constitutional validation that Governance requires. The mechanism is sound for its purpose and reverting it days before the pilot would leave the freemium toothless, so the honest fix is to amend the text rather than pretend the rule was never broken.
+
+**Why MINOR and not MAJOR:** the change modifies Restricciones de Alcance, a substantive section. No Core Principle was redefined or removed.
+
+**Expiry condition:** the exception dies when per-device activation codes exist. At that moment the original restriction applies again with no further amendment.
+
+**Process lesson:** Governance requires explicit constitutional validation in every code review. Feature 013 passed review without it. Constitutional compliance must be an explicit checklist item in every plan, not an assumed background condition.
