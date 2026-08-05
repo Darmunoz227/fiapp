@@ -478,3 +478,23 @@ primitive and must follow the same rule.
 **Rule going forward:** any method that mutates schema or global state must be safe under concurrent callers, not merely idempotent when called one after another.
 
 **Evidence:** verified BY HAND on Android emulator Pixel_8 and on the iOS simulator, over an in-place v6 to v7 upgrade with real data. A manual fiado registered from Cliente Detalle appears in its own report section, sale-linked transacciones are excluded from it, the client name renders on credit sales, and a credit sale writes a concept naming its products. 117 tests green, but the suite proves NOTHING about the race: Karma stubs the platform to web and never runs a migration.
+
+---
+
+## Decision 033 - Reads stay free, writes get blocked, abonos always pass
+
+**Context:** the freemium trial was toothless. puedeAgregarCliente was the ONLY guard in the app, so once expired the merchant could still sell, fiar, collect, manage inventory and read reports forever with the clients they already had. A corner shop with 7 regulars never hit a wall and never had a reason to make contact. Worse, the APK can be forwarded over WhatsApp and every copy was a fully working POS.
+
+**Decision - reads stay free.** Home, Cliente Detalle, Inventario and Reportes keep working when blocked. Taking away access to data the merchant already recorded would punish the user, not protect the product.
+
+**Decision - writes are blocked.** A new puedeEscribir guard reuses obtenerEstado and the existing alert with its WhatsApp button. It guards the sale flow, manual fiado, both inventory movement call sites and product creation. The guard runs ONCE per user action, never inside a loop, because obtenerEstado hits the database through contarClientes.
+
+**Decision - ABONOS always pass.** crearTransaccion serves both fiado and abono, so the guard discriminates by tipo. An abono REDUCES debt and benefits the customer who is paying. Blocking it would leave wrong balances for people who already settled, which is worse than having no limit at all.
+
+**Bypass found ON DEVICE and closed:** contarClientes excludes soft-deleted clients, so a merchant at the 7 client limit could delete one, drop to 6 and unblock. Deleting and recreating clients bypassed the limit indefinitely. Fixed by persisting a trial_bloqueado flag: once blocked, it stays blocked until premium is activated. The alternative of counting soft-deleted clients was rejected because a merchant who deletes someone BY MISTAKE would silently lose a slot forever.
+
+**Consequence accepted:** the block is now permanent on that device. A merchant who reaches 7 clients on day one stays blocked from then on. That is the intent, and it must be explained when handing the app over.
+
+**Honest limits:** the activation password is hardcoded in the JS bundle and readable by anyone who unzips the APK. The install date lives in Preferences, so reinstalling resets the 20 day counter. This feature raises FRICTION so the easy path is to contact me. It does not make the app tamper proof. A per-device activation code is the real answer and remains future work.
+
+**Evidence:** verified BY HAND on Android. With the trial expired a sale, a manual fiado, an inventory movement and a new product are all blocked, an ABONO still succeeds, every read screen still loads, and unlocking premium restores everything. The bypass was reproduced and confirmed closed: blocked at 7 clients, deleted one, still blocked.

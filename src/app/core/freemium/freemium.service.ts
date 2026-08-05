@@ -58,6 +58,17 @@ export class FreemiumService {
       };
     }
 
+    const trialBloqueado = await this.prefsService.getTrialBloqueado();
+    if (trialBloqueado) {
+      return {
+        bloqueado: true,
+        motivo: 'clientes',
+        licenciaPremium: false,
+        totalClientes: 0,
+        diasDesdeInstalacion: 0,
+      };
+    }
+
     const [totalClientes, diasDesdeInstalacion] = await Promise.all([
       this.dbService.contarClientes(),
       this.calcularDiasDesdeInstalacion()
@@ -65,9 +76,14 @@ export class FreemiumService {
 
     const bloqueadoPorClientes = totalClientes >= this.LIMITE_CLIENTES;
     const bloqueadoPorTiempo = diasDesdeInstalacion > this.LIMITE_DIAS;
+    const bloqueado = bloqueadoPorClientes || bloqueadoPorTiempo;
+
+    if (bloqueado) {
+      await this.prefsService.setTrialBloqueado(true);
+    }
 
     return {
-      bloqueado: bloqueadoPorClientes || bloqueadoPorTiempo,
+      bloqueado,
       motivo: bloqueadoPorClientes ? 'clientes' : bloqueadoPorTiempo ? 'tiempo' : 'ninguno',
       licenciaPremium: false,
       totalClientes,
@@ -76,6 +92,16 @@ export class FreemiumService {
   }
 
   async puedeAgregarCliente(): Promise<boolean> {
+    const estado = await this.obtenerEstado();
+    if (estado.bloqueado) {
+      await this.mostrarAlertaBloqueo();
+      return false;
+    }
+
+    return true;
+  }
+
+  async puedeEscribir(): Promise<boolean> {
     const estado = await this.obtenerEstado();
     if (estado.bloqueado) {
       await this.mostrarAlertaBloqueo();

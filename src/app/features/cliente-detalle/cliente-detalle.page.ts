@@ -10,6 +10,7 @@ import { App } from '@capacitor/app';
 import { addIcons } from 'ionicons';
 import { arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline } from 'ionicons/icons'; 
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { Transaccion } from '../../core/models/transaccion.model';
@@ -40,6 +41,7 @@ export class ClienteDetallePage implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private dbService: DatabaseService,
+    private freemiumService: FreemiumService,
     private modalCtrl: ModalController,
     private alertCtrl: AlertController,
     private prefs: PreferencesService,
@@ -121,6 +123,13 @@ export class ClienteDetallePage implements OnInit {
     const { data } = await modal.onWillDismiss();
 
     if (data && this.cliente) {
+      if (data.tipo === 'fiado') {
+        const puedeEscribir = await this.freemiumService.puedeEscribir();
+        if (!puedeEscribir) {
+          return;
+        }
+      }
+
       const conceptoFinal = data.concepto?.trim() ? data.concepto.trim() : (data.tipo === 'fiado' ? formatFiadoConcept(new Date()) : '');
       const nuevaTransaccion: Transaccion = {
         id: uuidv4(),

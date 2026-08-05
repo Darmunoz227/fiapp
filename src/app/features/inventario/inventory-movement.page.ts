@@ -20,6 +20,7 @@ import {
 } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
+import { FreemiumService } from '../../core/freemium/freemium.service';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { calcularStockDerivado } from './inventory-calculations';
@@ -61,6 +62,7 @@ export class InventoryMovementPage {
 
   constructor(
     private dbService: DatabaseService,
+    private freemiumService: FreemiumService,
     private toastCtrl: ToastController,
     private route: ActivatedRoute,
   ) {
@@ -99,6 +101,11 @@ export class InventoryMovementPage {
   }
 
   async registrarMovimiento() {
+    const puedeEscribir = await this.freemiumService.puedeEscribir();
+    if (!puedeEscribir) {
+      return;
+    }
+
     const motivo = this.motivo.trim();
 
     if (this.tipo === 'AJUSTE') {
