@@ -7,6 +7,7 @@ import {
   IonLabel, IonInput, IonRow, IonCol, IonButton, IonSelect, IonSelectOption
 } from '@ionic/angular/standalone';
 import { formatCurrencyCOP, formatFiadoConcept, parseCurrencyInput } from '../../utils/formatters';
+import { calcularPosicionCursor, posicionTrasNDigitos } from '../../utils/caret-position';
 
 @Component({
   selector: 'app-nueva-transaccion',
@@ -88,16 +89,7 @@ export class NuevaTransaccionComponent implements OnChanges {
 
     // set caret after inserted digits
     const digitsInserted = left.length + cleanedPaste.length;
-    let pos = 0;
-    if (digitsInserted === 0) pos = 0;
-    else {
-      let digitsSeen = 0;
-      for (let i = 0; i < formatted.length; i++) {
-        if (/\d/.test(formatted[i])) digitsSeen++;
-        if (digitsSeen === digitsInserted) { pos = i + 1; break; }
-      }
-      if (digitsSeen < digitsInserted) pos = formatted.length;
-    }
+    const pos = posicionTrasNDigitos(formatted, digitsInserted);
 
     setTimeout(() => {
       try { nativeInput.setSelectionRange(pos, pos); } catch (e) {}
@@ -132,18 +124,7 @@ export class NuevaTransaccionComponent implements OnChanges {
     this.monto = numeric > 0 ? numeric : null;
     const formatted = this.monto ? formatCurrencyCOP(this.monto) : '';
 
-    // compute new caret position in formatted string based on digitsBefore
-    let pos = 0;
-    if (digitsBefore === 0) {
-      pos = 0;
-    } else {
-      let digitsSeen = 0;
-      for (let i = 0; i < formatted.length; i++) {
-        if (/\d/.test(formatted[i])) digitsSeen++;
-        if (digitsSeen === digitsBefore) { pos = i + 1; break; }
-      }
-      if (digitsSeen < digitsBefore) pos = formatted.length;
-    }
+    const pos = calcularPosicionCursor(raw, caretPos, formatted);
 
     this.montoTexto = formatted;
 
