@@ -512,3 +512,23 @@ primitive and must follow the same rule.
 **Expiry condition:** the exception dies when per-device activation codes exist. At that moment the original restriction applies again with no further amendment.
 
 **Process lesson:** Governance requires explicit constitutional validation in every code review. Feature 013 passed review without it. Constitutional compliance must be an explicit checklist item in every plan, not an assumed background condition.
+
+---
+
+## Decision 035 - A backup that omits four tables is not a backup; the file is the artifact, sharing is optional
+
+**Context:** exportarRespaldoJSON read clientes and, per client, their transacciones. Four tables were missing: productos, movim_inventario, ventas and venta_items. A merchant losing the phone recovered who owed money and lost the entire inventory and every sale, while a button labelled "Exportar respaldo" said they were protected.
+
+**Decision - raw readers, separate from the app getters.** Every existing getter filters deleted_at IS NULL. Reusing them would have dropped every tombstone, breaking the undo window of Decision 006 and the audit history of Principle III. Six leerCrudo methods were added that read the whole table with no filter. The existing getters were NOT modified: the app needs the filtered view, the backup needs the raw one.
+
+**Decision - table-oriented payload with an embedded schema version.** The old shape nested transactions inside each client and had nowhere to put products or sales. The new file carries one key per table plus schema_version and exported_at, so Feature 015 can walk it without guessing. SCHEMA_VERSION was extracted from a private field in DatabaseService into its own module so the backup reads the SAME constant the migration uses. Hardcoding 7 would have made the file lie on the next migration.
+
+**Decision - a file on disk, never text in the share sheet.** The old code passed the whole JSON as the text field of Share.share, which the share sheet and WhatsApp truncate silently. A truncated backup looks successful, which is worse than no backup. The payload is now written with Filesystem and shared as a file URI. Measured on device: 10138 bytes with 4 clients, 3 products and one three-line sale. A real merchant with months of history is orders of magnitude larger.
+
+**Decision - the file is the artifact; sharing is a separate, optional step.** The old catch swallowed every error because cancelling the share sheet lands there, so a real failure looked exactly like a cancellation. Inspecting the plugin error message to detect cancellation was REJECTED for the same reason as in Decision 032: identity must never be inferred from display text, and the signal differs across platforms. Instead the write path and the share call have separate try blocks. A failure to read or write surfaces a visible toast. A failed share is silent, because the file already exists on disk. This was confirmed on device: an export whose share sheet was cancelled still produced a complete, valid file.
+
+**Known limit:** the file is written to Directory.Cache, which Android may purge. Acceptable because it is shared immediately and can be regenerated at any time, but nothing should ever assume that file persists.
+
+**Out of scope:** importing and restoring the file is Feature 015. Until it ships, a merchant holds a complete backup with no in-app way to load it back.
+
+**Evidence, on Android Pixel_8 over a clean install:** 4 clientes including one soft-deleted, 2 transacciones, 3 productos, 8 movim_inventario including one soft-deleted MERMA, 1 venta with 3 venta_items. The exported file parsed as valid JSON and contained all six tables with those exact counts, tombstones preserved with their deleted_at values, and the multi-line sale intact as one sale row and three item rows. 130 tests green, but the suite proves NOTHING here: Karma stubs the platform to web and never executes Filesystem, the share sheet or a native SQLite read.
