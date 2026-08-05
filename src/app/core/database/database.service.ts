@@ -11,6 +11,7 @@ import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
+import { SCHEMA_VERSION } from './schema-version';
 
 type RowWithDeletedAt = {
   deleted_at?: number | null;
@@ -45,7 +46,6 @@ export class DatabaseService {
   private initializationPromise: Promise<boolean> | null = null;
 
   private readonly DB_NAME = 'fiapp_db';
-  private readonly SCHEMA_VERSION = 7;
   private mockWebClientes: Cliente[] = [];
   private mockWebTransacciones: Transaccion[] = [];
   private mockWebProductos: Producto[] = [];
@@ -105,8 +105,8 @@ export class DatabaseService {
     await this.migrarEsquemaSiNecesario();
 
     const versionActual = await this.obtenerVersionEsquema();
-    if (versionActual < this.SCHEMA_VERSION) {
-      await this.establecerVersionEsquema(this.SCHEMA_VERSION);
+    if (versionActual < SCHEMA_VERSION) {
+      await this.establecerVersionEsquema(SCHEMA_VERSION);
     }
   }
 
