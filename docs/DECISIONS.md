@@ -532,3 +532,27 @@ primitive and must follow the same rule.
 **Out of scope:** importing and restoring the file is Feature 015. Until it ships, a merchant holds a complete backup with no in-app way to load it back.
 
 **Evidence, on Android Pixel_8 over a clean install:** 4 clientes including one soft-deleted, 2 transacciones, 3 productos, 8 movim_inventario including one soft-deleted MERMA, 1 venta with 3 venta_items. The exported file parsed as valid JSON and contained all six tables with those exact counts, tombstones preserved with their deleted_at values, and the multi-line sale intact as one sale row and three item rows. 130 tests green, but the suite proves NOTHING here: Karma stubs the platform to web and never executes Filesystem, the share sheet or a native SQLite read.
+
+---
+
+## Decision 036 - Money and quantity are different problems; extract the pattern before replicating it
+
+**Context:** the merchant could not tell whether they had typed 2000 or 20000, and every numeric field started at 0 so the first keystroke was always a delete. On a POS used dozens of times a day this is friction on the critical path.
+
+**Decision - extract, prove, then replicate.** The correct pattern already existed in nueva-transaccion: a text input with inputmode numeric, a string field starting empty, and handlers that reformat while preserving the caret. The caret loop was duplicated verbatim inside onMontoInput and handlePaste. It was extracted into two pure functions in shared/utils, nueva-transaccion was migrated to them FIRST with the suite green as the safety net, and only then was the pattern applied to the four money fields. Replicating first would have spread a pattern nobody had verified.
+
+**Decision - two functions, not one.** onMontoInput derives the digit count from raw text plus caret position; handlePaste already knows the count and has no caret to derive it from. calcularPosicionCursor serves the first, posicionTrasNDigitos the second, and the first calls the second. A single signature would have fit only one caller.
+
+**Decision - a pure function, not a directive.** A directive would have removed more boilerplate but manipulates the DOM, which Karma barely covers. The delicate part is mapping digits-before-caret onto a position inside a formatted string, and that is pure logic a test can pin down. Pages keep thin handlers.
+
+**Decision - MONEY gets formatting, QUANTITY does not.** precio, abono, costo_unitario and precio_venta became strings formatted through formatCurrencyCOP. cantidad, conteo_fisico and minimo_stock did NOT: cantidad may be decimal for products sold by weight under Decision 014, and formatCurrencyCOP truncates decimals. Formatting a quantity as currency would have silently destroyed a weight-based sale.
+
+**Decision - decimals were REJECTED for money.** Allowing a decimal point was considered and rejected: in Colombia the dot IS the thousands separator, and parseCurrencyInput strips every non-digit, so typing 1500.50 would have been stored as 150050 - a hundredfold error, not a rounding one. The same character cannot mean two things. inputmode moved from decimal to numeric so the keyboard no longer offers a separator the system would misread. Decimal money would require rewriting the formatters and amending the constitution, which mandates COP without decimals.
+
+**Decision - quantities start empty via number-or-null.** Approved as a mid-feature scope amendment and recorded in the spec rather than slipped in. A type number input bound to null renders EMPTY while keeping decimals and the numeric keypad. cantidad in ventas stays at 1: a sensible default is not friction.
+
+**Claim retracted:** this feature was specced with a paste bug in scope. That bug did not exist. handlePaste already applied setSelectionRange; the claim came from reading a truncated range of the file and concluding before verifying. RF-03 was retired in place rather than deleted, so the error stays visible.
+
+**Test adaptation, not test deletion:** changing four fields from number to string and three from number to number-or-null broke 27 spec lines that assigned or asserted the old type. Every one was adapted to the new contract with values that survive the round trip. No assertion was removed or weakened, verified with git diff piped through grep for removed it blocks.
+
+**Evidence:** verified BY HAND on the Android Pixel_8. All seven fields open empty. Typing five digits into a money field shows the separator live with the caret holding position. Selecting a product autofills the price already formatted. Quantity fields show no separator. A weight-based sale with a decimal quantity still works. Logcat clean. 138 tests green, but the suite proves NOTHING about any of this: Karma never renders an ion-input, never fires a real input event and never moves a caret.
