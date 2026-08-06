@@ -31,7 +31,7 @@ export class InventoryListPage {
   nombre = '';
   precio_venta = '';
   tipo_venta: 'UNIDAD' | 'PESO' = 'UNIDAD';
-  minimo_stock = 0;
+  minimo_stock: number | null = null;
   @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
@@ -147,7 +147,7 @@ export class InventoryListPage {
     this.nombre = '';
     this.precio_venta = '';
     this.tipo_venta = 'UNIDAD';
-    this.minimo_stock = 0;
+    this.minimo_stock = null;
   }
 
   private esTipoVentaValido(tipoVenta: string): tipoVenta is 'UNIDAD' | 'PESO' {

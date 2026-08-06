@@ -34,7 +34,7 @@ RF-05. Money fields MUST use type text with inputmode numeric. type number canno
 
 RF-06. Formatting MUST go through formatCurrencyCOP so COP is shown without decimals, per the constitution.
 
-RF-07. Quantity fields MUST be left untouched.
+RF-07. AMENDED mid-feature, approved explicitly. Quantity fields are still excluded from FORMATTING: no thousands separator, because cantidad may be decimal for weight-based sales under Decision 014. But they DO receive the empty-start treatment, because the merchant has to delete a 0 there too and that friction is independent of formatting. minimo_stock, and cantidad and conteo_fisico in inventory movements, become number or null and start as null. A type number input bound to null renders EMPTY while keeping decimals and the numeric keypad. cantidad in ventas stays at 1: that is a sensible default, not friction.
 
 RF-08. No schema change, no migration, no SQL. Read and display only.
 
@@ -55,3 +55,5 @@ AC-06. A sale by weight with a decimal quantity still works. Quantity fields sho
 ## Device verification, the only evidence
 
 Karma never renders an ion-input, never fires a real input event and never manipulates a caret. It can only prove the pure function. On the Android Pixel_8, for each of the four money fields: open the screen and confirm the field is empty, type a five digit amount and watch the separator appear while the caret stays put, delete digits from the middle, paste a value. Then register a sale by weight to confirm quantities were not broken.
+
+AC-07. minimo_stock, and cantidad and conteo_fisico in inventory movements, render EMPTY on open. None of them shows a thousands separator. cantidad in ventas still defaults to 1.

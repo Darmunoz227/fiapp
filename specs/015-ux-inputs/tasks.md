@@ -23,3 +23,5 @@ T009. Gate before merge. grep for as any, @ts-ignore and $any returns nothing. g
 T010. DEVICE. Android Pixel_8. For each of the four money fields: the field opens EMPTY, typing five digits shows the separator live with the caret holding position, deleting from the middle behaves, pasting lands the caret after the pasted digits. Then register a sale BY WEIGHT with a decimal quantity and confirm quantities were not broken.
 
 T011. Write Decision 036 and update PROJECT_CONTEXT sections 3 and 10.
+
+T012. Quantity fields start empty: minimo_stock, and cantidad and conteo_fisico in inventory movements, become number or null initialised to null. No formatting is applied to any of them. cantidad in ventas keeps its default of 1.

@@ -57,9 +57,9 @@ export class InventoryMovementPage {
   stockDerivado = 0;
 
   tipo: 'COMPRA' | 'VENTA' | 'MERMA' | 'AJUSTE' = 'COMPRA';
-  cantidad = 0;
+  cantidad: number | null = null;
   costo_unitario = '';
-  conteo_fisico = 0;
+  conteo_fisico: number | null = null;
   @ViewChild("costoInput") costoInput?: IonInput;
   motivo = '';
 
@@ -234,9 +234,9 @@ export class InventoryMovementPage {
 
   limpiarFormulario() {
     this.tipo = 'COMPRA';
-    this.cantidad = 0;
+    this.cantidad = null;
     this.costo_unitario = '';
-    this.conteo_fisico = 0;
+    this.conteo_fisico = null;
     this.motivo = '';
   }
 

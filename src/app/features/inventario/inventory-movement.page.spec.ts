@@ -148,7 +148,7 @@ describe('InventoryMovementPage', () => {
     }));
     expect(component.stockDerivado).toBe(10);
     expect(component.tipo).toBe('COMPRA');
-    expect(component.cantidad).toBe(0);
+    expect(component.cantidad).toBeNull();
     expect(component.costo_unitario).toBe('');
     expect(component.motivo).toBe('');
   });
@@ -187,7 +187,7 @@ describe('InventoryMovementPage', () => {
       motivo: 'Venta mostrador',
     }));
     expect(component.stockDerivado).toBe(7);
-    expect(component.cantidad).toBe(0);
+    expect(component.cantidad).toBeNull();
     expect(component.motivo).toBe('');
   });
 
@@ -212,7 +212,7 @@ describe('InventoryMovementPage', () => {
       motivo: 'Rotura',
     }));
     expect(component.stockDerivado).toBe(8);
-    expect(component.cantidad).toBe(0);
+    expect(component.cantidad).toBeNull();
     expect(component.motivo).toBe('');
   });
 
@@ -239,7 +239,7 @@ describe('InventoryMovementPage', () => {
       diferencia_calculada: -2,
       motivo: 'Conteo físico',
     }));
-    expect(component.conteo_fisico).toBe(0);
+    expect(component.conteo_fisico).toBeNull();
     expect(component.motivo).toBe('');
     expect(component.tipo).toBe('COMPRA');
   });
