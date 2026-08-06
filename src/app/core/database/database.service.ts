@@ -621,6 +621,7 @@ export class DatabaseService {
 
   private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
     if (Capacitor.getPlatform() === 'web') {
+      const snapClientes = [...this.mockWebClientes];
       const snapVentas = [...this.mockWebVentas];
       const snapVentaItems = [...this.mockWebVentaItems];
       const snapMovim = [...this.mockWebMovimInventario];
@@ -630,6 +631,7 @@ export class DatabaseService {
       try {
         return await operacion();
       } catch (error) {
+        this.mockWebClientes = snapClientes;
         this.mockWebVentas = snapVentas;
         this.mockWebVentaItems = snapVentaItems;
         this.mockWebMovimInventario = snapMovim;
