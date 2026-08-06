@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from "@angular/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -11,6 +11,8 @@ import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
+import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
+import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
 
 @Component({
@@ -27,9 +29,10 @@ export class InventoryListPage {
   productos: Producto[] = [];
   resumenPorProducto = new Map<string, ResumenInventario>();
   nombre = '';
-  precio_venta = 0;
+  precio_venta = '';
   tipo_venta: 'UNIDAD' | 'PESO' = 'UNIDAD';
   minimo_stock = 0;
+  @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
     private dbService: DatabaseService,
@@ -62,7 +65,7 @@ export class InventoryListPage {
     }
 
     const nombre = this.nombre.trim();
-    const precioVenta = Number(this.precio_venta);
+    const precioVenta = parseCurrencyInput(this.precio_venta);
     const minimoStock = Number(this.minimo_stock);
 
     if (!nombre) {
@@ -105,9 +108,44 @@ export class InventoryListPage {
     void this.mostrarToastProductoCreado();
   }
 
+  private async formatearPrecioVenta(): Promise<string> {
+    let nativeInput: HTMLInputElement | null = null;
+    try {
+      if (this.precioVentaInput && this.precioVentaInput.getInputElement) {
+        nativeInput = await this.precioVentaInput.getInputElement();
+      }
+    } catch (e) {
+      nativeInput = null;
+    }
+
+    const valor = this.precio_venta;
+    const caretPos = nativeInput ? nativeInput.selectionStart || 0 : valor.length;
+    const numeric = parseCurrencyInput(valor);
+    const texto = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+    const pos = calcularPosicionCursor(valor, caretPos, texto);
+
+    if (nativeInput) {
+      const el = nativeInput;
+      setTimeout(() => {
+        try { el.setSelectionRange(pos, pos); } catch (e) {}
+      }, 0);
+    }
+
+    return texto;
+  }
+
+  async onPrecioVentaInput() {
+    this.precio_venta = await this.formatearPrecioVenta();
+  }
+
+  async onPrecioVentaBlur() {
+    const numeric = parseCurrencyInput(this.precio_venta);
+    this.precio_venta = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+  }
+
   limpiarFormulario() {
     this.nombre = '';
-    this.precio_venta = 0;
+    this.precio_venta = '';
     this.tipo_venta = 'UNIDAD';
     this.minimo_stock = 0;
   }
