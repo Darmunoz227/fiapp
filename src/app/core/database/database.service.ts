@@ -9,6 +9,8 @@ import { Transaccion } from '../models/transaccion.model';
 import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
+import { RespaldoData } from '../models/respaldo.model';
+import { ConteoImportacion } from '../models/conteo-importacion.model';
 import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 import { SCHEMA_VERSION } from './schema-version';
@@ -617,6 +619,74 @@ export class DatabaseService {
       movimiento.created_by ?? null,
     ];
     await this.ejecutarRun(sql, values, true);
+  }
+
+  async reemplazarTodo(data: RespaldoData): Promise<ConteoImportacion> {
+    const conteo: ConteoImportacion = {
+      clientes: data.clientes.length,
+      transacciones: data.transacciones.length,
+      productos: data.productos.length,
+      movim_inventario: data.movim_inventario.length,
+      ventas: data.ventas.length,
+      venta_items: data.venta_items.length,
+    };
+
+    return this.ejecutarEnTransaccion(async () => {
+      if (Capacitor.getPlatform() === "web") {
+        this.mockWebVentaItems = [...data.venta_items];
+        this.mockWebMovimInventario = [...data.movim_inventario];
+        this.mockWebTransacciones = [...data.transacciones];
+        this.mockWebVentas = [...data.ventas];
+        this.mockWebProductos = [...data.productos];
+        this.mockWebClientes = [...data.clientes];
+        return conteo;
+      }
+
+      await this.ejecutarRun("DELETE FROM venta_items", [], true);
+      await this.ejecutarRun("DELETE FROM movim_inventario", [], true);
+      await this.ejecutarRun("DELETE FROM transacciones", [], true);
+      await this.ejecutarRun("DELETE FROM ventas", [], true);
+      await this.ejecutarRun("DELETE FROM productos", [], true);
+      await this.ejecutarRun("DELETE FROM clientes", [], true);
+
+      for (const c of data.clientes) {
+        await this.ejecutarRun(
+          "INSERT INTO clientes (id, nombre, telefono, habeas_data_flag, fecha_creacion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [c.id, c.nombre, c.telefono, c.habeas_data_flag, c.fecha_creacion, c.created_at ?? null, c.updated_at ?? null, c.deleted_at ?? null, c.store_id ?? null, c.created_by ?? null],
+          true
+        );
+      }
+
+      for (const p of data.productos) {
+        await this.ejecutarRun(
+          "INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [p.id, p.nombre, p.precio_venta, p.tipo_venta, p.minimo_stock, p.costo_promedio, p.created_at ?? null, p.updated_at ?? null, p.deleted_at ?? null, p.store_id ?? null, p.created_by ?? null],
+          true
+        );
+      }
+
+      for (const v of data.ventas) {
+        await this.insertVenta(v);
+      }
+
+      for (const t of data.transacciones) {
+        await this.crearTransaccion(t, true);
+      }
+
+      for (const m of data.movim_inventario) {
+        await this.ejecutarRun(
+          "INSERT INTO movim_inventario (id, producto_id, tipo, cantidad, costo_unitario, motivo, fecha, actor_id, stock_calculado_anterior, cantidad_fisica, diferencia_calculada, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [m.id, m.producto_id, m.tipo, m.cantidad, m.costo_unitario, m.motivo ?? null, m.fecha, m.actor_id ?? null, m.stock_calculado_anterior ?? null, m.cantidad_fisica ?? null, m.diferencia_calculada ?? null, m.created_at ?? null, m.updated_at ?? null, m.deleted_at ?? null, m.store_id ?? null, m.created_by ?? null],
+          true
+        );
+      }
+
+      for (const i of data.venta_items) {
+        await this.insertVentaItem(i);
+      }
+
+      return conteo;
+    });
   }
 
   private async ejecutarEnTransaccion<T>(operacion: () => Promise<T>): Promise<T> {
