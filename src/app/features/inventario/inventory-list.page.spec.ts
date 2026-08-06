@@ -48,7 +48,7 @@ describe('InventoryListPage', () => {
 
   it('creates a valid product and sends the expected persisted fields', async () => {
     component.nombre = 'Carne molida';
-    component.precio_venta = 12500;
+    component.precio_venta = '12.500';
     component.tipo_venta = 'UNIDAD';
     component.minimo_stock = 3;
 
@@ -68,7 +68,7 @@ describe('InventoryListPage', () => {
     freemiumServiceMock.puedeEscribir.and.resolveTo(false);
 
     component.nombre = 'Carne molida';
-    component.precio_venta = 12500;
+    component.precio_venta = '12.500';
     component.tipo_venta = 'UNIDAD';
     component.minimo_stock = 3;
 
@@ -80,7 +80,7 @@ describe('InventoryListPage', () => {
 
   it('does not create a product when the name is empty', async () => {
     component.nombre = '   ';
-    component.precio_venta = 12500;
+    component.precio_venta = '12.500';
     component.tipo_venta = 'UNIDAD';
     component.minimo_stock = 3;
 
@@ -91,7 +91,7 @@ describe('InventoryListPage', () => {
 
   it('does not create a product when the sale price is invalid', async () => {
     component.nombre = 'Carne molida';
-    component.precio_venta = 0;
+    component.precio_venta = '';
     component.tipo_venta = 'UNIDAD';
     component.minimo_stock = 3;
 
@@ -102,7 +102,7 @@ describe('InventoryListPage', () => {
 
   it('does not create a product when the minimum stock is negative', async () => {
     component.nombre = 'Carne molida';
-    component.precio_venta = 12500;
+    component.precio_venta = '12.500';
     component.tipo_venta = 'UNIDAD';
     component.minimo_stock = -1;
 
