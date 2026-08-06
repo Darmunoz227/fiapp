@@ -2,7 +2,7 @@
 
 Test-first. RED before GREEN. Confirm TOTAL: N SUCCESS on screen before every commit. wc -l before every git add.
 
-T001. Verify a file picker is available. Check whether @capawesome/capacitor-file-picker or an equivalent is installed; if not, install it and run npx cap sync android. No code before this resolves.
+T001. RESOLVED without a new dependency. No file picker plugin is installed and none will be added for now. The file is read with a plain HTML input type=file inside the Ionic page, which works in the Android WebView. Chosen deliberately days before the pilot to avoid a new third-party plugin; if it looks out of place on device, swapping to a native picker later touches a single file.
 
 T002. RED. Validator spec: rejects a mismatched schema_version, rejects a missing data key, rejects a missing table key, rejects a non-array table, accepts a well-formed payload. Each refusal returns a NAMED reason, not a boolean.
 
