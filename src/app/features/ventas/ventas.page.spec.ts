@@ -124,7 +124,7 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 3;
 
     await component.agregarLinea();
@@ -146,11 +146,11 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 
-    component.precio = 1800;
+    component.precio = '1.800';
     component.cantidad = 1;
     await component.agregarLinea();
 
@@ -170,11 +170,11 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 8;
     await component.agregarLinea();
 
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 3;
     await component.agregarLinea();
 
@@ -189,11 +189,11 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 
-    component.precio = 1800;
+    component.precio = '1.800';
     component.cantidad = 1;
     await component.agregarLinea();
 
@@ -209,7 +209,7 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 
@@ -231,7 +231,7 @@ describe('VentasPage', () => {
 
     freemiumServiceMock.puedeEscribir.and.resolveTo(false);
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 
@@ -245,7 +245,7 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 0;
 
     await component.agregarLinea();
@@ -274,16 +274,16 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 
-    component.precio = 1800;
+    component.precio = '1.800';
     component.cantidad = 1;
     await component.agregarLinea();
 
     component.tipo_pago = 'MIXTO';
-    component.abono = 2000;
+    component.abono = '2.000';
     component.clienteId = 'c1';
 
     await component.registrarVenta();
@@ -333,7 +333,7 @@ describe('VentasPage', () => {
     await component.cargarProductos();
 
     component.productoId = 'p1';
-    component.precio = 1500;
+    component.precio = '1.500';
     component.cantidad = 2;
     await component.agregarLinea();
 

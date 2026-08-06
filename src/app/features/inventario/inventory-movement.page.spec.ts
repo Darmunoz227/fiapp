@@ -133,7 +133,7 @@ describe('InventoryMovementPage', () => {
   it('registers a COMPRA, refreshes derived stock, and clears the form', async () => {
     component.tipo = 'COMPRA';
     component.cantidad = 10;
-    component.costo_unitario = 1200;
+    component.costo_unitario = '1.200';
     component.motivo = 'Entrada inicial';
 
     await component.registrarMovimiento();
@@ -148,8 +148,8 @@ describe('InventoryMovementPage', () => {
     }));
     expect(component.stockDerivado).toBe(10);
     expect(component.tipo).toBe('COMPRA');
-    expect(component.cantidad).toBe(0);
-    expect(component.costo_unitario).toBe(0);
+    expect(component.cantidad).toBeNull();
+    expect(component.costo_unitario).toBe('');
     expect(component.motivo).toBe('');
   });
 
@@ -157,7 +157,7 @@ describe('InventoryMovementPage', () => {
     freemiumServiceMock.puedeEscribir.and.resolveTo(false);
     component.tipo = 'COMPRA';
     component.cantidad = 10;
-    component.costo_unitario = 1200;
+    component.costo_unitario = '1.200';
     component.motivo = 'Entrada inicial';
 
     await component.registrarMovimiento();
@@ -173,7 +173,7 @@ describe('InventoryMovementPage', () => {
 
     component.tipo = 'VENTA';
     component.cantidad = 3;
-    component.costo_unitario = 999;
+    component.costo_unitario = '999';
     component.motivo = 'Venta mostrador';
 
     await component.registrarMovimiento();
@@ -187,7 +187,7 @@ describe('InventoryMovementPage', () => {
       motivo: 'Venta mostrador',
     }));
     expect(component.stockDerivado).toBe(7);
-    expect(component.cantidad).toBe(0);
+    expect(component.cantidad).toBeNull();
     expect(component.motivo).toBe('');
   });
 
@@ -198,7 +198,7 @@ describe('InventoryMovementPage', () => {
 
     component.tipo = 'MERMA';
     component.cantidad = 2;
-    component.costo_unitario = 123;
+    component.costo_unitario = '123';
     component.motivo = 'Rotura';
 
     await component.registrarMovimiento();
@@ -212,7 +212,7 @@ describe('InventoryMovementPage', () => {
       motivo: 'Rotura',
     }));
     expect(component.stockDerivado).toBe(8);
-    expect(component.cantidad).toBe(0);
+    expect(component.cantidad).toBeNull();
     expect(component.motivo).toBe('');
   });
 
@@ -239,7 +239,7 @@ describe('InventoryMovementPage', () => {
       diferencia_calculada: -2,
       motivo: 'Conteo físico',
     }));
-    expect(component.conteo_fisico).toBe(0);
+    expect(component.conteo_fisico).toBeNull();
     expect(component.motivo).toBe('');
     expect(component.tipo).toBe('COMPRA');
   });
@@ -249,7 +249,7 @@ describe('InventoryMovementPage', () => {
 
     component.tipo = 'VENTA';
     component.cantidad = 99;
-    component.costo_unitario = 0;
+    component.costo_unitario = '';
     component.motivo = 'Venta sin stock';
 
     await component.registrarMovimiento();

@@ -27,7 +27,7 @@
 
       <ion-item>
         <ion-label position="stacked">Precio de venta</ion-label>
-        <ion-input type="number" inputmode="decimal" [(ngModel)]="precio"></ion-input>
+        <ion-input #precioInput type="text" inputmode="numeric" placeholder="Ej. 15.000" [(ngModel)]="precio" (ionInput)="onPrecioInput()" (ionBlur)="onPrecioBlur()"></ion-input>
       </ion-item>
 
       <ion-item>
@@ -46,7 +46,7 @@
 
       <ion-item *ngIf="tipo_pago === 'MIXTO'">
         <ion-label position="stacked">Abono recibido</ion-label>
-        <ion-input type="number" inputmode="decimal" [(ngModel)]="abono"></ion-input>
+        <ion-input #abonoInput type="text" inputmode="numeric" placeholder="Ej. 5.000" [(ngModel)]="abono" (ionInput)="onAbonoInput()" (ionBlur)="onAbonoBlur()"></ion-input>
       </ion-item>
 
       <p class="stock-summary" *ngIf="tipo_pago === 'MIXTO' && totalVenta > 0">

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   IonBackButton,
@@ -28,6 +28,8 @@ import { VentaItem } from '../../core/models/venta-item.model';
 import { TipoPago, Venta } from '../../core/models/venta.model';
 import { calcularStockDerivado } from '../inventario/inventory-calculations';
 import { calcularTotalVenta, derivarTipoPago, generarConceptoFiado } from './ventas-calculations';
+import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
+import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 
 interface LineaCarritoVenta {
   id: string;
@@ -74,10 +76,12 @@ export class VentasPage {
   productoId = '';
   clienteId = '';
   cantidad = 1;
-  precio = 0;
+  precio = '';
   tipo_pago: TipoPago = 'CONTADO';
-  abono = 0;
+  abono = '';
   stockDerivado = 0;
+  @ViewChild("precioInput") precioInput?: IonInput;
+  @ViewChild("abonoInput") abonoInput?: IonInput;
 
   constructor(
     private dbService: DatabaseService,
@@ -92,7 +96,7 @@ export class VentasPage {
   get gananciaEstimada(): number | null {
     const producto = this.productos.find((item) => item.id === this.productoId) ?? null;
     const cantidad = Number(this.cantidad);
-    const precio = Number(this.precio);
+    const precio = parseCurrencyInput(this.precio);
 
     if (producto == null || Number.isNaN(cantidad) || Number.isNaN(precio) || cantidad <= 0 || precio <= 0) {
       return null;
@@ -124,7 +128,7 @@ export class VentasPage {
     if (this.tipo_pago === 'FIADO') {
       return 0;
     }
-    return Number(this.abono) || 0;
+    return parseCurrencyInput(this.abono);
   }
 
   get montoFiadoCalculado(): number {
@@ -144,20 +148,20 @@ export class VentasPage {
     this.productoId = productoId;
 
     if (!productoId) {
-      this.precio = 0;
+      this.precio = '';
       this.stockDerivado = 0;
       return;
     }
 
     const producto = this.productos.find((item) => item.id === productoId) ?? null;
-    this.precio = producto?.precio_venta ?? 0;
+    this.precio = producto ? formatCurrencyCOP(producto.precio_venta) : '';
 
     this.stockDerivado = await this.obtenerStockProducto(productoId);
   }
 
   async agregarLinea() {
     const cantidad = Number(this.cantidad);
-    const precio = Number(this.precio);
+    const precio = parseCurrencyInput(this.precio);
 
     if (!this.productoId) {
       await this.mostrarToast('Debes seleccionar un producto', 'danger');
@@ -339,10 +343,55 @@ export class VentasPage {
     this.carrito = [];
     this.stockPorProducto.clear();
     this.cantidad = 1;
-    this.precio = 0;
+    this.precio = '';
     this.tipo_pago = 'CONTADO';
-    this.abono = 0;
+    this.abono = '';
     this.stockDerivado = 0;
+  }
+
+  private async formatearCampo(input: IonInput | undefined, valor: string): Promise<{ texto: string; pos: number } | null> {
+    let nativeInput: HTMLInputElement | null = null;
+    try {
+      if (input && input.getInputElement) {
+        nativeInput = await input.getInputElement();
+      }
+    } catch (e) {
+      nativeInput = null;
+    }
+
+    const caretPos = nativeInput ? nativeInput.selectionStart || 0 : valor.length;
+    const numeric = parseCurrencyInput(valor);
+    const texto = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+    const pos = calcularPosicionCursor(valor, caretPos, texto);
+
+    if (nativeInput) {
+      const el = nativeInput;
+      setTimeout(() => {
+        try { el.setSelectionRange(pos, pos); } catch (e) {}
+      }, 0);
+    }
+
+    return { texto, pos };
+  }
+
+  async onPrecioInput() {
+    const r = await this.formatearCampo(this.precioInput, this.precio);
+    if (r) { this.precio = r.texto; }
+  }
+
+  async onPrecioBlur() {
+    const numeric = parseCurrencyInput(this.precio);
+    this.precio = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+  }
+
+  async onAbonoInput() {
+    const r = await this.formatearCampo(this.abonoInput, this.abono);
+    if (r) { this.abono = r.texto; }
+  }
+
+  async onAbonoBlur() {
+    const numeric = parseCurrencyInput(this.abono);
+    this.abono = numeric > 0 ? formatCurrencyCOP(numeric) : "";
   }
 
   subtotalLinea(linea: LineaCarritoVenta): number {

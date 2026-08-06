@@ -19,7 +19,7 @@
 
       <ion-item>
         <ion-label position="stacked">Precio de venta</ion-label>
-        <ion-input type="number" inputmode="numeric" [(ngModel)]="precio_venta"></ion-input>
+        <ion-input #precioVentaInput type="text" inputmode="numeric" placeholder="Ej. 12.000" [(ngModel)]="precio_venta" (ionInput)="onPrecioVentaInput()" (ionBlur)="onPrecioVentaBlur()"></ion-input>
       </ion-item>
 
       <ion-item>
