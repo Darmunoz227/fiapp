@@ -131,32 +131,40 @@ export class ConfiguracionesPage {
   }
 
   // --- RF-07: EXPORTACION DE RESPALDO JSON COMPLETO (Feature 014) ---
+  // Escribe el archivo y devuelve su URI. NO comparte, NO muestra toast.
+  // Reutilizado por la exportacion manual y por el respaldo de seguridad previo
+  // a una importacion (Feature 016). Si falla, lanza: los fallos silenciosos
+  // estan prohibidos por la Decision 031.
+  async generarArchivoRespaldo(prefijo = "fiapp-respaldo"): Promise<string> {
+    const data = {
+      clientes: await this.dbService.leerCrudoClientes(),
+      transacciones: await this.dbService.leerCrudoTransacciones(),
+      productos: await this.dbService.leerCrudoProductos(),
+      movim_inventario: await this.dbService.leerCrudoMovimInventario(),
+      ventas: await this.dbService.leerCrudoVentas(),
+      venta_items: await this.dbService.leerCrudoVentaItems(),
+    };
+
+    const respaldo = construirRespaldo(data, new Date().toISOString());
+    const contenido = JSON.stringify(respaldo, null, 2);
+    const fecha = new Date().toISOString().slice(0, 10);
+    const nombre = prefijo + "-" + fecha + ".json";
+
+    const escrito = await Filesystem.writeFile({
+      path: nombre,
+      data: contenido,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+
+    return escrito.uri;
+  }
+
   async exportarRespaldoJSON() {
     let uriArchivo: string;
 
     try {
-      const data = {
-        clientes: await this.dbService.leerCrudoClientes(),
-        transacciones: await this.dbService.leerCrudoTransacciones(),
-        productos: await this.dbService.leerCrudoProductos(),
-        movim_inventario: await this.dbService.leerCrudoMovimInventario(),
-        ventas: await this.dbService.leerCrudoVentas(),
-        venta_items: await this.dbService.leerCrudoVentaItems(),
-      };
-
-      const respaldo = construirRespaldo(data, new Date().toISOString());
-      const contenido = JSON.stringify(respaldo, null, 2);
-      const fecha = new Date().toISOString().slice(0, 10);
-      const nombre = "fiapp-respaldo-" + fecha + ".json";
-
-      const escrito = await Filesystem.writeFile({
-        path: nombre,
-        data: contenido,
-        directory: Directory.Cache,
-        encoding: Encoding.UTF8,
-      });
-
-      uriArchivo = escrito.uri;
+      uriArchivo = await this.generarArchivoRespaldo();
     } catch (error) {
       console.error("Error al generar el respaldo:", error);
       await this.mostrarToastRespaldoFallido();
