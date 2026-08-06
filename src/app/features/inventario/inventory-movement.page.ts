@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import {
@@ -24,6 +24,8 @@ import { FreemiumService } from '../../core/freemium/freemium.service';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { calcularStockDerivado } from './inventory-calculations';
+import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
+import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 
 @Component({
   selector: 'app-inventory-movement',
@@ -56,8 +58,9 @@ export class InventoryMovementPage {
 
   tipo: 'COMPRA' | 'VENTA' | 'MERMA' | 'AJUSTE' = 'COMPRA';
   cantidad = 0;
-  costo_unitario = 0;
+  costo_unitario = '';
   conteo_fisico = 0;
+  @ViewChild("costoInput") costoInput?: IonInput;
   motivo = '';
 
   constructor(
@@ -152,7 +155,7 @@ export class InventoryMovementPage {
     }
 
     const cantidad = Number(this.cantidad);
-    const costoUnitario = Number(this.costo_unitario);
+    const costoUnitario = parseCurrencyInput(this.costo_unitario);
 
     if (Number.isNaN(cantidad) || cantidad <= 0) {
       await this.mostrarToast('La cantidad debe ser mayor a 0', 'danger');
@@ -194,10 +197,45 @@ export class InventoryMovementPage {
     }
   }
 
+  private async formatearCosto(): Promise<string> {
+    let nativeInput: HTMLInputElement | null = null;
+    try {
+      if (this.costoInput && this.costoInput.getInputElement) {
+        nativeInput = await this.costoInput.getInputElement();
+      }
+    } catch (e) {
+      nativeInput = null;
+    }
+
+    const valor = this.costo_unitario;
+    const caretPos = nativeInput ? nativeInput.selectionStart || 0 : valor.length;
+    const numeric = parseCurrencyInput(valor);
+    const texto = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+    const pos = calcularPosicionCursor(valor, caretPos, texto);
+
+    if (nativeInput) {
+      const el = nativeInput;
+      setTimeout(() => {
+        try { el.setSelectionRange(pos, pos); } catch (e) {}
+      }, 0);
+    }
+
+    return texto;
+  }
+
+  async onCostoInput() {
+    this.costo_unitario = await this.formatearCosto();
+  }
+
+  async onCostoBlur() {
+    const numeric = parseCurrencyInput(this.costo_unitario);
+    this.costo_unitario = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+  }
+
   limpiarFormulario() {
     this.tipo = 'COMPRA';
     this.cantidad = 0;
-    this.costo_unitario = 0;
+    this.costo_unitario = '';
     this.conteo_fisico = 0;
     this.motivo = '';
   }

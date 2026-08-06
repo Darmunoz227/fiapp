@@ -46,7 +46,7 @@
 
         <ion-item>
           <ion-label position="stacked">Costo unitario</ion-label>
-          <ion-input type="number" inputmode="numeric" [(ngModel)]="costo_unitario"></ion-input>
+          <ion-input #costoInput type="text" inputmode="numeric" placeholder="Ej. 3.500" [(ngModel)]="costo_unitario" (ionInput)="onCostoInput()" (ionBlur)="onCostoBlur()"></ion-input>
         </ion-item>
       </ng-template>
 
