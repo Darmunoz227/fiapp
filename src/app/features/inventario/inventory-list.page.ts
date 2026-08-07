@@ -5,13 +5,14 @@ import { RouterLink } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption,
-  ToastController
+  ToastController, ModalController, IonItemSliding, IonItemOptions, IonItemOption
 } from '@ionic/angular/standalone';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
+import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -22,7 +23,8 @@ import { v4 as uuidv4 } from 'uuid';
   standalone: true,
   imports: [
     CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink
+    IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink,
+    IonItemSliding, IonItemOptions, IonItemOption
   ]
 })
 export class InventoryListPage {
@@ -37,7 +39,8 @@ export class InventoryListPage {
   constructor(
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
-    private toastCtrl: ToastController
+    private toastCtrl: ToastController,
+    private modalCtrl: ModalController
   ) {}
 
   ionViewWillEnter() {
@@ -141,6 +144,20 @@ export class InventoryListPage {
   async onPrecioVentaBlur() {
     const numeric = parseCurrencyInput(this.precio_venta);
     this.precio_venta = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+  }
+
+  async abrirEdicion(producto: Producto) {
+    const modal = await this.modalCtrl.create({
+      component: EditarProductoComponent,
+      componentProps: { producto },
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if (data?.guardado) {
+      await this.cargarProductos();
+    }
   }
 
   limpiarFormulario() {

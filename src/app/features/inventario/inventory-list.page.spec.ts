@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { ToastController } from '@ionic/angular/standalone';
+import { ToastController, ModalController } from '@ionic/angular/standalone';
 
 import { InventoryListPage } from './inventory-list.page';
 import { DatabaseService } from '../../core/database/database.service';
@@ -10,6 +10,7 @@ import { Producto } from '../../core/models/producto.model';
 const databaseServiceMock = jasmine.createSpyObj('DatabaseService', ['crearProducto', 'obtenerProductos', 'obtenerResumenInventario']);
 const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
+const modalControllerMock = jasmine.createSpyObj('ModalController', ['create']);
 
 describe('InventoryListPage', () => {
   let component: InventoryListPage;
@@ -38,6 +39,7 @@ describe('InventoryListPage', () => {
         { provide: DatabaseService, useValue: databaseServiceMock },
         { provide: FreemiumService, useValue: freemiumServiceMock },
         { provide: ToastController, useValue: toastControllerMock },
+        { provide: ModalController, useValue: modalControllerMock },
       ],
     }).compileComponents();
 
