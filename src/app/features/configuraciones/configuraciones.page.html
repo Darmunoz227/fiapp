@@ -27,6 +27,7 @@
         Guardar Nombre
       </ion-button>
     </ion-item>
+
   </ion-list>
 
   <ion-toast
@@ -44,11 +45,20 @@
     <ion-item button="true" (click)="exportarRespaldoJSON()" lines="none" class="settings-item">
       <ion-icon slot="start" name="download-outline" color="primary"></ion-icon>
       <ion-label>
-        <h2 class="item-title">Exportar clientes y fiados</h2>
-        <p class="item-text">Archivo .json con clientes y sus deudas. No incluye inventario ni ventas.</p>
+        <h2 class="item-title">Exportar respaldo completo</h2>
+        <p class="item-text">Archivo .json con clientes, deudas, inventario y ventas. Guardalo en un lugar seguro.</p>
       </ion-label>
     </ion-item>
     
+    <ion-item button="true" (click)="seleccionarArchivo()" lines="none" class="settings-item">
+      <ion-icon slot="start" name="cloud-upload-outline" color="primary"></ion-icon>
+      <ion-label>
+        <h2 class="item-title">Importar respaldo</h2>
+        <p class="item-text">Reemplaza TODOS los datos actuales con los del archivo. Se guarda una copia de seguridad antes.</p>
+      </ion-label>
+    </ion-item>
+
+    <input type="file" accept="application/json,.json" #archivoInput style="display: none" (change)="onArchivoSeleccionado($event)" />
   </ion-list>
 
   <div style="text-align: center; margin-top: 40px;">

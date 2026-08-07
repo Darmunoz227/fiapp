@@ -1,9 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonIcon, IonLabel, IonInput, IonButton, IonToast, AlertController, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { downloadOutline, shieldCheckmarkOutline } from 'ionicons/icons';
+import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline } from 'ionicons/icons';
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
@@ -12,6 +12,8 @@ import { App } from '@capacitor/app';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { construirRespaldo } from '../../core/respaldo/respaldo-builder';
+import { validarRespaldo, MotivoRechazo } from '../../core/respaldo/respaldo-validator';
+import { RespaldoData } from '../../core/models/respaldo.model';
 
 @Component({
   selector: 'app-configuraciones',
@@ -34,7 +36,7 @@ export class ConfiguracionesPage {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ downloadOutline, shieldCheckmarkOutline });
+    addIcons({ downloadOutline, shieldCheckmarkOutline, cloudUploadOutline });
   }
 
   ionViewWillEnter() {
@@ -130,33 +132,130 @@ export class ConfiguracionesPage {
     await toast.present();
   }
 
+  @ViewChild("archivoInput") archivoInput?: ElementRef<HTMLInputElement>;
+
+  seleccionarArchivo() {
+    this.archivoInput?.nativeElement.click();
+  }
+
+  private mensajeRechazo(motivo: MotivoRechazo | undefined): string {
+    if (motivo === "VERSION_INCOMPATIBLE") {
+      return "El respaldo fue creado con otra version de FiApp y no se puede importar.";
+    }
+    if (motivo === "TABLA_FALTANTE" || motivo === "TABLA_INVALIDA") {
+      return "El archivo esta incompleto o danado. Usa un respaldo generado por FiApp.";
+    }
+    return "El archivo no es un respaldo valido de FiApp.";
+  }
+
+  async onArchivoSeleccionado(evento: Event) {
+    const input = evento.target as HTMLInputElement;
+    const archivo = input.files?.[0];
+    input.value = "";
+
+    if (!archivo) {
+      return;
+    }
+
+    let contenido: unknown;
+    try {
+      contenido = JSON.parse(await archivo.text());
+    } catch {
+      await this.alertaSimple("Archivo invalido", "El archivo no se pudo leer como JSON.");
+      return;
+    }
+
+    const resultado = validarRespaldo(contenido);
+    if (!resultado.valido || !resultado.data) {
+      await this.alertaSimple("No se puede importar", this.mensajeRechazo(resultado.motivo));
+      return;
+    }
+
+    try {
+      await this.generarArchivoRespaldo("fiapp-antes-de-importar");
+    } catch (error) {
+      console.error("No se pudo crear el respaldo de seguridad:", error);
+      await this.alertaSimple("Importacion cancelada", "No se pudo crear una copia de seguridad de tus datos actuales, asi que no se importo nada.");
+      return;
+    }
+
+    const datos = resultado.data;
+    const alert = await this.alertCtrl.create({
+      header: "Reemplazar todos los datos",
+      message: "Esto BORRA tus datos actuales y los reemplaza por los del archivo. Escribe REEMPLAZAR para continuar.",
+      inputs: [{ name: "palabra", type: "text", placeholder: "REEMPLAZAR" }],
+      buttons: [
+        { text: "Cancelar", role: "cancel" },
+        {
+          text: "Importar",
+          handler: (valores: { palabra?: string }) => {
+            if ((valores.palabra ?? "").trim().toUpperCase() !== "REEMPLAZAR") {
+              void this.alertaSimple("Importacion cancelada", "No escribiste REEMPLAZAR, asi que no se cambio nada.");
+              return false;
+            }
+            void this.ejecutarImportacion(datos);
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private async ejecutarImportacion(datos: RespaldoData) {
+    try {
+      const conteo = await this.dbService.reemplazarTodo(datos);
+      await this.alertaSimple(
+        "Respaldo importado",
+        "Clientes: " + conteo.clientes + ". Fiados y abonos: " + conteo.transacciones + ". Productos: " + conteo.productos + ". Movimientos: " + conteo.movim_inventario + ". Ventas: " + conteo.ventas + ". Lineas de venta: " + conteo.venta_items + "."
+      );
+    } catch (error) {
+      console.error("Fallo la importacion:", error);
+      await this.alertaSimple("La importacion fallo", "Tus datos quedaron como estaban. No se perdio nada.");
+    }
+  }
+
+  private async alertaSimple(header: string, message: string) {
+    const alert = await this.alertCtrl.create({ header, message, buttons: ["Entendido"] });
+    await alert.present();
+  }
+
   // --- RF-07: EXPORTACION DE RESPALDO JSON COMPLETO (Feature 014) ---
+  // Escribe el archivo y devuelve su URI. NO comparte, NO muestra toast.
+  // Reutilizado por la exportacion manual y por el respaldo de seguridad previo
+  // a una importacion (Feature 016). Si falla, lanza: los fallos silenciosos
+  // estan prohibidos por la Decision 031.
+  async generarArchivoRespaldo(prefijo = "fiapp-respaldo"): Promise<string> {
+    const data = {
+      clientes: await this.dbService.leerCrudoClientes(),
+      transacciones: await this.dbService.leerCrudoTransacciones(),
+      productos: await this.dbService.leerCrudoProductos(),
+      movim_inventario: await this.dbService.leerCrudoMovimInventario(),
+      ventas: await this.dbService.leerCrudoVentas(),
+      venta_items: await this.dbService.leerCrudoVentaItems(),
+    };
+
+    const respaldo = construirRespaldo(data, new Date().toISOString());
+    const contenido = JSON.stringify(respaldo, null, 2);
+    const fecha = new Date().toISOString().slice(0, 10);
+    const nombre = prefijo + "-" + fecha + ".json";
+
+    const escrito = await Filesystem.writeFile({
+      path: nombre,
+      data: contenido,
+      directory: Directory.Cache,
+      encoding: Encoding.UTF8,
+    });
+
+    return escrito.uri;
+  }
+
   async exportarRespaldoJSON() {
     let uriArchivo: string;
 
     try {
-      const data = {
-        clientes: await this.dbService.leerCrudoClientes(),
-        transacciones: await this.dbService.leerCrudoTransacciones(),
-        productos: await this.dbService.leerCrudoProductos(),
-        movim_inventario: await this.dbService.leerCrudoMovimInventario(),
-        ventas: await this.dbService.leerCrudoVentas(),
-        venta_items: await this.dbService.leerCrudoVentaItems(),
-      };
-
-      const respaldo = construirRespaldo(data, new Date().toISOString());
-      const contenido = JSON.stringify(respaldo, null, 2);
-      const fecha = new Date().toISOString().slice(0, 10);
-      const nombre = "fiapp-respaldo-" + fecha + ".json";
-
-      const escrito = await Filesystem.writeFile({
-        path: nombre,
-        data: contenido,
-        directory: Directory.Cache,
-        encoding: Encoding.UTF8,
-      });
-
-      uriArchivo = escrito.uri;
+      uriArchivo = await this.generarArchivoRespaldo();
     } catch (error) {
       console.error("Error al generar el respaldo:", error);
       await this.mostrarToastRespaldoFallido();
