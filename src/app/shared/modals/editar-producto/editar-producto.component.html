@@ -1,0 +1,48 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-title class="ion-text-center" style="font-size: 16px;">EDITAR PRODUCTO</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding" color="light">
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 12px;">
+    <ion-label position="stacked">Nombre *</ion-label>
+    <ion-input type="text" placeholder="Ej. Arroz Diana" [(ngModel)]="nombre"></ion-input>
+  </ion-item>
+
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 12px;">
+    <ion-label position="stacked">Precio de venta *</ion-label>
+    <ion-input
+      #precioInput
+      type="text"
+      inputmode="numeric"
+      placeholder="Ej. 12.000"
+      [(ngModel)]="precio_venta"
+      (ionInput)="onPrecioInput()"
+      (ionBlur)="onPrecioBlur()">
+    </ion-input>
+  </ion-item>
+
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 12px;">
+    <ion-label position="stacked">Stock minimo</ion-label>
+    <ion-input type="number" inputmode="numeric" [(ngModel)]="minimo_stock"></ion-input>
+  </ion-item>
+
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 20px;">
+    <ion-label position="stacked">Tipo de venta</ion-label>
+    <ion-note slot="end">{{ producto.tipo_venta }}</ion-note>
+  </ion-item>
+
+  <ion-note color="medium" style="display: block; margin-bottom: 20px; font-size: 12px;">
+    El tipo de venta no se puede cambiar porque afectaria las cantidades ya registradas. Editar el precio no modifica las ventas anteriores.
+  </ion-note>
+
+  <ion-row>
+    <ion-col>
+      <ion-button expand="block" fill="outline" color="medium" (click)="cerrarModal()">Cancelar</ion-button>
+    </ion-col>
+    <ion-col>
+      <ion-button expand="block" color="primary" (click)="guardar()">Guardar</ion-button>
+    </ion-col>
+  </ion-row>
+</ion-content>
