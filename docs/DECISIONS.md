@@ -580,3 +580,21 @@ primitive and must follow the same rule.
 **Known limit:** validation is STRUCTURAL. It checks that the six table keys exist and are arrays, not that every row is well formed. A hand-edited file with malformed rows passes validation and fails at insert time - inside the transaction, so nothing is lost, but the message is technical rather than helpful. Per-row validation was weighed and deferred: the app generates these files itself, so malformed rows imply manual tampering, and the rollback is the correct net for that.
 
 **Evidence, on Android Pixel_8, all verified BY HAND:** a file with schema_version 99 was refused and wrote nothing. A file that is not JSON was refused. Typing anything other than REEMPLAZAR changed nothing. A valid import replaced the database exactly: the six tables went from 4/2/5/11/1/3 to the files 4/2/4/9/1/3, with 3 tombstones preserved and the three-line sale intact. THE ROLLBACK WAS PROVEN, not assumed: a file whose first venta_item pointed at a nonexistent venta_id failed with FOREIGN KEY constraint failed code 787 after inserting 9 rows, and the six table counts were IDENTICAL before and after. With the trial expired, a normal write was blocked and the import still succeeded. 144 tests green, but the suite proves NOTHING here: Karma stubs the platform to web and never opens a file picker, never runs a native transaction, never enforces a foreign key and never rolls anything back.
+
+---
+
+## Decision 038 - A product can be edited, but editing a price must never rewrite history
+
+**Context:** a product name typed wrong was permanent. The only UPDATE productos in the app was the internal one maintaining costo_promedio. A merchant either lived with the typo or deleted and recreated the product, losing the movement history tied to its id.
+
+**Decision - editable fields:** nombre, precio_venta and minimo_stock. Reached by SWIPING a row in the inventory list, the gesture already used for clients on Home, opening a MODAL preloaded with the current values. The creation form sits above the list and reusing it would force a scroll that loses sight of which product is being edited. nuevo-cliente was the modal precedent.
+
+**Decision - tipo_venta is NOT editable.** Switching UNIDAD to PESO would reinterpret quantities already recorded in movim_inventario: a product holding 5 units would start reading as 5 grams, because stock derives from the append-only log per Decision 009 and no row would change. It is shown read-only so the merchant can see it. costo_promedio is not editable either: it derives from the log and editing it by hand violates Principle III.
+
+**Decision - the UPDATE names its columns explicitly.** crearCliente writes 5 of 10 columns and crearProducto 6 of 11, the same defect Decision 032 found and fixed in crearTransaccion. The edit UPDATE touches only nombre, precio_venta, minimo_stock and updated_at, and this is the FIRST code in the project to write updated_at, a column that has existed unused since the table was created.
+
+**HISTORY IS NOT REWRITTEN, and this is the point of the feature.** venta_items freezes precio_venta and costo_unitario by snapshot per Decision 031. Editing a price today does not touch a sale from before. Proven on device: Camista Espana was edited from 56000 to 60000, and its existing sale kept precio_venta 56000 and ganancia 26000 in venta_items while productos showed 60000. If that sale had changed to 60000, the merchants historical profit would be a lie.
+
+**Decision - editing is gated by the freemium.** It is a write, so puedeEscribir guards the save, per Decision 033. Opening the modal is a read and stays free.
+
+**Evidence, on Android Pixel_8, all BY HAND:** two products edited, both showing updated_at with a fresh timestamp and created_at untouched. The renamed product appears correctly in the list and the movement header. costo_promedio and tipo_venta survived unchanged. The pre-existing sale kept its original price and ganancia. With the trial expired, a save of 99000 was blocked and no product carried that price afterwards. Swiping did not break the routerLink to the movement screen. 150 tests green, but the suite proves NOTHING about the native UPDATE, the swipe, the modal or the frozen history: Karma stubs the platform to web.

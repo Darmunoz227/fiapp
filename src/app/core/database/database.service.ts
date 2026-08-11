@@ -621,6 +621,23 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, true);
   }
 
+  async actualizarProducto(id: string, nombre: string, precioVenta: number, minimoStock: number): Promise<void> {
+    const ahora = Date.now();
+
+    if (Capacitor.getPlatform() === "web") {
+      this.mockWebProductos = this.mockWebProductos.map((producto) => (
+        producto.id === id
+          ? { ...producto, nombre, precio_venta: precioVenta, minimo_stock: minimoStock, updated_at: ahora }
+          : producto
+      ));
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = "UPDATE productos SET nombre = ?, precio_venta = ?, minimo_stock = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL";
+    await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, ahora, id], false);
+  }
+
   async reemplazarTodo(data: RespaldoData): Promise<ConteoImportacion> {
     const conteo: ConteoImportacion = {
       clientes: data.clientes.length,
