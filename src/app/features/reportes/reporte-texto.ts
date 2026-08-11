@@ -15,13 +15,13 @@ export function construirTextoReporte(
     : 0;
 
   const lineas = [
-    'Reporte FiApp - ' + rango,
+    '📊 Reporte FiApp - ' + rango,
     negocio,
     '',
-    'Vendido: $' + formatCurrencyCOP(resumen.totalVendido),
-    'Ganancia: $' + formatCurrencyCOP(resumen.gananciaTotal) + ' (margen ' + margen + ' por ciento)',
-    'Venta promedio: $' + formatCurrencyCOP(promedio),
-    'Ventas: ' + resumen.numeroVentas,
+    '💰 Vendido: $' + formatCurrencyCOP(resumen.totalVendido),
+    '📈 Ganancia: $' + formatCurrencyCOP(resumen.gananciaTotal) + ' (margen ' + margen + ' por ciento)',
+    '🎫 Venta promedio: $' + formatCurrencyCOP(promedio),
+    '🛒 Ventas: ' + resumen.numeroVentas,
     '',
     'Como te pagaron las ventas:',
     '  De contado: $' + formatCurrencyCOP(resumen.contadoTotal),
