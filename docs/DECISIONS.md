@@ -620,3 +620,25 @@ primitive and must follow the same rule.
 **Deferred to backlog:** clientes nuevos, dias con mas ventas, and weekly or monthly evolution all need new queries the resumen does not carry; evolution over time is a chart and belongs to the postponed financial dashboard.
 
 **Evidence, on Android Pixel_8, BY HAND:** with real sales, a manual fiado and an abono, the HOY and TODO reports were shared to WhatsApp. Every figure matched the Reportes screen for its range, the two fiado groups appeared under separate headers and were never summed, the five headline emojis rendered correctly, the text arrived whole, and cancelling the share sheet was silent. 155 tests green, but the suite proves NOTHING about the share sheet or WhatsApp delivery: Karma stubs the platform to web.
+
+---
+
+## Decision 040 - Inventory value at cost is derived, never stored
+
+**Context:** the merchant could see product stock and selling price, but could not see how much capital was tied up in each product. The app already stores costo_promedio and derives stock from the immutable movement log, so the missing piece was presentation.
+
+**Decision - value at cost is per product.** The inventory value is calculated as:
+
+valor_a_costo = stock_derivado × costo_promedio
+
+This is shown on each product row in Inventario.
+
+**Decision - derived, never persisted.** valor_a_costo is a second-order derived value: stock is already derived from the movement log per Decision 009, and costo_promedio is stored on Producto. Persisting valor_a_costo would create another cache/projection and violate the same rule that rejected mutable stock and stock caches in Decisions 009 and 010. No table, column, migration, write path or schema version change was introduced.
+
+**Decision - unknown cost is not zero value.** If stock is greater than zero and costo_promedio is zero, the row shows "Sin costo registrado" instead of "$0". This case is legitimate when stock was introduced through AJUSTE or initial physical count without a purchase movement. Showing "$0" would imply the inventory has no value; the truth is that the cost is unknown.
+
+**Decision - stock zero stays zero.** If stock is zero, the displayed value is "$0" regardless of costo_promedio. There is no capital currently tied up in stock for that product.
+
+**Decision - UI-level presentation only.** The implementation reuses the stock already available in the inventory list through resumenPorProducto and stockActual(producto.id). It does not query SQLite again, and it does not touch DatabaseService, freemium logic, migrations or the native write path.
+
+**Evidence:** 158 tests green. Three unit tests cover: stock 10 with costo_promedio 5000 returning $50.000, stock greater than zero with costo_promedio 0 returning "Sin costo registrado", and stock 0 returning $0. Verified BY HAND on Android Pixel_8: a product with stock and cost displayed the calculated value, and a product with stock but zero cost displayed "Sin costo registrado". The manual stock-zero case was not forced on device because the normal UI requires positive movement quantities; it is covered by the automated test. The inventory screen remained readable.
