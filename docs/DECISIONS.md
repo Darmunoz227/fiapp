@@ -598,3 +598,25 @@ primitive and must follow the same rule.
 **Decision - editing is gated by the freemium.** It is a write, so puedeEscribir guards the save, per Decision 033. Opening the modal is a read and stays free.
 
 **Evidence, on Android Pixel_8, all BY HAND:** two products edited, both showing updated_at with a fresh timestamp and created_at untouched. The renamed product appears correctly in the list and the movement header. costo_promedio and tipo_venta survived unchanged. The pre-existing sale kept its original price and ganancia. With the trial expired, a save of 99000 was blocked and no product carried that price afterwards. Swiping did not break the routerLink to the movement screen. 150 tests green, but the suite proves NOTHING about the native UPDATE, the swipe, the modal or the frozen history: Karma stubs the platform to web.
+
+---
+
+## Decision 039 - The app writes the readable report itself; the two fiado concepts stay apart
+
+**Context:** to understand their numbers the merchant exported the raw JSON backup and pasted it into an AI chatbot for a summary. Every figure already existed in reportes-calculations. The app should produce the readable report itself.
+
+**Decision - presentation only.** construirTextoReporte is a PURE function beside reportes-calculations. It computes nothing from the database: it takes the ResumenReporte the Reportes page already holds, plus the business name and a range label, and returns Spanish text. Zero framework imports, per Principle II. Three Group A derivations are added inside it - venta promedio, margen and utilidad - all from figures already present, each guarded against division by zero.
+
+**Decision - the text is built from the SAME resumen the screen shows.** The handler does not recompute. If it did, the shared text and the on-screen figures could disagree. Proven on device: HOY and TODO texts matched the screen for each range.
+
+**Decision - the two fiado concepts are separated by MEANING, not by the word.** Sale-level fiado (monto_fiado) is money owed from a sale and sits under "Como te pagaron las ventas" next to contado. Manual fiado (transaccion with venta_id null, Decision 032) is a hand-written credit with no sale behind it and sits under "Movimientos de fiado aparte" next to abonos. They are NEVER summed. Decision 032 recorded that summing them double counts debt. The manual one is labelled "Fiados a mano": prestamo was rejected because it evokes a money lender, which is not the app focus, and the two headers keep the concepts apart without changing the word.
+
+**Decision - tienda language.** "Venta promedio", not "ticket promedio", which is retail jargon a shopkeeper does not use. Emojis mark only the headline figures for quick scanning; the two fiado blocks are deliberately left without emoji so nothing competes with the header separation. Money through formatCurrencyCOP, no decimals per the constitution.
+
+**Decision - shared as text, not a file.** Unlike the Feature 014 backup, which had to be a file because it was large and truncated, the report is ten short lines. Share.share text is exactly what arrives whole in WhatsApp. A cancelled share sheet stays silent, per Decision 035.
+
+**Decision - not gated.** Reading is free per Decision 033, so no freemium guard. Profit and margin would be hidden from an EMPLOYEE per Principle V, but roles are not implemented; recorded, not gated.
+
+**Deferred to backlog:** clientes nuevos, dias con mas ventas, and weekly or monthly evolution all need new queries the resumen does not carry; evolution over time is a chart and belongs to the postponed financial dashboard.
+
+**Evidence, on Android Pixel_8, BY HAND:** with real sales, a manual fiado and an abono, the HOY and TODO reports were shared to WhatsApp. Every figure matched the Reportes screen for its range, the two fiado groups appeared under separate headers and were never summed, the five headline emojis rendered correctly, the text arrived whole, and cancelling the share sheet was silent. 155 tests green, but the suite proves NOTHING about the share sheet or WhatsApp delivery: Karma stubs the platform to web.

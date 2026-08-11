@@ -10,11 +10,18 @@ import {
   IonList,
   IonSegment,
   IonSegmentButton,
+  IonButton,
+  IonIcon,
   IonTitle,
   IonToolbar,
 } from '@ionic/angular/standalone';
 
 import { DatabaseService } from '../../core/database/database.service';
+import { Share } from '@capacitor/share';
+import { Preferences } from '@capacitor/preferences';
+import { addIcons } from 'ionicons';
+import { shareSocialOutline } from 'ionicons/icons';
+import { construirTextoReporte } from './reporte-texto';
 import { VentaConItems } from '../../core/models/venta-con-items.model';
 import { VentaItem } from '../../core/models/venta-item.model';
 import { Transaccion } from '../../core/models/transaccion.model';
@@ -46,6 +53,8 @@ import {
     IonLabel,
     IonSegment,
     IonSegmentButton,
+    IonButton,
+    IonIcon,
   ],
 })
 export class ReportesPage {
@@ -70,7 +79,9 @@ export class ReportesPage {
   nombrePorProductoId = new Map<string, string>();
   nombrePorClienteId = new Map<string, string>();
 
-  constructor(private dbService: DatabaseService) {}
+  constructor(private dbService: DatabaseService) {
+    addIcons({ shareSocialOutline });
+  }
 
   ionViewWillEnter() {
     void this.cargar();
@@ -109,6 +120,19 @@ export class ReportesPage {
     if (rango === 'HOY' || rango === 'TODO') {
       this.rango = rango;
       this.recomputar();
+    }
+  }
+
+  async compartirReporte() {
+    const { value } = await Preferences.get({ key: "nombreNegocio" });
+    const nombre = value ?? "";
+    const etiqueta = this.rango === "HOY" ? "Hoy" : "Historico";
+    const texto = construirTextoReporte(this.resumen, nombre, etiqueta);
+
+    try {
+      await Share.share({ title: "Reporte FiApp", text: texto, dialogTitle: "Compartir reporte" });
+    } catch {
+      // El usuario cancelo la hoja de compartir. No hay nada que reportar.
     }
   }
 
