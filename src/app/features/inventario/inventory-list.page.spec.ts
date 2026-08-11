@@ -238,4 +238,64 @@ describe('InventoryListPage', () => {
     expect(component.stockActual('p2')).toBe(3);
     expect(component.stockActual('unknown')).toBe(0);
   });
+  it('valorInventarioTexto returns formatted inventory value', () => {
+  component.resumenPorProducto.set('p1', {
+    producto_id: 'p1',
+    stock_derivado: 10,
+    costo_promedio: 5000,
+    stock_bajo: false,
+  });
+
+  const producto: Producto = {
+    id: 'p1',
+    nombre: 'Producto',
+    precio_venta: 1000,
+    tipo_venta: 'UNIDAD',
+    minimo_stock: 1,
+    costo_promedio: 5000,
+  };
+
+  expect(component.valorInventarioTexto(producto)).toContain('50.000');
+});
+
+it('valorInventarioTexto shows missing cost when stock exists and cost is zero', () => {
+  component.resumenPorProducto.set('p1', {
+    producto_id: 'p1',
+    stock_derivado: 10,
+    costo_promedio: 0,
+    stock_bajo: false,
+  });
+
+  const producto: Producto = {
+    id: 'p1',
+    nombre: 'Producto',
+    precio_venta: 1000,
+    tipo_venta: 'UNIDAD',
+    minimo_stock: 1,
+    costo_promedio: 0,
+  };
+
+  expect(component.valorInventarioTexto(producto))
+    .toBe('Sin costo registrado');
+});
+
+it('valorInventarioTexto returns zero when stock is zero', () => {
+  component.resumenPorProducto.set('p1', {
+    producto_id: 'p1',
+    stock_derivado: 0,
+    costo_promedio: 5000,
+    stock_bajo: false,
+  });
+
+  const producto: Producto = {
+    id: 'p1',
+    nombre: 'Producto',
+    precio_venta: 1000,
+    tipo_venta: 'UNIDAD',
+    minimo_stock: 1,
+    costo_promedio: 5000,
+  };
+
+  expect(component.valorInventarioTexto(producto)).toContain('0');
+});
 });

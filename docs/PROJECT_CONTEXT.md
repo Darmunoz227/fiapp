@@ -17,9 +17,9 @@
 
 ---
 
-## 2. Carol's working model
+## 2. Diego's working model
 
-Carol is leading the product and implementation with AI support. The AI is not the decision-maker. Carol reviews, accepts, rejects, or redirects generated work.
+Diego is leading the product and implementation with AI support. The AI is not the decision-maker. Diego reviews, accepts, rejects, or redirects generated work.
 
 Preferred technical style:
 
@@ -34,7 +34,7 @@ Core operating rule:
 
 ```text
 The AI generates ideas and code.
-Carol accepts responsibility for what is merged.
+Diego accepts responsibility for what is merged.
 ```
 
 ---
@@ -46,8 +46,8 @@ As of this handoff:
 - Feature #1 is complete, tested, committed, and pushed.
 - Features #2 through #13 are all COMPLETE, tested, and merged to main.
 - Current schema version: v7 (Feature #2 inventory tables, #4 ventas table, #7 monto_contado + monto_fiado, #11 venta_items with ventas rebuilt to sale-level only, #12 transacciones.venta_id origin marker).
-- 155 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS and Android (Feature #9 and P0). Features #11, #12 and #13 verified BY HAND on device. Working branch: main (everything merged).
-- Next up: Carol chooses. Feature #18 is DONE (Decision 039): the Reportes screen SHARES a readable text report over WhatsApp, built by a pure function from the same resumen the screen shows, so the merchant no longer pastes raw JSON into a chatbot. The two fiado concepts are kept apart under separate headers and never summed, per Decision 032: sale-level fiado under "Como te pagaron las ventas", manual credits under "Movimientos de fiado aparte" labelled "Fiados a mano". Remaining before pilot: inventory value per product AT COST (decision taken, pending the display rule for costo_promedio 0 with stock on hand), and P8 (inventory reset keeping clients and debts). BACKLOG anotado: venta rapida sin producto; reconciliacion de fiados manuales que eran ventas; dashboard financiero con evolucion temporal; and technical debt where crearCliente writes 5 of 10 columns and crearProducto 6 of 11, the same defect Decision 032 fixed in crearTransaccion.
+- 158 tests passing. Build green. Native write path VERIFIED ON DEVICE (Feature #8). Dark mode verified on iOS and Android (Feature #9 and P0). Features #11, #12 and #13 verified BY HAND on device. Working branch: main (everything merged).
+- Next up: Diego chooses. Feature #19 is DONE (Decision 040): the Inventario list now shows value at cost per product, calculated as stock_derivado × costo_promedio and displayed only as derived UI data. If stock is greater than zero and costo_promedio is zero, the row shows "Sin costo registrado" instead of "$0", because the cost is unknown rather than free. No schema, migration, write path, freemium logic or DatabaseService change was introduced. Verified on Android Pixel_8 with a normal cost case and a stock-without-cost case. Remaining before pilot: P8 (inventory reset keeping clients and debts). BACKLOG anotado: venta rapida sin producto; reconciliacion de fiados manuales que eran ventas; dashboard financiero con evolucion temporal; and technical debt where crearCliente writes 5 of 10 columns and crearProducto 6 of 11, the same defect Decision 032 fixed in crearTransaccion.
 
 Before doing work, always run:
 
@@ -145,7 +145,7 @@ Analyze result summary:
 
 ## 6. Feature #2 approved product decisions
 
-The following decisions are locked unless Carol explicitly changes them:
+The following decisions are locked unless Diego explicitly changes them:
 
 ### 6.1 Stock source of truth
 
@@ -287,7 +287,7 @@ Before coding, a new AI supervisor must:
 4. Read the current feature's `spec.md`, `plan.md`, and `tasks.md`.
 5. Summarize current project state.
 6. State assumptions.
-7. Wait for Carol's confirmation.
+7. Wait for Diego's confirmation.
 
 No code should be written before that.
 
@@ -296,9 +296,9 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #18 are COMPLETE and merged to main (155 tests passing, build green, working tree clean). Schema v7. 39 decisions. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
+Features #1 through #19 are COMPLETE and merged to main (158 tests passing, build green, working tree clean). Schema v7. 40 decisions. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
 
-NEXT (Carol chooses):
+NEXT (Diego chooses):
 - DONE (Feature #9, Decision 029): UX pass. Colors now resolve through Ionic variables so dark mode is readable; the Home toolbar keeps a FIXED brand color and does not invert. mixtoCount is finally rendered and the summary separates counts from pesos. Business name has its own header row, header narrowed, subtitle is now Mi Negocio en el Bolsillo. Verified by hand on the iOS simulator in BOTH appearances.
 - DONE (Feature #8, Decision 028): every db.run declares its transaction context via ejecutarRun. The plugin defaults transaction to true, which broke EVERY sale on device since Feature #4 and every COMPRA since Feature #6. Reproduced on a clean simulator, fixed, and verified on device including a v4-to-v5 in-place upgrade.
 - DONE (Feature #7, Decision 027): Pago parcial/mixto en ventas. Amounts (monto_contado, monto_fiado) are the source of truth; tipo_pago is a projection via derivarTipoPago. Schema v5 + idempotent backfill. Report sums real amounts and counts MIXTO. 96 tests.

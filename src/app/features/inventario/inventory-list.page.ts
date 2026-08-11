@@ -61,6 +61,17 @@ export class InventoryListPage {
     return this.resumenPorProducto.get(productoId)?.stock_derivado ?? 0;
   }
 
+  valorInventarioTexto(producto: Producto): string {
+  const stock = this.stockActual(producto.id);
+
+  if (stock > 0 && producto.costo_promedio === 0) {
+    return 'Sin costo registrado';
+  }
+
+  const valor = stock * producto.costo_promedio;
+
+  return '$' + formatCurrencyCOP(valor);
+}
   async crearProducto() {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
