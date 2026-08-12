@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonIcon, IonLabel, IonInput, IonButton, IonToast, AlertController, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline } from 'ionicons/icons';
+import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline } from 'ionicons/icons';
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
@@ -36,7 +36,7 @@ export class ConfiguracionesPage {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ downloadOutline, shieldCheckmarkOutline, cloudUploadOutline });
+    addIcons({ downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline });
   }
 
   ionViewWillEnter() {
@@ -221,6 +221,66 @@ export class ConfiguracionesPage {
     await alert.present();
   }
 
+
+  async reiniciarInventario() {
+    const puedeEscribir = await this.freemiumService.puedeEscribir();
+    if (!puedeEscribir) {
+      return;
+    }
+
+    try {
+      await this.generarArchivoRespaldo("fiapp-antes-de-reiniciar-inventario");
+    } catch (error) {
+      console.error("No se pudo crear el respaldo antes de reiniciar inventario:", error);
+      await this.alertaSimple(
+        "Reinicio cancelado",
+        "No se pudo crear una copia de seguridad de tus datos actuales, asi que no se reinicio nada."
+      );
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: "Reiniciar inventario",
+      message: "Esto BORRA productos, movimientos de inventario, ventas y lineas de venta. Clientes, fiados y abonos se conservan. Escribe REINICIAR para continuar.",
+      inputs: [{ name: "palabra", type: "text", placeholder: "REINICIAR" }],
+      buttons: [
+        { text: "Cancelar", role: "cancel" },
+        {
+          text: "Reiniciar",
+          handler: async (valores: { palabra?: string }) => {
+            if ((valores.palabra ?? "").trim().toUpperCase() !== "REINICIAR") {
+              await this.alertaSimple(
+                "Reinicio cancelado",
+                "No escribiste REINICIAR, asi que no se cambio nada."
+              );
+              return false;
+            }
+
+            await this.ejecutarResetInventario();
+            return true;
+          },
+        },
+      ],
+    });
+
+    await alert.present();
+  }
+
+  private async ejecutarResetInventario() {
+    try {
+      await this.dbService.resetInventario();
+      await this.alertaSimple(
+        "Inventario reiniciado",
+        "Se borraron productos, movimientos y ventas. Clientes, fiados y abonos se conservaron."
+      );
+    } catch (error) {
+      console.error("Fallo el reinicio de inventario:", error);
+      await this.alertaSimple(
+        "El reinicio fallo",
+        "Tus datos quedaron como estaban. No se perdio nada."
+      );
+    }
+  }
   // --- RF-07: EXPORTACION DE RESPALDO JSON COMPLETO (Feature 014) ---
   // Escribe el archivo y devuelve su URI. NO comparte, NO muestra toast.
   // Reutilizado por la exportacion manual y por el respaldo de seguridad previo

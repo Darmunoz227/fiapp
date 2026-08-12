@@ -642,3 +642,25 @@ This is shown on each product row in Inventario.
 **Decision - UI-level presentation only.** The implementation reuses the stock already available in the inventory list through resumenPorProducto and stockActual(producto.id). It does not query SQLite again, and it does not touch DatabaseService, freemium logic, migrations or the native write path.
 
 **Evidence:** 158 tests green. Three unit tests cover: stock 10 with costo_promedio 5000 returning $50.000, stock greater than zero with costo_promedio 0 returning "Sin costo registrado", and stock 0 returning $0. Verified BY HAND on Android Pixel_8: a product with stock and cost displayed the calculated value, and a product with stock but zero cost displayed "Sin costo registrado". The manual stock-zero case was not forced on device because the normal UI requires positive movement quantities; it is covered by the automated test. The inventory screen remained readable.
+
+---
+
+## Decision 041 - Inventory reset is a narrow physical DELETE exception that preserves debt
+
+**Context:** a merchant may need to restart inventory without losing customers or debts. Android app data deletion already wipes everything, but that is too destructive: it removes clients, debt, products, movements, sales and reports. The needed reset is narrower: wipe inventory and sales history while preserving who owes money.
+
+**Decision - reset scope.** Reset inventory physically deletes exactly four tables: venta_items, movim_inventario, ventas and productos. It preserves clientes and transacciones. This means the product catalog, stock movement log and sales history restart, while client debt and abonos remain available.
+
+**Decision - delete order.** The reset deletes child tables before parent tables: venta_items first, then movim_inventario, then ventas, then productos. venta_items depends on ventas and productos, and movim_inventario depends on productos, so the order avoids foreign key failures on device.
+
+**Decision - transacciones are preserved unchanged.** transacciones.venta_id is an origin marker from Decision 032, not a foreign key to ventas. The schema confirms that transacciones only has a foreign key to clientes. Therefore the reset MUST NOT set venta_id to NULL. If sale-linked transacciones were nulled, they would look like manual fiados and break the separation created in Decision 032.
+
+**Decision - physical DELETE exception.** Principle III normally avoids physical DELETE. This feature requires physical DELETE because the merchant explicitly asks for a clean restart of inventory and sales. The exception is narrow: only this reset path, only after a safety backup, only after typed confirmation, and only inside one transaction.
+
+**Decision - protection before destruction.** Before deleting anything, the app generates a full backup using the existing backup path with the prefix fiapp-antes-de-reiniciar-inventario. If backup generation fails, the reset aborts. The merchant must type REINICIAR. Any other text cancels the reset and changes nothing.
+
+**Decision - freemium gated.** Reset inventory is destructive and is a write, so it is blocked by puedeEscribir when the trial is expired, per Decision 033.
+
+**Known consequence:** reports based on ventas and venta_items reset to empty because sales are intentionally deleted. Client debt remains because transacciones are intentionally preserved.
+
+**Evidence, on Android Pixel_8, BY HAND:** the reset created a safety backup named fiapp-antes-de-reiniciar-inventario-2026-08-12.json. After reset, productos, movim_inventario, ventas and venta_items were all 0. clientes stayed 4 before and after. transacciones stayed 2 before and after. venta_id values in transacciones were preserved as [None, '6c6b450b-f917-4c59-aa58-a617f9a2345c'], proving sale-linked debt was not converted into manual fiado. With the trial expired, the reset was blocked. 162 tests green, but the suite proves NOTHING about the native transaction, the Android filesystem backup, or device foreign key behavior; those were verified on Pixel_8.
