@@ -638,6 +638,25 @@ export class DatabaseService {
     await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, ahora, id], false);
   }
 
+  async resetInventario(): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebVentaItems = [];
+      this.mockWebMovimInventario = [];
+      this.mockWebVentas = [];
+      this.mockWebProductos = [];
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+
+    await this.ejecutarEnTransaccion(async () => {
+      await this.ejecutarRun('DELETE FROM venta_items', [], true);
+      await this.ejecutarRun('DELETE FROM movim_inventario', [], true);
+      await this.ejecutarRun('DELETE FROM ventas', [], true);
+      await this.ejecutarRun('DELETE FROM productos', [], true);
+    });
+  }
+
   async reemplazarTodo(data: RespaldoData): Promise<ConteoImportacion> {
     const conteo: ConteoImportacion = {
       clientes: data.clientes.length,

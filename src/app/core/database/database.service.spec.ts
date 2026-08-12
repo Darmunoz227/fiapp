@@ -1520,4 +1520,111 @@ describe('DatabaseService migration v5->v6', () => {
     expect(state.indexes).toEqual(snapshot.indexes);
     expect((db.run.calls.allArgs().filter(([sql]) => /^INSERT(?: OR IGNORE)? INTO venta_items\b/.test(String(sql).replace(/\s+/g, ' ').trim())).length)).toBe(1);
   });
+
+  it('resetInventario clears inventory and sales while preserving clients and transactions', async () => {
+    const servicio = TestBed.inject(DatabaseService);
+    const cliente: Cliente = {
+      id: 'cliente-reset',
+      nombre: 'Cliente Reset',
+      telefono: '3000000000',
+      habeas_data_flag: true,
+      fecha_creacion: Date.now(),
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+    const transaccion: Transaccion = {
+      id: 'transaccion-reset',
+      cliente_id: 'cliente-reset',
+      venta_id: 'venta-reset',
+      tipo: 'fiado',
+      monto: 10000,
+      concepto: 'Venta fiada antes del reset',
+      fecha: Date.now(),
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+    const producto: Producto = {
+      id: 'producto-reset',
+      nombre: 'Producto Reset',
+      precio_venta: 12000,
+      tipo_venta: 'UNIDAD',
+      minimo_stock: 1,
+      costo_promedio: 8000,
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+    const movimiento: MovimInventario = {
+      id: 'movimiento-reset',
+      producto_id: 'producto-reset',
+      tipo: 'COMPRA',
+      cantidad: 10,
+      costo_unitario: 8000,
+      motivo: 'Compra antes del reset',
+      fecha: Date.now(),
+      actor_id: null,
+      stock_calculado_anterior: null,
+      cantidad_fisica: null,
+      diferencia_calculada: null,
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+    const venta: Venta = {
+      id: 'venta-reset',
+      tipo_pago: 'FIADO',
+      monto_contado: 0,
+      monto_fiado: 10000,
+      cliente_id: 'cliente-reset',
+      fecha: Date.now(),
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+    const item: VentaItem = {
+      id: 'venta-item-reset',
+      venta_id: 'venta-reset',
+      producto_id: 'producto-reset',
+      cantidad: 1,
+      precio_venta: 12000,
+      costo_unitario: 8000,
+      ganancia: 4000,
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+
+    (servicio as unknown as { mockWebClientes: Cliente[] }).mockWebClientes.push(cliente);
+    (servicio as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones.push(transaccion);
+    (servicio as unknown as { mockWebProductos: Producto[] }).mockWebProductos.push(producto);
+    (servicio as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario.push(movimiento);
+    (servicio as unknown as { mockWebVentas: Venta[] }).mockWebVentas.push(venta);
+    (servicio as unknown as { mockWebVentaItems: VentaItem[] }).mockWebVentaItems.push(item);
+
+    await servicio.resetInventario();
+
+    expect((servicio as unknown as { mockWebProductos: Producto[] }).mockWebProductos).toEqual([]);
+    expect((servicio as unknown as { mockWebMovimInventario: MovimInventario[] }).mockWebMovimInventario).toEqual([]);
+    expect((servicio as unknown as { mockWebVentas: Venta[] }).mockWebVentas).toEqual([]);
+    expect((servicio as unknown as { mockWebVentaItems: VentaItem[] }).mockWebVentaItems).toEqual([]);
+
+    expect((servicio as unknown as { mockWebClientes: Cliente[] }).mockWebClientes).toEqual([cliente]);
+    expect((servicio as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones).toEqual([transaccion]);
+    expect((servicio as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones[0].venta_id).toBe('venta-reset');
+  });
+
 });
