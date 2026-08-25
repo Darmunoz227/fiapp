@@ -1,0 +1,40 @@
+export interface CatalogoItem {
+  id: string;
+  nombre: string;
+  precio: number;
+  emoji?: string;
+}
+
+export interface CarritoFiado {
+  [productoId: string]: number;
+}
+
+function cantidadValida(cantidad: number): number {
+  if (!Number.isFinite(cantidad) || cantidad < 0) {
+    return 0;
+  }
+  return Math.floor(cantidad);
+}
+
+export function calcularTotalFiado(carrito: CarritoFiado, catalogo: CatalogoItem[]): number {
+  let total = 0;
+  for (const id of Object.keys(carrito)) {
+    const item = catalogo.find((c) => c.id === id);
+    if (!item) {
+      continue;
+    }
+    total += cantidadValida(carrito[id]) * item.precio;
+  }
+  return total;
+}
+
+export function construirConceptoFiado(carrito: CarritoFiado, catalogo: CatalogoItem[]): string {
+  const partes: string[] = [];
+  for (const item of catalogo) {
+    const cantidad = cantidadValida(carrito[item.id] ?? 0);
+    if (cantidad > 0) {
+      partes.push(`${cantidad} ${item.nombre}`);
+    }
+  }
+  return partes.join(', ');
+}
