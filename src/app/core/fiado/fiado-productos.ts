@@ -1,9 +1,6 @@
-export interface CatalogoItem {
-  id: string;
-  nombre: string;
-  precio: number;
-  emoji?: string;
-}
+import { CatalogoItem } from '../models/catalogo-item.model';
+
+export { CatalogoItem };
 
 export interface CarritoFiado {
   [productoId: string]: number;
