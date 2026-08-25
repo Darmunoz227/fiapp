@@ -142,3 +142,7 @@ ion-fab-button {
   color: var(--ion-color-medium);
 }
 
+
+ion-fab[vertical="bottom"] {
+  margin-bottom: env(safe-area-inset-bottom);
+}

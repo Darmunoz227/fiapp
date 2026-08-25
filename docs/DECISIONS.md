@@ -664,3 +664,86 @@ This is shown on each product row in Inventario.
 **Known consequence:** reports based on ventas and venta_items reset to empty because sales are intentionally deleted. Client debt remains because transacciones are intentionally preserved.
 
 **Evidence, on Android Pixel_8, BY HAND:** the reset created a safety backup named fiapp-antes-de-reiniciar-inventario-2026-08-12.json. After reset, productos, movim_inventario, ventas and venta_items were all 0. clientes stayed 4 before and after. transacciones stayed 2 before and after. venta_id values in transacciones were preserved as [None, '6c6b450b-f917-4c59-aa58-a617f9a2345c'], proving sale-linked debt was not converted into manual fiado. With the trial expired, the reset was blocked. 162 tests green, but the suite proves NOTHING about the native transaction, the Android filesystem backup, or device foreign key behavior; those were verified on Pixel_8.
+
+## Decision 042 - FAB de Home respeta el area segura inferior en Android
+
+**Contexto:** durante el piloto del 2026-08-13, los 3 merchants Android
+reportaron que el boton flotante + (agregar cliente) en Home quedaba
+tapado en 2/3 por la barra de navegacion del sistema (modo 3 botones),
+con la zona tapada no respondiendo al toque. En iPhone no ocurria porque
+iOS no superpone una barra de sistema de la misma manera.
+
+**Causa raiz:** ion-fab[vertical="bottom"] en home.page.html no
+compensaba env(safe-area-inset-bottom). El toolbar superior si lo hacia
+(Decision existente en el header), pero el FAB inferior no tenia
+equivalente.
+
+**Decision - fix CSS puntual.** Se agrego una unica regla en
+home.page.scss:
+
+ion-fab[vertical="bottom"] {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+Sin cambios en home.page.ts, sin logica de negocio, sin schema.
+
+**Decision - sin test automatizado nuevo.** Al ser un defecto puramente
+de presentacion, el gate fue la suite completa en verde
+(TOTAL: 162 SUCCESS) mas verificacion BY HAND en dispositivo, siguiendo
+el mismo patron que Decision 030.
+
+**Evidencia:** reproducido en Android emulator con navbar forzado a modo
+threebutton (com.android.internal.systemui.navbar.threebutton), que
+replica el modo de navegacion real reportado por los merchants (el modo
+gestural por defecto del emulador NO reproducia el bug). Antes del fix:
+boton tapado 2/3, zona tapada sin respuesta al toque. Despues del fix:
+boton completamente visible por encima de la barra, funcional en toda
+su area. [Verificacion iPhone/simulador pendiente de confirmar]
+
+**Nota tecnica:** el build requirio JAVA_HOME apuntando al JDK 21
+embebido de Android Studio (Gradle toolchain), ya que el JDK 17 de
+Homebrew del entorno no satisfacia el requisito del plugin
+capacitor-filesystem.
+
+## Decision 042 - FAB de Home respeta el area segura inferior en Android
+
+**Contexto:** durante el piloto del 2026-08-13, los 3 merchants Android
+reportaron que el boton flotante + (agregar cliente) en Home quedaba
+tapado en 2/3 por la barra de navegacion del sistema (modo 3 botones),
+con la zona tapada no respondiendo al toque. En iPhone no ocurria porque
+iOS no superpone una barra de sistema de la misma manera.
+
+**Causa raiz:** ion-fab[vertical="bottom"] en home.page.html no
+compensaba env(safe-area-inset-bottom). El toolbar superior si lo hacia,
+pero el FAB inferior no tenia equivalente.
+
+**Decision - fix CSS puntual.** Se agrego una unica regla en
+home.page.scss:
+
+ion-fab[vertical="bottom"] {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+Sin cambios en home.page.ts, sin logica de negocio, sin schema.
+
+**Decision - sin test automatizado nuevo.** Al ser un defecto puramente
+de presentacion, el gate fue la suite completa en verde
+(TOTAL: 162 SUCCESS) mas verificacion BY HAND en dispositivo, siguiendo
+el mismo patron que Decision 030.
+
+**Evidencia:** reproducido en Android emulator con navbar forzado a modo
+threebutton (com.android.internal.systemui.navbar.threebutton), que
+replica el modo de navegacion real reportado por los merchants (el modo
+gestural por defecto del emulador NO reproducia el bug). Antes del fix:
+boton tapado 2/3, zona tapada sin respuesta al toque. Despues del fix:
+boton completamente visible por encima de la barra de 3 botones,
+funcional en toda su area, verificado visualmente en captura de pantalla
+del emulador. Verificado en iPhone (simulador iOS 17): el boton se
+mantiene en su posicion normal, sin desplazamiento indebido, ya que
+env(safe-area-inset-bottom) es 0 en esa pantalla.
+
+**Nota tecnica:** el build Android requirio JAVA_HOME apuntando al JDK 21
+embebido de Android Studio (Gradle toolchain), ya que el JDK 17 de
+Homebrew del entorno no satisfacia el requisito del plugin
+capacitor-filesystem. Este ajuste es de entorno local, no de codigo del
+proyecto.
