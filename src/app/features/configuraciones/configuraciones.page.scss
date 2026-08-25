@@ -59,6 +59,7 @@
 .credits-block {
 	text-align: center;
 	margin: 40px 0 16px;
+	padding-bottom: env(safe-area-inset-bottom);
 	color: var(--ion-color-medium);
 }
 

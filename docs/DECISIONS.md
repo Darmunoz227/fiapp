@@ -747,3 +747,39 @@ embebido de Android Studio (Gradle toolchain), ya que el JDK 17 de
 Homebrew del entorno no satisfacia el requisito del plugin
 capacitor-filesystem. Este ajuste es de entorno local, no de codigo del
 proyecto.
+
+## Decision 043 - Configuraciones respeta el area segura inferior en Android
+
+**Contexto:** al construir Feature 022 (fiado por productos) se agrego una
+lista de longitud variable (catalogo de productos) a Configuraciones. Esto
+expuso un bug preexistente: el bloque final de creditos ("Desarrollado por
+Diego Munoz") quedaba parcialmente tapado por la barra de navegacion de
+Android en modo threebutton, y el scroll se detenia siempre en el mismo
+punto sin importar cuantos productos hubiera en el catalogo. El mismo
+sintoma se percibia como un lag de transicion al entrar a la pagina.
+
+**Causa raiz:** .credits-block en configuraciones.page.scss no compensaba
+env(safe-area-inset-bottom). El bug ya existia antes de Feature 022 pero
+pasaba desapercibido porque con poco contenido el bloque de creditos
+quedaba lejos del borde inferior.
+
+**Decision - fix CSS puntual.** Se agrego una unica linea en
+configuraciones.page.scss, dentro de .credits-block:
+
+padding-bottom: env(safe-area-inset-bottom);
+
+Sin cambios en configuraciones.page.ts, sin logica de negocio, sin schema.
+
+**Decision - sin test automatizado nuevo.** Mismo criterio que Decision 042:
+defecto puramente de presentacion, gate = suite completa en verde mas
+verificacion BY HAND en dispositivo.
+
+**Evidencia:** verificado en Android emulator (modo threebutton) con el
+catalogo de fiado poblado con varios productos: antes del fix, "Desarrollado
+por Diego Munoz" quedaba tapado y el scroll se sentia con un reajuste visual
+brusco al llegar al final. Despues del fix, el texto es completamente
+visible y la transicion se percibe fluida.
+
+**Nota:** encontrado durante las pruebas manuales de Feature 022 (T004,
+catalogo de fiado), pero es un fix independiente que aplica a Configuraciones
+en general, no exclusivo del catalogo.
