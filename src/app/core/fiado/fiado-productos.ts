@@ -35,3 +35,31 @@ export function construirConceptoFiado(carrito: CarritoFiado, catalogo: Catalogo
   }
   return partes.join(', ');
 }
+
+export function serializarCatalogo(items: CatalogoItem[]): string {
+  return JSON.stringify(items);
+}
+
+export function parsearCatalogo(json: string | null): CatalogoItem[] {
+  if (!json) {
+    return [];
+  }
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data.filter(
+    (item): item is CatalogoItem =>
+      !!item &&
+      typeof item === 'object' &&
+      typeof (item as any).id === 'string' &&
+      typeof (item as any).nombre === 'string' &&
+      typeof (item as any).precio === 'number' &&
+      Number.isFinite((item as any).precio),
+  );
+}

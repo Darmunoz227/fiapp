@@ -1,4 +1,4 @@
-import { calcularTotalFiado, construirConceptoFiado, CatalogoItem, CarritoFiado } from './fiado-productos';
+import { calcularTotalFiado, construirConceptoFiado, serializarCatalogo, parsearCatalogo, CatalogoItem, CarritoFiado } from './fiado-productos';
 
 const catalogo: CatalogoItem[] = [
   { id: 'empanada', nombre: 'Empanada', precio: 3000, emoji: '🥟' },
@@ -59,5 +59,42 @@ describe('construirConceptoFiado', () => {
     const texto = construirConceptoFiado(carrito, catalogo);
     expect(texto).not.toContain('undefined');
     expect(texto).not.toContain('NaN');
+  });
+});
+
+describe('serializarCatalogo y parsearCatalogo', () => {
+  const catalogoBase: CatalogoItem[] = [
+    { id: 'empanada', nombre: 'Empanada', precio: 3000, emoji: '🥟' },
+    { id: 'jugo', nombre: 'Jugo', precio: 5000 },
+  ];
+
+  it('round-trip: serializar y luego parsear devuelve el mismo catalogo', () => {
+    const json = serializarCatalogo(catalogoBase);
+    expect(parsearCatalogo(json)).toEqual(catalogoBase);
+  });
+
+  it('parsear null devuelve arreglo vacio', () => {
+    expect(parsearCatalogo(null)).toEqual([]);
+  });
+
+  it('parsear string vacio devuelve arreglo vacio', () => {
+    expect(parsearCatalogo('')).toEqual([]);
+  });
+
+  it('parsear JSON invalido devuelve arreglo vacio, no lanza', () => {
+    expect(parsearCatalogo('{no es json}')).toEqual([]);
+  });
+
+  it('parsear JSON que no es arreglo devuelve arreglo vacio', () => {
+    expect(parsearCatalogo('{"id":"x"}')).toEqual([]);
+  });
+
+  it('descarta items sin id o precio no numerico', () => {
+    const json = JSON.stringify([
+      { id: 'ok', nombre: 'Valido', precio: 1000 },
+      { nombre: 'Sin id', precio: 500 },
+      { id: 'malprecio', nombre: 'Precio texto', precio: 'abc' },
+    ]);
+    expect(parsearCatalogo(json)).toEqual([{ id: 'ok', nombre: 'Valido', precio: 1000 }]);
   });
 });
