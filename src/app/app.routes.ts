@@ -20,6 +20,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/configuraciones/configuraciones.page').then( m => m.ConfiguracionesPage)
   },
   {
+    path: 'fiado-productos',
+    loadComponent: () => import('./features/fiado-productos/fiado-productos.page').then(m => m.FiadoProductosPage)
+  },
+  {
     path: 'inventario',
     loadComponent: () => import('./features/inventario/inventory-list.page').then(m => m.InventoryListPage)
   },

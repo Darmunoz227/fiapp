@@ -53,8 +53,12 @@ describe('ConfiguracionesPage', () => {
       'getNombreNegocio',
       'setNombreNegocio',
       'clearNombreNegocio',
+      'getCatalogoFiado',
+      'setCatalogoFiado',
     ]);
     prefsMock.getNombreNegocio.and.resolveTo('Tienda');
+    prefsMock.getCatalogoFiado.and.resolveTo([]);
+    prefsMock.setCatalogoFiado.and.resolveTo();
 
     freemiumMock = jasmine.createSpyObj('FreemiumService', [
       'puedeEscribir',

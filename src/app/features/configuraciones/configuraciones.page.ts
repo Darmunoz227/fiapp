@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonIcon, IonLabel, IonInput, IonButton, IonToast, AlertController, ToastController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline } from 'ionicons/icons';
+import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline, createOutline, trashOutline } from 'ionicons/icons';
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
@@ -14,6 +14,7 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { construirRespaldo } from '../../core/respaldo/respaldo-builder';
 import { validarRespaldo, MotivoRechazo } from '../../core/respaldo/respaldo-validator';
 import { RespaldoData } from '../../core/models/respaldo.model';
+import { CatalogoItem } from '../../core/models/catalogo-item.model';
 
 @Component({
   selector: 'app-configuraciones',
@@ -24,6 +25,7 @@ import { RespaldoData } from '../../core/models/respaldo.model';
 })
 export class ConfiguracionesPage {
   nombreNegocio = '';
+  catalogoFiado: CatalogoItem[] = [];
   mostrarToastGuardado = false;
   appVersion: string = '1.0.0';
   private tapsEnCreditos = 0;
@@ -36,12 +38,13 @@ export class ConfiguracionesPage {
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
-    addIcons({ downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline });
+    addIcons({ downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCircleOutline, createOutline, trashOutline });
   }
 
   ionViewWillEnter() {
     this.cargarNombreNegocio();
     this.cargarVersionApp();
+    this.cargarCatalogo();
   }
 
   async cargarVersionApp() {
@@ -343,5 +346,104 @@ export class ConfiguracionesPage {
     });
 
     await toast.present();
+  }
+
+  async cargarCatalogo() {
+    this.catalogoFiado = await this.prefs.getCatalogoFiado();
+  }
+
+  private parsearPrecio(texto: string | undefined): number | null {
+    const limpio = (texto ?? "").replace(/[^0-9]/g, "");
+    if (!limpio) {
+      return null;
+    }
+    const valor = parseInt(limpio, 10);
+    return Number.isFinite(valor) && valor > 0 ? valor : null;
+  }
+
+  async agregarProductoCatalogo() {
+    const alert = await this.alertCtrl.create({
+      header: "Nuevo producto",
+      inputs: [
+        { name: "nombre", type: "text", placeholder: "Nombre (ej: Empanada)" },
+        { name: "precio", type: "number", placeholder: "Precio (ej: 3000)" },
+        { name: "emoji", type: "text", placeholder: "Emoji opcional (ej: 🥟)" },
+      ],
+      buttons: [
+        { text: "Cancelar", role: "cancel" },
+        {
+          text: "Agregar",
+          handler: (v: { nombre?: string; precio?: string; emoji?: string }) => {
+            const nombre = (v.nombre ?? "").trim();
+            const precio = this.parsearPrecio(v.precio);
+            if (!nombre || precio === null) {
+              void this.alertaSimple("Datos incompletos", "Escribe un nombre y un precio mayor a cero.");
+              return false;
+            }
+            const emoji = (v.emoji ?? "").trim() || undefined;
+            const item: CatalogoItem = { id: Date.now().toString(), nombre, precio, emoji };
+            this.catalogoFiado = [...this.catalogoFiado, item];
+            void this.persistirCatalogo();
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async editarProductoCatalogo(item: CatalogoItem) {
+    const alert = await this.alertCtrl.create({
+      header: "Editar producto",
+      inputs: [
+        { name: "nombre", type: "text", value: item.nombre, placeholder: "Nombre" },
+        { name: "precio", type: "number", value: String(item.precio), placeholder: "Precio" },
+        { name: "emoji", type: "text", value: item.emoji ?? "", placeholder: "Emoji opcional" },
+      ],
+      buttons: [
+        { text: "Cancelar", role: "cancel" },
+        {
+          text: "Guardar",
+          handler: (v: { nombre?: string; precio?: string; emoji?: string }) => {
+            const nombre = (v.nombre ?? "").trim();
+            const precio = this.parsearPrecio(v.precio);
+            if (!nombre || precio === null) {
+              void this.alertaSimple("Datos incompletos", "Escribe un nombre y un precio mayor a cero.");
+              return false;
+            }
+            const emoji = (v.emoji ?? "").trim() || undefined;
+            this.catalogoFiado = this.catalogoFiado.map((c) =>
+              c.id === item.id ? { ...c, nombre, precio, emoji } : c
+            );
+            void this.persistirCatalogo();
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async eliminarProductoCatalogo(item: CatalogoItem) {
+    const alert = await this.alertCtrl.create({
+      header: "Quitar producto",
+      message: 'Quitar "' + item.nombre + '" del catalogo? Los fiados ya guardados no cambian.',
+      buttons: [
+        { text: "Cancelar", role: "cancel" },
+        {
+          text: "Quitar",
+          role: "destructive",
+          handler: () => {
+            this.catalogoFiado = this.catalogoFiado.filter((c) => c.id !== item.id);
+            void this.persistirCatalogo();
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async persistirCatalogo() {
+    await this.prefs.setCatalogoFiado(this.catalogoFiado);
   }
 }

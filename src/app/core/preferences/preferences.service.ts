@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Preferences } from '@capacitor/preferences';
+import { CatalogoItem } from '../models/catalogo-item.model';
+import { serializarCatalogo, parsearCatalogo } from '../fiado/fiado-productos';
 
 @Injectable({ providedIn: 'root' })
 export class PreferencesService {
@@ -7,6 +9,7 @@ export class PreferencesService {
   private readonly KEY_FECHA_INSTALACION = 'fecha_instalacion';
   private readonly KEY_LICENCIA_PREMIUM = 'licencia_premium';
   private readonly KEY_TRIAL_BLOQUEADO = 'trial_bloqueado';
+  private readonly KEY_CATALOGO_FIADO = 'catalogo_fiado';
 
   constructor() {}
 
@@ -127,6 +130,24 @@ export class PreferencesService {
       await Preferences.set({ key: this.KEY_TRIAL_BLOQUEADO, value: bloqueado ? 'true' : 'false' });
     } catch (e) {
       console.error('Preferences.set trial_bloqueado error', e);
+    }
+  }
+
+  async getCatalogoFiado(): Promise<CatalogoItem[]> {
+    try {
+      const { value } = await Preferences.get({ key: this.KEY_CATALOGO_FIADO });
+      return parsearCatalogo(value ?? null);
+    } catch (e) {
+      console.error('Preferences.get catalogo_fiado error', e);
+      return [];
+    }
+  }
+
+  async setCatalogoFiado(items: CatalogoItem[]): Promise<void> {
+    try {
+      await Preferences.set({ key: this.KEY_CATALOGO_FIADO, value: serializarCatalogo(items) });
+    } catch (e) {
+      console.error('Preferences.set catalogo_fiado error', e);
     }
   }
 }

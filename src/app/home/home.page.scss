@@ -146,3 +146,10 @@ ion-fab-button {
 ion-fab[vertical="bottom"] {
   margin-bottom: env(safe-area-inset-bottom);
 }
+
+.boton-fiado-productos {
+  margin: 12px 0 4px;
+  --border-radius: 14px;
+  font-weight: 700;
+  height: 50px;
+}

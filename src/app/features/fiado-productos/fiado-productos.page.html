@@ -1,0 +1,120 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" text="Atrás"></ion-back-button>
+    </ion-buttons>
+    <ion-title style="font-size: 16px;">Registrar fiado</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+
+  <!-- PASO 1: SELECCIONAR CLIENTE -->
+  <div *ngIf="paso === 'cliente'" class="paso-cliente">
+    <div class="paso-header">
+      <h1 class="paso-title">¿A quién le fías?</h1>
+      <p class="paso-subtitle">Toca el nombre del cliente</p>
+    </div>
+
+    <ion-searchbar
+      placeholder="Buscar cliente..."
+      mode="ios"
+      (ionInput)="buscarCliente($event)">
+    </ion-searchbar>
+
+    <ion-list class="lista-clientes">
+      <ion-item
+        *ngFor="let cliente of clientesFiltrados"
+        button="true"
+        lines="none"
+        class="cliente-item"
+        (click)="seleccionarCliente(cliente)">
+        <ion-label>
+          <h2 class="cliente-nombre">👤 {{ cliente.nombre }}</h2>
+        </ion-label>
+        <ion-icon slot="end" name="arrow-forward-outline" color="danger"></ion-icon>
+      </ion-item>
+
+      <ion-item *ngIf="clientesFiltrados.length === 0" lines="none">
+        <ion-label class="ion-text-center">
+          <p>No hay clientes que coincidan.</p>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+  </div>
+
+  <!-- PASO 2: PRODUCTOS -->
+  <div *ngIf="paso === 'productos'" class="paso-productos">
+    <div class="paso-header">
+      <button class="volver-link" (click)="volverACliente()">‹ Cambiar cliente</button>
+      <h1 class="paso-title">Fiado de {{ clienteSeleccionado?.nombre }}</h1>
+      <p class="paso-subtitle">¿Qué productos llevó?</p>
+    </div>
+
+    <!-- Catalogo vacio: atajo a Configuraciones -->
+    <div *ngIf="catalogo.length === 0" class="catalogo-vacio">
+      <p class="vacio-texto">Aún no tienes productos en tu catálogo.</p>
+      <ion-button expand="block" color="primary" (click)="irAConfiguraciones()">
+        Crear mi catálogo
+      </ion-button>
+    </div>
+
+    <div *ngIf="catalogo.length > 0" class="grid-scroll">
+      <div *ngFor="let item of catalogo" class="product-row" [class.has-qty]="cantidad(item) > 0">
+        <button class="product-add-btn" (click)="sumar(item)">
+          <span class="product-info">
+            <span class="product-emoji">{{ item.emoji || '🛒' }}</span>
+            <span class="product-details">
+              <span class="product-name">{{ item.nombre }}</span>
+              <span class="product-price">$ {{ item.precio.toLocaleString('es-CO') }} COP</span>
+            </span>
+          </span>
+          <span class="product-qty-badge" *ngIf="cantidad(item) > 0">{{ cantidad(item) }}</span>
+        </button>
+        <button class="product-sub-btn" *ngIf="cantidad(item) > 0" (click)="restar(item)">
+          <ion-icon name="remove-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="catalogo.length > 0" class="footer-fijo">
+      <div class="total-fila">
+        <span class="total-label">VALOR TOTAL:</span>
+        <span class="total-valor">$ {{ total.toLocaleString('es-CO') }}</span>
+      </div>
+      <ion-button
+        expand="block"
+        color="danger"
+        class="guardar-btn"
+        [disabled]="!hayProductos || guardando"
+        (click)="guardarFiado()">
+        GUARDAR FIADO — $ {{ total.toLocaleString('es-CO') }}
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- PASO 3: CONFIRMACION -->
+  <div *ngIf="paso === 'confirmacion'" class="paso-confirmacion">
+    <ion-icon name="checkmark-circle-outline" color="success" class="check-icon"></ion-icon>
+    <h2 class="confirm-title">¡Fiado registrado!</h2>
+
+    <div class="recibo-card">
+      <div class="recibo-header">
+        <span class="recibo-cliente">{{ clienteSeleccionado?.nombre }}</span>
+      </div>
+      <p class="recibo-concepto">{{ conceptoGuardado }}</p>
+      <div class="recibo-total-fila">
+        <span class="recibo-total-label">TOTAL DEUDA</span>
+        <span class="recibo-total-val">$ {{ totalGuardado.toLocaleString('es-CO') }} COP</span>
+      </div>
+    </div>
+
+    <ion-button expand="block" color="primary" class="confirm-btn" (click)="irADetalleCliente()">
+      Ver deuda de {{ clienteSeleccionado?.nombre }}
+    </ion-button>
+    <ion-button expand="block" fill="outline" color="medium" class="confirm-btn" (click)="registrarOtro()">
+      Registrar otro fiado
+    </ion-button>
+  </div>
+
+</ion-content>
