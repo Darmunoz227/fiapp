@@ -705,49 +705,6 @@ embebido de Android Studio (Gradle toolchain), ya que el JDK 17 de
 Homebrew del entorno no satisfacia el requisito del plugin
 capacitor-filesystem.
 
-## Decision 042 - FAB de Home respeta el area segura inferior en Android
-
-**Contexto:** durante el piloto del 2026-08-13, los 3 merchants Android
-reportaron que el boton flotante + (agregar cliente) en Home quedaba
-tapado en 2/3 por la barra de navegacion del sistema (modo 3 botones),
-con la zona tapada no respondiendo al toque. En iPhone no ocurria porque
-iOS no superpone una barra de sistema de la misma manera.
-
-**Causa raiz:** ion-fab[vertical="bottom"] en home.page.html no
-compensaba env(safe-area-inset-bottom). El toolbar superior si lo hacia,
-pero el FAB inferior no tenia equivalente.
-
-**Decision - fix CSS puntual.** Se agrego una unica regla en
-home.page.scss:
-
-ion-fab[vertical="bottom"] {
-  margin-bottom: env(safe-area-inset-bottom);
-}
-
-Sin cambios en home.page.ts, sin logica de negocio, sin schema.
-
-**Decision - sin test automatizado nuevo.** Al ser un defecto puramente
-de presentacion, el gate fue la suite completa en verde
-(TOTAL: 162 SUCCESS) mas verificacion BY HAND en dispositivo, siguiendo
-el mismo patron que Decision 030.
-
-**Evidencia:** reproducido en Android emulator con navbar forzado a modo
-threebutton (com.android.internal.systemui.navbar.threebutton), que
-replica el modo de navegacion real reportado por los merchants (el modo
-gestural por defecto del emulador NO reproducia el bug). Antes del fix:
-boton tapado 2/3, zona tapada sin respuesta al toque. Despues del fix:
-boton completamente visible por encima de la barra de 3 botones,
-funcional en toda su area, verificado visualmente en captura de pantalla
-del emulador. Verificado en iPhone (simulador iOS 17): el boton se
-mantiene en su posicion normal, sin desplazamiento indebido, ya que
-env(safe-area-inset-bottom) es 0 en esa pantalla.
-
-**Nota tecnica:** el build Android requirio JAVA_HOME apuntando al JDK 21
-embebido de Android Studio (Gradle toolchain), ya que el JDK 17 de
-Homebrew del entorno no satisfacia el requisito del plugin
-capacitor-filesystem. Este ajuste es de entorno local, no de codigo del
-proyecto.
-
 ## Decision 043 - Configuraciones respeta el area segura inferior en Android
 
 **Contexto:** al construir Feature 022 (fiado por productos) se agrego una
@@ -783,3 +740,60 @@ visible y la transicion se percibe fluida.
 **Nota:** encontrado durante las pruebas manuales de Feature 022 (T004,
 catalogo de fiado), pero es un fix independiente que aplica a Configuraciones
 en general, no exclusivo del catalogo.
+
+## Decision 044 - Fiado por productos es un fiado manual enriquecido, no una venta
+
+**Contexto:** Feature 022, derivada del insight de piloto del comerciante
+ambulante (2026-08-13). En el pico de demanda el comerciante NO usa ninguna
+herramienta: memoriza los fiados y los reconstruye despues, con calma, en su
+cuaderno. La oportunidad es reemplazar ese cuaderno post-pico con un flujo de
+seleccion de productos por toque, mas rapido que escribir. Un prototipo fue
+validado con el comerciante sin friccion.
+
+**Decision - es un fiado MANUAL, no una venta.** El fiado por productos se
+guarda como una transaccion con venta_id NULL (fiado registrado a mano,
+Decision 032) mas concepto legible generado por la app (espiritu de
+Decision 039) mas monto total. NO usa venta_items, NO usa movim_inventario,
+NO llama registrarVenta. Meterlo por venta_items acoplaria al ambulante al
+inventario (tipo_venta, costo_promedio, stock) que no gestiona y romperia
+Principle III. Verificado en device: los fiados creados tienen venta_id NULL
+y las tablas productos, movim_inventario, ventas y venta_items quedaron vacias.
+
+**Decision - el catalogo vive en Preferences, no en una tabla.** El catalogo
+de 10-15 productos (nombre, precio, emoji opcional) es configuracion editable
+del dispositivo, no historial auditable. Se persiste en Preferences como JSON
+bajo la KEY catalogo_fiado, siguiendo el patron de PreferencesService. Schema
+v7 queda intacto, cero migracion. Se descarto reusar la tabla productos porque
+tipo_venta solo admite UNIDAD y PESO, ambos atados a inventario.
+
+**Decision - el precio queda congelado en la transaccion.** El monto y el
+concepto se guardan al momento de fiar. Retirar o editar un producto del
+catalogo despues NO altera fiados historicos, por diseno.
+
+**Decision - el catalogo NO se gatea con freemium; el guardado del fiado SI.**
+Configurar el catalogo es preparacion (como el nombre del negocio, no gateado).
+Guardar un fiado es una escritura de negocio, sujeta al guard puedeEscribir
+(Decision 033). Verificado en device: con trial expirado, el guardado del fiado
+fue bloqueado hasta activar la licencia; el catalogo se pudo editar sin bloqueo.
+
+**Decision - logica pura testeada, UI verificada a mano.** calcularTotalFiado,
+construirConceptoFiado, serializarCatalogo y parsearCatalogo son funciones puras
+con tests (RED antes de GREEN, parseo defensivo contra JSON corrupto). El CRUD
+del catalogo y el flujo de 3 pasos son UI, verificados por device test siguiendo
+la convencion del proyecto (PreferencesService y los handlers de AlertController
+no se testean unitariamente).
+
+**Decision - navegacion.** El flujo se inicia desde un boton destacado en Home
+(no un icono mas en el header), por ser el flujo estrella post-pico. La gestion
+del catalogo vive en Configuraciones, con un atajo contextual (empty-state con
+boton a Configuraciones) si el catalogo esta vacio al entrar al flujo. Se
+prohibio swipe como interaccion principal por el publico mayor.
+
+**Evidencia, on Android emulator, BY HAND:** con el catalogo poblado, se
+registraron varios fiados multi-producto (ej. "1 Carimanola, 1 Jugo Borojo,
+2 Tinto" por $11.000, "3 Carimanola, 1 Jugo Borojo" por $17.000). El respaldo
+JSON exportado confirmo: cada fiado con venta_id NULL, concepto legible correcto,
+monto correcto, y las cuatro tablas de inventario/ventas vacias. El flujo viejo
+de fiado a mano con texto libre sigue conviviendo sin romperse. 178 tests green,
+pero la suite prueba SOLO la logica pura; el guardado nativo, el guard freemium
+en device y la persistencia en Preferences se verificaron en el emulador.
