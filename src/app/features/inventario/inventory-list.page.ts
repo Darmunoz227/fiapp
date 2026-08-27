@@ -15,6 +15,7 @@ import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/format
 import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
+import { calcularValorTotalInventario, LineaValorInventario } from './inventory-calculations';
 
 @Component({
   selector: 'app-inventory-list',
@@ -72,6 +73,14 @@ export class InventoryListPage {
 
   return '$' + formatCurrencyCOP(valor);
 }
+
+  valorTotalInventarioTexto(): string {
+    const lineas: LineaValorInventario[] = this.productos.map((producto) => ({
+      stock_derivado: this.stockActual(producto.id),
+      costo_promedio: producto.costo_promedio,
+    }));
+    return '$' + formatCurrencyCOP(calcularValorTotalInventario(lineas));
+  }
   async crearProducto() {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
