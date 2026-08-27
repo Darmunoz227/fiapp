@@ -44,6 +44,11 @@
   <section class="inventory-card inventory-list-wrapper">
     <h2>Productos</h2>
 
+    <div class="valor-total-inventario" *ngIf="productos.length > 0">
+      <span>Valor total del inventario</span>
+      <strong>{{ valorTotalInventarioTexto() }}</strong>
+    </div>
+
     <ion-list lines="full" *ngIf="productos.length > 0; else emptyState">
       <ion-item-sliding *ngFor="let producto of productos">
         <ion-item button="true" detail="true" [routerLink]="['/inventario/movimiento', producto.id]">

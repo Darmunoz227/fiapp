@@ -71,3 +71,24 @@
   font-size: 13px;
   line-height: 1.4;
 }
+
+.valor-total-inventario {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px 14px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--ion-border-color);
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ion-color-medium);
+  }
+
+  strong {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ion-text-color);
+  }
+}
