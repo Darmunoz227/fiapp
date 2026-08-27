@@ -41,3 +41,4 @@ T006. DEVICE (posterior al piloto, gate antes de merge, BY HAND Pixel_8):
       - producto con stock 0 aporta 0
       - inventario recién instalado (vacío): sin bloque roto / total $0
       - dark mode y light mode legibles (Decision 029)
+
