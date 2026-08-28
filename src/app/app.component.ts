@@ -21,5 +21,6 @@ export class AppComponent {
     await this.databaseService.initializePlugin();
     await this.freemiumService.inicializarEstadoFreemium();
     console.log('App iniciada y motor SQLite encendido');
+    void this.freemiumService.verificarRecordatorioCompromiso();
   }
 }
