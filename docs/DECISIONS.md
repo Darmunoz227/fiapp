@@ -858,3 +858,64 @@ archivo de codigo, y la suite nunca fallo. El TDD real (RED verificado,
 GREEN, cableado, device test) se realizo con supervision estricta
 verificando cada paso contra git status, git diff y salida real de npm test,
 nunca contra la narrativa del asistente.
+
+## Decision 046 - Freemium: limite solo por tiempo, con recordatorios de compromiso
+
+**Contexto:** durante el piloto activo, el limite de 7 clientes bloqueaba
+la app antes de que el merchant pudiera evaluarla con su clientela real.
+Diego decide que el UNICO limite del trial debe ser el tiempo. Ademas,
+quiere fomentar mas compromiso del piloto durante el trial mediante
+recordatorios suaves y no bloqueantes que le pidan compartir su experiencia.
+
+**Decision - se elimina el limite por clientes.** LIMITE_CLIENTES (7) y
+toda la logica de bloqueadoPorClientes se eliminan de
+FreemiumService.obtenerEstado(). contarClientes() ya no se invoca dentro
+de obtenerEstado(); el metodo en si permanece intacto en DatabaseService
+porque se usa en otras partes del proyecto. El tipo EstadoFreemium.motivo
+se simplifica de 'clientes' | 'tiempo' | 'ninguno' a 'tiempo' | 'ninguno'.
+
+**Decision - el limite por tiempo sube de 20 a 25 dias.** LIMITE_DIAS pasa
+de 20 a 25, dando mas margen al piloto para evaluar la app con calma.
+
+**Decision - dos recordatorios de compromiso no bloqueantes.** En el dia 8
+y en el dia 17 del trial (DIAS_RECORDATORIO = [8, 17]), si la licencia no
+es premium y el trial no esta bloqueado, se muestra un Alert (a diferencia
+de mostrarAlertaBloqueo, este NO bloquea nada) con un mensaje que agradece
+la confianza y resalta el esfuerzo de desarrollo en pro del negocio del
+merchant, sin usar la palabra "feedback". Botones: Cerrar / Escribirle a
+Diego (reusa el mismo WHATSAPP_FEEDBACK_URL y contactarADiego() ya
+existentes de mostrarAlertaBloqueo).
+
+**Decision - maximo una vez por dia calendario.** Se persiste en
+Preferences (KEY ultimo_dia_recordatorio_mostrado, mismo patron que
+trial_bloqueado) la fecha calendario (YYYY-MM-DD) en que se mostro el
+ultimo recordatorio. Si ya se mostro hoy, no se repite aunque la app se
+abra varias veces. Se dispara solo en el DIA EXACTO (8 o 17), no en un
+rango, para no repetir el mensaje todos los dias entre esos dos puntos.
+
+**Decision - no gatea nada, es una notificacion.** verificarRecordatorioCompromiso()
+no bloquea el arranque de la app (se llama con void, fire-and-forget, desde
+app.component.ts) ni impide ninguna escritura. Es independiente del guard
+puedeEscribir.
+
+**Evidencia, on Android emulator, BY HAND:** se crearon mas de 7 clientes
+sin ningun bloqueo (antes el 8vo cliente bloqueaba la app). Simulando la
+fecha de instalacion 8 dias atras (editando Preferences via adb), el Alert
+de compromiso aparecio con el mensaje exacto acordado, sin la palabra
+feedback. Al cerrar y reabrir la app el mismo dia, el Alert NO volvio a
+aparecer, confirmando la persistencia de ultimo_dia_recordatorio_mostrado.
+El boton Escribirle a Diego reusa el mismo mecanismo de WhatsApp ya
+verificado en produccion por mostrarAlertaBloqueo; no se pudo abrir
+WhatsApp en este emulador especifico porque no tiene la app instalada,
+limitacion del entorno de prueba, no del codigo. 189 tests green (183 base
++ 6 nuevos de verificarRecordatorioCompromiso), cubriendo dia 8, dia 17,
+dia fuera de la ventana, licencia premium activa, trial bloqueado, y no
+repeticion el mismo dia.
+
+**Nota de proceso:** durante el device test se detecto que el emulador
+tenia instalado un build de main.js del 26 de agosto, previo a todos los
+cambios de este feature (incluida la Parte A). El sintoma fue que ni el
+Alert ni el cambio de limite de clientes se manifestaban, sin ningun error
+en logcat. Se confirmo la causa con evidencia (ls -la de www/main.js y
+grep del codigo nuevo ausente en el bundle) antes de reconstruir con
+ng build + cap sync + cap run, en vez de asumir un bug en el codigo fuente.
