@@ -797,3 +797,64 @@ monto correcto, y las cuatro tablas de inventario/ventas vacias. El flujo viejo
 de fiado a mano con texto libre sigue conviviendo sin romperse. 178 tests green,
 pero la suite prueba SOLO la logica pura; el guardado nativo, el guard freemium
 en device y la persistencia en Preferences se verificaron en el emulador.
+
+## Decision 045 - Valor total del inventario es una suma derivada, nunca persistida
+
+**Contexto:** Feature 023. El merchant ya veia el valor a costo POR PRODUCTO
+(Feature 019, Decision 040), pero para saber cuanto capital tiene amarrado en
+TODO el inventario tenia que sumar fila por fila a mano.
+
+**Decision - suma derivada de segundo orden.** calcularValorTotalInventario
+es una funcion PURA en inventory-calculations.ts que recibe un arreglo de
+LineaValorInventario ({ stock_derivado, costo_promedio }) y devuelve la suma
+de stock * costo por linea, empezando en 0. No accede a base de datos, no
+tiene efectos, no conoce tipos de UI (Producto, ResumenInventario): la pagina
+traduce su estado ya cargado (this.productos + stockActual + costo_promedio)
+a lineas y le delega el calculo. Mismo corte que Decision 036.
+
+**Decision - nunca persistido.** El total es segundo orden: el stock ya se
+deriva del log inmutable de movimientos (Decision 009) y el valor por
+producto ya se nego a persistirse (Decision 040). Persistir el total
+recrearia el error de los caches de stock que esas decisiones ya rechazaron.
+Se recalcula en cada render; el costo es un reduce O(n) sobre productos ya
+en memoria, sin queries nuevas.
+
+**Decision - un producto sin costo aporta 0, nunca NaN.** Si stock > 0 y
+costo_promedio es 0 (la fila individual ya muestra "Sin costo registrado"
+desde Decision 040), esa linea aporta stock * 0 = 0 exacto al total por
+construccion aritmetica, sin condicionales especiales ni riesgo de NaN.
+Un producto con stock 0 aporta 0 aunque tenga costo_promedio > 0.
+
+**Decision - presentacion, no logica de negocio.** El bloque "Valor total
+del inventario" se muestra en inventory-list.page.html con el MISMO gate
+*ngIf que ya usa la lista de productos (productos.length > 0), asi que con
+inventario vacio el bloque no aparece, igual que la lista. Estilos SOLO con
+variables Ionic (--ion-color-medium, --ion-text-color, --ion-border-color),
+sin colores literales nuevos, por Decision 029/030.
+
+**Decision - sin schema, sin escritura, sin freemium.** No se toco
+DatabaseService, ni el native write path, ni SCHEMA_VERSION. Confirmado por
+git diff: cero cambios en core/database/database.service.ts. Leer es gratis
+(Decision 033), asi que no hay guard freemium sobre este bloque.
+
+**Evidencia, on Android emulator, BY HAND:** (1) con productos con costo
+registrado, el total coincidio con la suma manual stock x costo_promedio;
+(2) un producto con stock > 0 y costo_promedio 0 no rompio el total, que
+siguio siendo un numero valido igual a la suma de las lineas con costo
+conocido; (3) un producto llevado a stock 0 dejo de aportar al total y este
+bajo exactamente en esa proporcion; (4) con inventario vacio (via reset)
+el bloque de total no aparecio, igual que la lista, sin errores visuales;
+(5) el bloque se leyo correctamente en modo claro y modo oscuro alternando
+en caliente con adb shell cmd uimode night. 182 tests green (178 base + 4
+nuevos de calcularValorTotalInventario), pero la suite prueba SOLO la
+funcion pura; el cableado en la pagina y el render se verificaron en device.
+
+**Nota de proceso:** el spec y plan iniciales de este feature fueron
+redactados por un modelo agentico externo en evaluacion (GLM-5.3 Flash via
+OpenRouter, presentado como "Ox Alpha"). El documento resulto solido y se
+conservo, pero la ejecucion de codigo del mismo modelo fue descartada: narro
+haber escrito tests RED y evidenciado el fallo sin haber tocado ningun
+archivo de codigo, y la suite nunca fallo. El TDD real (RED verificado,
+GREEN, cableado, device test) se realizo con supervision estricta
+verificando cada paso contra git status, git diff y salida real de npm test,
+nunca contra la narrativa del asistente.

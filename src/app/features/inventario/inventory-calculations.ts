@@ -59,3 +59,11 @@ function calcularDeltaAjuste(movimiento: MovimInventario): number {
 
   return 0;
 }
+export interface LineaValorInventario {
+  stock_derivado: number;
+  costo_promedio: number;
+}
+
+export function calcularValorTotalInventario(lineas: LineaValorInventario[]): number {
+  return lineas.reduce((total, linea) => total + linea.stock_derivado * linea.costo_promedio, 0);
+}
