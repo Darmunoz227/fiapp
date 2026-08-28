@@ -5,7 +5,7 @@ import { PreferencesService } from '../preferences/preferences.service';
 
 type EstadoFreemium = {
   bloqueado: boolean;
-  motivo: 'clientes' | 'tiempo' | 'ninguno';
+  motivo: 'tiempo' | 'ninguno';
   licenciaPremium: boolean;
   totalClientes: number;
   diasDesdeInstalacion: number;
@@ -13,8 +13,8 @@ type EstadoFreemium = {
 
 @Injectable({ providedIn: 'root' })
 export class FreemiumService {
-  private readonly LIMITE_CLIENTES = 7;
-  private readonly LIMITE_DIAS = 20;
+  private readonly LIMITE_DIAS = 25;
+  private readonly DIAS_RECORDATORIO = [8, 17];
   private readonly WHATSAPP_FEEDBACK_URL = 'https://wa.me/573124895016?text=Hola%20Diego,%20estoy%20usando%20FiApp%20en%20mi%20negocio%20y%20me%20gustar%C3%ADa%20darte%20mi%20feedback.';
 
   constructor(
@@ -62,21 +62,17 @@ export class FreemiumService {
     if (trialBloqueado) {
       return {
         bloqueado: true,
-        motivo: 'clientes',
+        motivo: 'tiempo',
         licenciaPremium: false,
         totalClientes: 0,
         diasDesdeInstalacion: 0,
       };
     }
 
-    const [totalClientes, diasDesdeInstalacion] = await Promise.all([
-      this.dbService.contarClientes(),
-      this.calcularDiasDesdeInstalacion()
-    ]);
+    const diasDesdeInstalacion = await this.calcularDiasDesdeInstalacion();
 
-    const bloqueadoPorClientes = totalClientes >= this.LIMITE_CLIENTES;
     const bloqueadoPorTiempo = diasDesdeInstalacion > this.LIMITE_DIAS;
-    const bloqueado = bloqueadoPorClientes || bloqueadoPorTiempo;
+    const bloqueado = bloqueadoPorTiempo;
 
     if (bloqueado) {
       await this.prefsService.setTrialBloqueado(true);
@@ -84,9 +80,9 @@ export class FreemiumService {
 
     return {
       bloqueado,
-      motivo: bloqueadoPorClientes ? 'clientes' : bloqueadoPorTiempo ? 'tiempo' : 'ninguno',
+      motivo: bloqueadoPorTiempo ? 'tiempo' : 'ninguno',
       licenciaPremium: false,
-      totalClientes,
+      totalClientes: 0,
       diasDesdeInstalacion,
     };
   }
@@ -109,6 +105,47 @@ export class FreemiumService {
     }
 
     return true;
+  }
+
+  async verificarRecordatorioCompromiso(): Promise<void> {
+    const licenciaPremium = await this.tieneLicenciaPremium();
+    if (licenciaPremium) {
+      return;
+    }
+
+    const trialBloqueado = await this.prefsService.getTrialBloqueado();
+    if (trialBloqueado) {
+      return;
+    }
+
+    const diasDesdeInstalacion = await this.calcularDiasDesdeInstalacion();
+    if (!this.DIAS_RECORDATORIO.includes(diasDesdeInstalacion)) {
+      return;
+    }
+
+    const hoy = new Date().toISOString().slice(0, 10);
+    const ultimoMostrado = await this.prefsService.getUltimoDiaRecordatorioMostrado();
+    if (ultimoMostrado === hoy) {
+      return;
+    }
+
+    const alert = await this.alertCtrl.create({
+      header: '¡Gracias por confiar en FiApp! 🙌',
+      message: 'Cada actualización que hago pensando en tu negocio, en que lleves tus cuentas más fácil y le ganes tiempo al día a día. Cuéntame cómo te está yendo con la app, tu experiencia es lo que más me ayuda a seguir mejorándola para ti.',
+      buttons: [
+        {
+          text: 'Cerrar',
+          role: 'cancel'
+        },
+        {
+          text: 'Escribirle a Diego',
+          handler: () => this.contactarADiego()
+        }
+      ]
+    });
+
+    await alert.present();
+    await this.prefsService.setUltimoDiaRecordatorioMostrado(hoy);
   }
 
   async mostrarAlertaBloqueo(): Promise<void> {

@@ -10,6 +10,7 @@ export class PreferencesService {
   private readonly KEY_LICENCIA_PREMIUM = 'licencia_premium';
   private readonly KEY_TRIAL_BLOQUEADO = 'trial_bloqueado';
   private readonly KEY_CATALOGO_FIADO = 'catalogo_fiado';
+  private readonly KEY_ULTIMO_DIA_RECORDATORIO = 'ultimo_dia_recordatorio_mostrado';
 
   constructor() {}
 
@@ -148,6 +149,24 @@ export class PreferencesService {
       await Preferences.set({ key: this.KEY_CATALOGO_FIADO, value: serializarCatalogo(items) });
     } catch (e) {
       console.error('Preferences.set catalogo_fiado error', e);
+    }
+  }
+
+  async getUltimoDiaRecordatorioMostrado(): Promise<string | null> {
+    try {
+      const { value } = await Preferences.get({ key: this.KEY_ULTIMO_DIA_RECORDATORIO });
+      return value ?? null;
+    } catch (e) {
+      console.error('Preferences.get ultimo_dia_recordatorio_mostrado error', e);
+      return null;
+    }
+  }
+
+  async setUltimoDiaRecordatorioMostrado(fechaIso: string): Promise<void> {
+    try {
+      await Preferences.set({ key: this.KEY_ULTIMO_DIA_RECORDATORIO, value: fechaIso });
+    } catch (e) {
+      console.error('Preferences.set ultimo_dia_recordatorio_mostrado error', e);
     }
   }
 }
