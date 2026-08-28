@@ -59,18 +59,25 @@ describe('FreemiumService', () => {
   it('returns false and shows the block alert when the trial is expired', async () => {
     preferencesServiceMock.getLicenciaPremium.and.resolveTo(false);
     databaseServiceMock.contarClientes.and.resolveTo(7);
-    preferencesServiceMock.getDiasDesdeInstalacion.and.resolveTo(21);
+    preferencesServiceMock.getDiasDesdeInstalacion.and.resolveTo(26);
 
     await expectAsync(service.puedeEscribir()).toBeResolvedTo(false);
     expect(alertControllerMock.create).toHaveBeenCalled();
     expect(preferencesServiceMock.setTrialBloqueado).toHaveBeenCalledWith(true);
   });
 
-  it('stays blocked after the flag is persisted even if client count drops below the limit', async () => {
+  it('client count no longer influences blocking: 50 clients within day limit stays unblocked', async () => {
+    preferencesServiceMock.getLicenciaPremium.and.resolveTo(false);
+    databaseServiceMock.contarClientes.and.resolveTo(50);
+    preferencesServiceMock.getDiasDesdeInstalacion.and.resolveTo(10);
+
+    await expectAsync(service.puedeEscribir()).toBeResolvedTo(true);
+  });
+
+  it('stays blocked after the flag is persisted even if days would look active on a later check', async () => {
     preferencesServiceMock.getLicenciaPremium.and.resolveTo(false);
     preferencesServiceMock.getTrialBloqueado.and.returnValues(false, true);
-    databaseServiceMock.contarClientes.and.returnValues(Promise.resolve(7), Promise.resolve(6));
-    preferencesServiceMock.getDiasDesdeInstalacion.and.returnValues(Promise.resolve(21), Promise.resolve(1));
+    preferencesServiceMock.getDiasDesdeInstalacion.and.returnValues(Promise.resolve(26), Promise.resolve(1));
 
     await expectAsync(service.obtenerEstado()).toBeResolvedTo(jasmine.objectContaining({ bloqueado: true }));
     await expectAsync(service.obtenerEstado()).toBeResolvedTo(jasmine.objectContaining({ bloqueado: true }));
