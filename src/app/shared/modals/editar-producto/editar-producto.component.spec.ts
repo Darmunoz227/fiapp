@@ -27,8 +27,9 @@ describe('EditarProductoComponent', () => {
   };
 
   beforeEach(async () => {
-    dbMock = jasmine.createSpyObj('DatabaseService', ['actualizarProducto']);
+    dbMock = jasmine.createSpyObj('DatabaseService', ['actualizarProducto', 'crearProducto']);
     dbMock.actualizarProducto.and.resolveTo();
+    dbMock.crearProducto.and.resolveTo();
     freemiumMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
     freemiumMock.puedeEscribir.and.resolveTo(true);
     modalMock = jasmine.createSpyObj('ModalController', ['dismiss']);
@@ -84,5 +85,45 @@ describe('EditarProductoComponent', () => {
     freemiumMock.puedeEscribir.and.resolveTo(false);
     await component.guardar();
     expect(dbMock.actualizarProducto).not.toHaveBeenCalled();
+  });
+
+  it('modo duplicar: guarda con crearProducto, no actualizarProducto', async () => {
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    component.precio_venta = '4.200';
+    component.minimo_stock = 8;
+    await component.guardar();
+    expect(dbMock.crearProducto).toHaveBeenCalled();
+    expect(dbMock.actualizarProducto).not.toHaveBeenCalled();
+  });
+
+  it('modo duplicar: el producto creado tiene costo_promedio 0 e id distinto del original', async () => {
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    component.precio_venta = '4.200';
+    component.minimo_stock = 8;
+    await component.guardar();
+    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    expect(arg.costo_promedio).toBe(0);
+    expect(arg.id).not.toBe('p1');
+    expect(arg.nombre).toBe('Arroz Diana');
+    expect(arg.precio_venta).toBe(4200);
+    expect(arg.minimo_stock).toBe(8);
+  });
+
+  it('modo duplicar: copia tipo_venta del original', async () => {
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    await component.guardar();
+    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    expect(arg.tipo_venta).toBe('UNIDAD');
+  });
+
+  it('modo duplicar: no crea si el freemium bloquea', async () => {
+    freemiumMock.puedeEscribir.and.resolveTo(false);
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    await component.guardar();
+    expect(dbMock.crearProducto).not.toHaveBeenCalled();
   });
 });
