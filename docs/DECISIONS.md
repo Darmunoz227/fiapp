@@ -919,3 +919,65 @@ Alert ni el cambio de limite de clientes se manifestaban, sin ningun error
 en logcat. Se confirmo la causa con evidencia (ls -la de www/main.js y
 grep del codigo nuevo ausente en el bundle) antes de reconstruir con
 ng build + cap sync + cap run, en vez de asumir un bug en el codigo fuente.
+
+## Decision 047 - Duplicar producto: variantes por copia editable, sin schema
+
+**Contexto:** Feature 025, insight de una merchant de ropa deportiva (audio
+WhatsApp). Maneja articulos con muchas variantes de talla y color (ej. Buzo
+Hombre en 12 referencias). Crear cada variante obligaba a reescribir TODOS
+los campos del formulario cambiando solo una palabra del nombre, tanta
+friccion que llevaba el inventario en cuaderno y transcribia despues. La
+segunda merchant de ropa (no deportiva) tiene el MISMO problema y por eso
+aun no completo su inventario en la app: 2 de 3 pilotos bloqueados.
+
+**Decision - Fase 1 de 2: duplicar, no variantes formales.** Se descarto
+por ahora modelar talla/color como atributos relacionados con schema nuevo
+(producto base + variantes). Esa es una inversion de arquitectura mayor
+(Fase 2, backlog) que requiere validar mas a fondo. Fase 1: cada variante
+SIGUE siendo un producto independiente en la base de datos, pero su
+CREACION parte de una copia editable de un producto existente, no de un
+formulario vacio.
+
+**Decision - reusar EditarProductoComponent con un modo.** Se añadio
+@Input() modo: 'editar' | 'duplicar' (default 'editar'). En modo editar,
+guardar() llama actualizarProducto sobre el mismo id, sin cambios. En modo
+duplicar, guardar() genera un id nuevo (uuidv4) y llama crearProducto con
+un Producto nuevo; el original queda intacto. Se evito crear un componente
+nuevo para no duplicar la UI, la validacion de precio/nombre/stock ni el
+manejo de cursor ya existentes.
+
+**Decision - precio copiado pero editable, costo SIEMPRE 0.** El precio de
+venta se copia del original pero queda editable antes de guardar, porque
+Diego confirmo que puede variar (tallas extremas con descuento). El
+costo_promedio del duplicado inicia SIEMPRE en 0, nunca se copia: el costo
+se deriva de movimientos reales de compra (Decision 040), copiarlo sin
+compra real detras rompería la trazabilidad. La merchant registra la
+primera compra de la nueva variante como con cualquier producto nuevo.
+tipo_venta se copia del original sin exponerse para editar (el modal ya no
+lo expone). minimo_stock se copia editable.
+
+**Decision - swipe como disparador, a diferencia del catalogo de fiado.**
+Duplicar se agrego como una segunda ion-item-option (color tertiary) junto
+a Editar (color primary) en el swipe ya existente de Inventario (Feature
+17). Aqui SI se usa swipe, al reves que en el catalogo de fiado del
+ambulante donde se prohibio: el publico de tiendas de ropa ya esta
+entrenado en el gesto de editar, y cambiar de patron dentro del mismo
+modulo confundiria mas. El titulo del modal cambia a DUPLICAR PRODUCTO
+segun el modo para que la merchant sepa que esta creando, no editando.
+
+**Fuera de alcance / conocido:** el foco automatico al final del campo
+nombre se dejo fuera por ser cosmetico y de riesgo desproporcionado (manejo
+de cursor en Ionic); el nombre igual queda pre-llenado y la merchant toca
+al final para añadir la talla. No se creo relacion entre original y
+duplicado; siguen 100% independientes. Schema v7 intacto, sin migracion.
+
+**Evidencia, on Android emulator, BY HAND:** swipe mostro Editar y Duplicar;
+Duplicar abrio el modal titulado DUPLICAR PRODUCTO con nombre, precio y
+stock precargados; editar solo el nombre y guardar creo un producto nuevo
+que aparecio con Sin costo registrado mientras el original quedo intacto;
+un precio editado en el duplicado se respeto; duplicar el mismo producto
+varias veces cambiando solo la talla fue notablemente mas rapido que crear
+desde cero. 193 tests green (189 base + 4 nuevos de modo duplicar:
+crearProducto en vez de actualizarProducto, costo 0 e id distinto,
+tipo_venta copiado, y bloqueo freemium), sin regresiones en los tests
+existentes de modo editar.

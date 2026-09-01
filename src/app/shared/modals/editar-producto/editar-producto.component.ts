@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit, ViewChild, Input } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
@@ -10,6 +10,7 @@ import { FreemiumService } from "../../../core/freemium/freemium.service";
 import { Producto } from "../../../core/models/producto.model";
 import { formatCurrencyCOP, parseCurrencyInput } from "../../utils/formatters";
 import { calcularPosicionCursor } from "../../utils/caret-position";
+import { v4 as uuidv4 } from "uuid";
 
 @Component({
   selector: "app-editar-producto",
@@ -23,6 +24,7 @@ import { calcularPosicionCursor } from "../../utils/caret-position";
 })
 export class EditarProductoComponent implements OnInit {
   producto!: Producto;
+  @Input() modo: 'editar' | 'duplicar' = 'editar';
 
   nombre = "";
   precio_venta = "";
@@ -92,10 +94,22 @@ export class EditarProductoComponent implements OnInit {
     }
 
     try {
-      await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock);
+      if (this.modo === 'duplicar') {
+        const nuevo: Producto = {
+          id: uuidv4(),
+          nombre,
+          precio_venta: precioVenta,
+          tipo_venta: this.producto.tipo_venta,
+          minimo_stock: minimoStock,
+          costo_promedio: 0,
+        };
+        await this.dbService.crearProducto(nuevo);
+      } else {
+        await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock);
+      }
       this.modalCtrl.dismiss({ guardado: true });
     } catch (error) {
-      console.error("No se pudo actualizar el producto", error);
+      console.error("No se pudo guardar el producto", error);
     }
   }
 }
