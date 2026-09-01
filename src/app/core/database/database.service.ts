@@ -443,13 +443,33 @@ export class DatabaseService {
   }
 
   async crearCliente(cliente: Cliente): Promise<void> {
+    const createdAt = cliente.created_at ?? Date.now();
+
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebClientes.push({ ...cliente, deleted_at: cliente.deleted_at ?? null });
+      this.mockWebClientes.push({
+        ...cliente,
+        created_at: createdAt,
+        updated_at: cliente.updated_at ?? null,
+        deleted_at: cliente.deleted_at ?? null,
+        store_id: cliente.store_id ?? null,
+        created_by: cliente.created_by ?? null,
+      });
       return;
     }
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO clientes (id, nombre, telefono, habeas_data_flag, fecha_creacion) VALUES (?, ?, ?, ?, ?)';
-    const values = [cliente.id, cliente.nombre, cliente.telefono, cliente.habeas_data_flag ? 1 : 0, cliente.fecha_creacion];
+    const sql = 'INSERT INTO clientes (id, nombre, telefono, habeas_data_flag, fecha_creacion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [
+      cliente.id,
+      cliente.nombre,
+      cliente.telefono,
+      cliente.habeas_data_flag ? 1 : 0,
+      cliente.fecha_creacion,
+      createdAt,
+      cliente.updated_at ?? null,
+      cliente.deleted_at ?? null,
+      cliente.store_id ?? null,
+      cliente.created_by ?? null,
+    ];
     await this.ejecutarRun(sql, values);
   }
 
@@ -548,14 +568,35 @@ export class DatabaseService {
   }
 
   async crearProducto(producto: Producto): Promise<void> {
+    const createdAt = producto.created_at ?? Date.now();
+
     if (Capacitor.getPlatform() === 'web') {
-      this.mockWebProductos.push({ ...producto, deleted_at: producto.deleted_at ?? null });
+      this.mockWebProductos.push({
+        ...producto,
+        created_at: createdAt,
+        updated_at: producto.updated_at ?? null,
+        deleted_at: producto.deleted_at ?? null,
+        store_id: producto.store_id ?? null,
+        created_by: producto.created_by ?? null,
+      });
       return;
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio) VALUES (?, ?, ?, ?, ?, ?)';
-    const values = [producto.id, producto.nombre, producto.precio_venta, producto.tipo_venta, producto.minimo_stock, producto.costo_promedio];
+    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const values = [
+      producto.id,
+      producto.nombre,
+      producto.precio_venta,
+      producto.tipo_venta,
+      producto.minimo_stock,
+      producto.costo_promedio,
+      createdAt,
+      producto.updated_at ?? null,
+      producto.deleted_at ?? null,
+      producto.store_id ?? null,
+      producto.created_by ?? null,
+    ];
     await this.ejecutarRun(sql, values);
   }
 
