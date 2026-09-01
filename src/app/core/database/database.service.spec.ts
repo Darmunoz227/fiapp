@@ -281,6 +281,36 @@ describe('DatabaseService', () => {
     await expectAsync(service.contarClientes()).toBeResolvedTo(2);
   });
 
+  it('crearCliente genera created_at cuando no viene', async () => {
+    const antes = Date.now();
+    await service.crearCliente(crearClienteParcial({ id: 'cliente-audit-1', created_at: null }));
+    const creado = obtenerMockClientes().find((c) => c.id === 'cliente-audit-1');
+    expect(typeof creado!.created_at).toBe('number');
+    expect(creado!.created_at as number).toBeGreaterThanOrEqual(antes);
+  });
+
+  it('crearCliente respeta un created_at explicito', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'cliente-audit-2', created_at: 1700000000000 }));
+    const creado = obtenerMockClientes().find((c) => c.id === 'cliente-audit-2');
+    expect(creado!.created_at).toBe(1700000000000);
+  });
+
+  it('crearProducto genera created_at cuando no viene', async () => {
+    const antes = Date.now();
+    await service.crearProducto(crearProductoParcial({ id: 'producto-audit-1', created_at: null }));
+    const mock = (service as unknown as { mockWebProductos: Producto[] }).mockWebProductos;
+    const creado = mock.find((p) => p.id === 'producto-audit-1');
+    expect(typeof creado!.created_at).toBe('number');
+    expect(creado!.created_at as number).toBeGreaterThanOrEqual(antes);
+  });
+
+  it('crearProducto respeta un created_at explicito', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'producto-audit-2', created_at: 1700000000000 }));
+    const mock = (service as unknown as { mockWebProductos: Producto[] }).mockWebProductos;
+    const creado = mock.find((p) => p.id === 'producto-audit-2');
+    expect(creado!.created_at).toBe(1700000000000);
+  });
+
   it('obtenerClientePorId returns null for a soft-deleted client', async () => {
     await service.crearCliente(crearClienteParcial({ id: 'cliente-1' }));
     await service.softDeleteCliente('cliente-1');
