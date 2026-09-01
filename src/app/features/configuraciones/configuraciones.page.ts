@@ -7,6 +7,7 @@ import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCir
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
+import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { App } from '@capacitor/app';
 // Importamos la herramienta nativa de compartir
 import { Share } from '@capacitor/share';
@@ -35,6 +36,7 @@ export class ConfiguracionesPage {
     private dbService: DatabaseService,
     private prefs: PreferencesService,
     private freemiumService: FreemiumService,
+    private seguridadService: SeguridadService,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
@@ -226,6 +228,7 @@ export class ConfiguracionesPage {
 
 
   async reiniciarInventario() {
+    await this.seguridadService.ejecutarConPin(async () => {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
       return;
@@ -267,6 +270,7 @@ export class ConfiguracionesPage {
     });
 
     await alert.present();
+    });
   }
 
   private async ejecutarResetInventario() {

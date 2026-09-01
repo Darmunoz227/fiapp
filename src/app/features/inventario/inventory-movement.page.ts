@@ -21,6 +21,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
+import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { calcularStockDerivado } from './inventory-calculations';
@@ -66,6 +67,7 @@ export class InventoryMovementPage {
   constructor(
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
+    private seguridadService: SeguridadService,
     private toastCtrl: ToastController,
     private route: ActivatedRoute,
   ) {
@@ -93,14 +95,16 @@ export class InventoryMovementPage {
       return;
     }
 
-    try {
-      await this.dbService.softDeleteMovimiento(movimiento.id);
-      await this.cargarDatos();
-      await this.mostrarToastDeshacer(movimiento.id);
-    } catch (error) {
-      const mensaje = error instanceof Error ? error.message : 'No se pudo anular el movimiento';
-      await this.mostrarToast(mensaje, 'danger');
-    }
+    await this.seguridadService.ejecutarConPin(async () => {
+      try {
+        await this.dbService.softDeleteMovimiento(movimiento.id);
+        await this.cargarDatos();
+        await this.mostrarToastDeshacer(movimiento.id);
+      } catch (error) {
+        const mensaje = error instanceof Error ? error.message : 'No se pudo anular el movimiento';
+        await this.mostrarToast(mensaje, 'danger');
+      }
+    });
   }
 
   async registrarMovimiento() {

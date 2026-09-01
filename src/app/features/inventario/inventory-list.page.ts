@@ -9,6 +9,7 @@ import {
 } from '@ionic/angular/standalone';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
+import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
 import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
@@ -40,6 +41,7 @@ export class InventoryListPage {
   constructor(
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
+    private seguridadService: SeguridadService,
     private toastCtrl: ToastController,
     private modalCtrl: ModalController
   ) {}
@@ -167,17 +169,19 @@ export class InventoryListPage {
   }
 
   async abrirEdicion(producto: Producto) {
-    const modal = await this.modalCtrl.create({
-      component: EditarProductoComponent,
-      componentProps: { producto },
+    await this.seguridadService.ejecutarConPin(async () => {
+      const modal = await this.modalCtrl.create({
+        component: EditarProductoComponent,
+        componentProps: { producto },
+      });
+
+      await modal.present();
+
+      const { data } = await modal.onWillDismiss();
+      if (data?.guardado) {
+        await this.cargarProductos();
+      }
     });
-
-    await modal.present();
-
-    const { data } = await modal.onWillDismiss();
-    if (data?.guardado) {
-      await this.cargarProductos();
-    }
   }
 
   async abrirDuplicado(producto: Producto) {
