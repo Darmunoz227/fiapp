@@ -981,3 +981,51 @@ desde cero. 193 tests green (189 base + 4 nuevos de modo duplicar:
 crearProducto en vez de actualizarProducto, costo 0 e id distinto,
 tipo_venta copiado, y bloqueo freemium), sin regresiones en los tests
 existentes de modo editar.
+
+## Decision 048 - crearCliente y crearProducto escriben todas sus columnas con created_at automatico
+
+**Contexto:** crearCliente escribia solo 5 de 10 columnas de la tabla
+clientes y crearProducto solo 6 de 11 de productos. Las 5 columnas de
+auditoria omitidas en ambos (created_at, updated_at, deleted_at, store_id,
+created_by) quedaban en NULL. Es el MISMO defecto que Decision 032 corrigio
+en crearTransaccion. Ademas web y nativo divergian: el mock web hacia spread
+del objeto completo pero el INSERT nativo descartaba esas columnas.
+
+**Por que ahora:** created_by es el cimiento para registrar quien creo un
+registro (Administrador vs Empleado) de la futura feature de roles.
+updated_at es requisito tecnico de cualquier futura sincronizacion entre
+turnos con merge (decidir cual version es mas reciente es imposible sin el).
+Pagar esta deuda ahora habilita ambos futuros sin comprometerse a construir
+ninguno prematuramente.
+
+**Decision - INSERT completo, patron de Decision 032.** Ambos metodos se
+reescribieron para que su INSERT nativo liste TODAS las columnas de su tabla
+y su array de values pase cada campo con fallback (?? null), igual que
+crearTransaccion tras Decision 032.
+
+**Decision - created_at se genera automaticamente.** Se calcula una sola vez
+al inicio del metodo: const createdAt = objeto.created_at ?? Date.now(). Esa
+MISMA variable se usa en la rama web y en la nativa, cerrando la divergencia
+web/nativo. Si el objeto trae un created_at explicito se respeta; si no, se
+genera. Los otros cuatro campos (updated_at, deleted_at, store_id,
+created_by) se pasan con ?? null: se llenaran cuando se construyan roles y
+la trazabilidad de edicion/borrado.
+
+**Fuera de alcance:** no se cambio schema ni SCHEMA_VERSION (las columnas ya
+existian DEFAULT NULL). No se migraron registros historicos: los
+clientes/productos creados antes de este feature siguen con created_at null;
+solo los nuevos traen timestamp. No se poblo updated_at en actualizarProducto
+(edicion) todavia. No se toco crearTransaccion (ya correcto desde Dec 032).
+
+**Evidencia, on Android emulator, BY HAND:** se detecto primero un falso
+negativo por build viejo (Cliente/Producto Auditoria salieron con created_at
+null porque el emulador tenia el APK previo al fix), confirmado y corregido
+reconstruyendo antes de asumir un bug de codigo. Tras rebuild + cap sync +
+cap run, se crearon Cliente Auditoria 2 y Producto Auditoria 2: el respaldo
+JSON exportado mostro created_at con timestamp (1788225280776 y 1788225307673
+respectivamente, el del cliente coincidiendo con su fecha_creacion por
+generarse en el mismo instante), mientras todos los registros previos
+(clientes y productos viejos) conservaron created_at null, confirmando que no
+se migran historicos. 197 tests green (193 base + 4 nuevos: created_at
+generado y created_at explicito respetado, para cliente y producto), sin
+regresiones incluidos los tests de reemplazarTodo/respaldo.
