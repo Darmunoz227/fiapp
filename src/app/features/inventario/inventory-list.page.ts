@@ -180,6 +180,20 @@ export class InventoryListPage {
     }
   }
 
+  async abrirDuplicado(producto: Producto) {
+    const modal = await this.modalCtrl.create({
+      component: EditarProductoComponent,
+      componentProps: { producto, modo: 'duplicar' },
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if (data?.guardado) {
+      await this.cargarProductos();
+    }
+  }
+
   limpiarFormulario() {
     this.nombre = '';
     this.precio_venta = '';
