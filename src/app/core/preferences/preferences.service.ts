@@ -11,6 +11,7 @@ export class PreferencesService {
   private readonly KEY_TRIAL_BLOQUEADO = 'trial_bloqueado';
   private readonly KEY_CATALOGO_FIADO = 'catalogo_fiado';
   private readonly KEY_ULTIMO_DIA_RECORDATORIO = 'ultimo_dia_recordatorio_mostrado';
+  private readonly KEY_PIN_ADMINISTRADOR = 'pin_administrador';
 
   constructor() {}
 
@@ -167,6 +168,24 @@ export class PreferencesService {
       await Preferences.set({ key: this.KEY_ULTIMO_DIA_RECORDATORIO, value: fechaIso });
     } catch (e) {
       console.error('Preferences.set ultimo_dia_recordatorio_mostrado error', e);
+    }
+  }
+
+  async getPinAdministrador(): Promise<string | null> {
+    try {
+      const { value } = await Preferences.get({ key: this.KEY_PIN_ADMINISTRADOR });
+      return value ?? null;
+    } catch (e) {
+      console.error('Preferences.get pin_administrador error', e);
+      return null;
+    }
+  }
+
+  async setPinAdministrador(pin: string): Promise<void> {
+    try {
+      await Preferences.set({ key: this.KEY_PIN_ADMINISTRADOR, value: pin });
+    } catch (e) {
+      console.error('Preferences.set pin_administrador error', e);
     }
   }
 }
