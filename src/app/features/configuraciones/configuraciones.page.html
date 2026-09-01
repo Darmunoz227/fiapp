@@ -72,6 +72,25 @@
     </ion-button>
   </ion-list>
 
+  <h2 class="section-title">SEGURIDAD</h2>
+
+  <ion-list class="settings-card">
+    <ion-item lines="none" class="settings-item">
+      <ion-label>
+        <h2 class="item-title">PIN de administrador</h2>
+        <p class="item-text" *ngIf="!tienePinConfigurado">Sin PIN configurado. Las acciones sensibles (editar producto, anular movimiento, reiniciar inventario) estan abiertas. Configura un PIN para protegerlas.</p>
+        <p class="item-text" *ngIf="tienePinConfigurado">PIN activo. Editar producto, anular movimiento y reiniciar inventario piden el PIN.</p>
+      </ion-label>
+    </ion-item>
+
+    <ion-button *ngIf="!tienePinConfigurado" expand="block" color="primary" class="save-business-button" (click)="establecerPin()">
+      Establecer PIN de administrador
+    </ion-button>
+    <ion-button *ngIf="tienePinConfigurado" expand="block" fill="outline" color="primary" class="save-business-button" (click)="cambiarPinAdmin()">
+      Cambiar PIN
+    </ion-button>
+  </ion-list>
+
   <h2 class="section-title">GESTIÓN DE DATOS</h2>
 
   <ion-list class="settings-card">

@@ -55,10 +55,14 @@ describe('ConfiguracionesPage', () => {
       'clearNombreNegocio',
       'getCatalogoFiado',
       'setCatalogoFiado',
+      'getPinAdministrador',
+      'setPinAdministrador',
     ]);
     prefsMock.getNombreNegocio.and.resolveTo('Tienda');
     prefsMock.getCatalogoFiado.and.resolveTo([]);
     prefsMock.setCatalogoFiado.and.resolveTo();
+    prefsMock.getPinAdministrador.and.resolveTo(null);
+    prefsMock.setPinAdministrador.and.resolveTo();
 
     freemiumMock = jasmine.createSpyObj('FreemiumService', [
       'puedeEscribir',

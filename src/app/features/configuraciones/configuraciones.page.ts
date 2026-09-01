@@ -7,6 +7,7 @@ import { downloadOutline, shieldCheckmarkOutline, cloudUploadOutline, refreshCir
 import { DatabaseService } from '../../core/database/database.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
+import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { App } from '@capacitor/app';
 // Importamos la herramienta nativa de compartir
 import { Share } from '@capacitor/share';
@@ -26,6 +27,7 @@ import { CatalogoItem } from '../../core/models/catalogo-item.model';
 export class ConfiguracionesPage {
   nombreNegocio = '';
   catalogoFiado: CatalogoItem[] = [];
+  tienePinConfigurado = false;
   mostrarToastGuardado = false;
   appVersion: string = '1.0.0';
   private tapsEnCreditos = 0;
@@ -35,6 +37,7 @@ export class ConfiguracionesPage {
     private dbService: DatabaseService,
     private prefs: PreferencesService,
     private freemiumService: FreemiumService,
+    private seguridadService: SeguridadService,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController
   ) {
@@ -45,6 +48,7 @@ export class ConfiguracionesPage {
     this.cargarNombreNegocio();
     this.cargarVersionApp();
     this.cargarCatalogo();
+    this.cargarEstadoPin();
   }
 
   async cargarVersionApp() {
@@ -226,6 +230,7 @@ export class ConfiguracionesPage {
 
 
   async reiniciarInventario() {
+    await this.seguridadService.ejecutarConPin(async () => {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
       return;
@@ -267,6 +272,7 @@ export class ConfiguracionesPage {
     });
 
     await alert.present();
+    });
   }
 
   private async ejecutarResetInventario() {
@@ -445,5 +451,63 @@ export class ConfiguracionesPage {
 
   private async persistirCatalogo() {
     await this.prefs.setCatalogoFiado(this.catalogoFiado);
+  }
+
+  async cargarEstadoPin() {
+    this.tienePinConfigurado = await this.seguridadService.tienePin();
+  }
+
+  async establecerPin() {
+    const alert = await this.alertCtrl.create({
+      header: 'Establecer PIN',
+      message: 'Este PIN protegera acciones como editar productos, anular movimientos y reiniciar inventario.',
+      inputs: [{ name: 'pin', type: 'password', placeholder: 'Nuevo PIN' }],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Guardar',
+          handler: async (d: { pin?: string }) => {
+            const pin = (d?.pin ?? '').trim();
+            if (!pin) {
+              return false;
+            }
+            await this.seguridadService.configurarPin(pin);
+            await this.cargarEstadoPin();
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  async cambiarPinAdmin() {
+    const alert = await this.alertCtrl.create({
+      header: 'Cambiar PIN',
+      inputs: [
+        { name: 'actual', type: 'password', placeholder: 'PIN actual' },
+        { name: 'nuevo', type: 'password', placeholder: 'Nuevo PIN' },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Cambiar',
+          handler: async (d: { actual?: string; nuevo?: string }) => {
+            const nuevo = (d?.nuevo ?? '').trim();
+            if (!nuevo) {
+              return false;
+            }
+            const ok = await this.seguridadService.cambiarPin(d?.actual ?? '', nuevo);
+            if (!ok) {
+              await this.alertaSimple('PIN incorrecto', 'El PIN actual no es correcto. No se cambio nada.');
+              return false;
+            }
+            await this.cargarEstadoPin();
+            return true;
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 }

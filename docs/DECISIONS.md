@@ -1029,3 +1029,64 @@ generarse en el mismo instante), mientras todos los registros previos
 se migran historicos. 197 tests green (193 base + 4 nuevos: created_at
 generado y created_at explicito respetado, para cliente y producto), sin
 regresiones incluidos los tests de reemplazarTodo/respaldo.
+
+## Decision 049 - PIN de administrador para acciones destructivas (Fase 1 de roles)
+
+**Contexto:** dos merchants pidieron que el inventario no se altere sin
+autorizacion del propietario. Trabajan por turnos con un familiar; el
+"empleado" no es un extrano a vigilar sino familia que ayuda. El objetivo es
+un candado de intencion: evitar que el familiar altere por error o impulso el
+inventario, los precios o borre cosas.
+
+**Alcance honesto de lo que protege:** un PIN guardado localmente NO es
+seguridad criptografica; alguien tecnico con acceso al dispositivo podria
+eludirlo. Pero esa no es la amenaza real. La amenaza es "que el familiar no me
+desordene el inventario sin querer". Para ese problema (familia, confianza,
+prevenir errores) el PIN simple es la herramienta correcta y suficiente. Se
+documenta explicitamente para no vender una falsa sensacion de seguridad.
+
+**Decision - app abierta, PIN por accion.** La app arranca generica para ambos
+roles, NO en modo empleado. Solo las acciones DESTRUCTIVAS piden PIN en el
+momento (por accion, no por sesion, por ser las mas peligrosas). Fase 1 gatea
+exactamente TRES: reiniciar inventario, anular movimiento y editar producto.
+
+**Decision - duplicar NO se gatea.** Duplicar producto es constructivo (crea
+uno nuevo), no destructivo, y es justo el flujo que Feature #25 acelero para
+las tiendas de ropa. Pedir PIN por cada talla mataria esa agilidad. Queda
+fuera del gate a proposito.
+
+**Decision - sin PIN configurado, todo abierto.** Si no hay PIN (null o
+vacio), las tres acciones se ejecutan sin pedir nada. Esto evita bloquear a
+merchants que aun no configuraron seguridad. La regla "sin pin permite" se
+centraliza en la funcion pura verificarPin(ingresado, guardado): guardado
+null/vacio devuelve true; con valor, true solo si ingresado.trim() coincide.
+
+**Decision - SeguridadService con ejecutarConPin.** Un servicio inyectable
+(providedIn root) encapsula "sin PIN ejecuta directo; con PIN pide el PIN via
+AlertController y solo ejecuta si es correcto". Las tres pantallas solo llaman
+seguridad.ejecutarConPin(() => accion), sin duplicar el AlertController. El
+PIN se guarda en Preferences (KEY pin_administrador), mismo patron que el
+resto. El merchant lo establece y cambia en una nueva seccion Seguridad de
+Configuraciones; para cambiarlo se exige el PIN actual.
+
+**Decision - PIN va antes del chequeo de negocio donde corresponde.** En
+reiniciarInventario el PIN es la primera barrera (antes del respaldo). En
+anularMovimiento el chequeo de COMPRA va ANTES del PIN: no tiene sentido pedir
+PIN para una accion que se rechazara igual (las COMPRAS no se anulan, se
+corrigen con AJUSTE por integridad del costo promedio ponderado).
+
+**Fuera de alcance (Fase 1):** ocultar ganancias al empleado (requiere un
+modelo de estado de sesion, no un PIN puntual); login, tabla de usuarios,
+multi-dispositivo; poblar created_by con el rol (Feature #26 dejo el campo
+listo pero no se usa aun).
+
+**Evidencia, on Android emulator, BY HAND:** sin PIN, editar/anular/reiniciar
+corrieron sin pedir nada y duplicar tampoco. Se configuro un PIN en la seccion
+Seguridad. Con PIN: editar producto, anular movimiento (probado con MERMA, ya
+que COMPRA se rechaza antes por diseno) y reiniciar inventario pidieron el PIN;
+correcto procede, incorrecto cancela con aviso. Duplicar siguio sin pedir PIN.
+Cambiar el PIN exigio el PIN actual. 202 tests green (197 base + 5 de
+verificarPin). Fix de spec: el mock de PreferencesService en
+configuraciones.page.spec.ts necesito getPinAdministrador resolviendo null
+para que los 3 tests de reset siguieran verdes (sin PIN = ejecuta directo),
+proveyendo la dependencia sin debilitar aserciones.
