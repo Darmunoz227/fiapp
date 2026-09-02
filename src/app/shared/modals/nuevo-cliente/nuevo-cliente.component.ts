@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ModalController } from '@ionic/angular/standalone';
 import {
@@ -22,11 +22,22 @@ import { Cliente } from '../../../core/models/cliente.model';
     IonLabel, IonInput, IonCheckbox, IonRow, IonCol, IonButton
   ]
 })
-export class NuevoClienteComponent {
+export class NuevoClienteComponent implements OnInit {
   
   nombre: string = '';
   telefono: string = '';
   habeasData: boolean = false;
+
+  @Input() modo: 'crear' | 'editar' = 'crear';
+  @Input() cliente?: Cliente;
+
+  ngOnInit() {
+    if (this.modo === 'editar' && this.cliente) {
+      this.nombre = this.cliente.nombre;
+      this.telefono = this.cliente.telefono;
+      this.habeasData = this.cliente.habeas_data_flag;
+    }
+  }
 
   constructor(
     private modalCtrl: ModalController,
@@ -39,6 +50,11 @@ export class NuevoClienteComponent {
   }
 
   async guardarCliente() {
+    if (this.modo === 'editar') {
+      await this.editarClienteExistente();
+      return;
+    }
+
     const puedeAgregar = await this.freemiumService.puedeAgregarCliente();
     if (!puedeAgregar) {
       return;
@@ -57,6 +73,26 @@ export class NuevoClienteComponent {
       this.modalCtrl.dismiss({ guardado: true });
     } catch (error) {
       console.error('No se pudo guardar el cliente', error);
+    }
+  }
+
+  private async editarClienteExistente() {
+    const puedeEscribir = await this.freemiumService.puedeEscribir();
+    if (!puedeEscribir || !this.cliente) {
+      return;
+    }
+
+    const clienteActualizado: Cliente = {
+      ...this.cliente,
+      nombre: this.nombre,
+      telefono: this.telefono,
+    };
+
+    try {
+      await this.dbService.actualizarCliente(clienteActualizado);
+      this.modalCtrl.dismiss({ guardado: true });
+    } catch (error) {
+      console.error('No se pudo actualizar el cliente', error);
     }
   }
 }
