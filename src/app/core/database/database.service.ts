@@ -473,6 +473,24 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values);
   }
 
+  async actualizarCliente(cliente: Cliente): Promise<void> {
+    const updatedAt = Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      const existente = this.mockWebClientes.find((c) => c.id === cliente.id);
+      if (existente) {
+        existente.nombre = cliente.nombre;
+        existente.telefono = cliente.telefono;
+        existente.updated_at = updatedAt;
+      }
+      return;
+    }
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE clientes SET nombre = ?, telefono = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL';
+    const values = [cliente.nombre, cliente.telefono, updatedAt, cliente.id];
+    await this.ejecutarRun(sql, values);
+  }
+
   async leerCrudoClientes(): Promise<Cliente[]> {
     if (Capacitor.getPlatform() === "web") return this.mockWebClientes;
     if (!this.isInitialized) await this.initializePlugin();
