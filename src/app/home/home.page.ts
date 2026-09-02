@@ -140,6 +140,7 @@ export class HomePage {
       this.clientesActivos.push({
         id: cliente.id,
         nombre: cliente.nombre,
+        telefono: cliente.telefono,
         deudaTotal: deudaCliente
       });
       this.totalCartera += deudaCliente;
