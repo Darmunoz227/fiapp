@@ -346,6 +346,30 @@ describe('DatabaseService', () => {
     expect(transaccionesVisibles[0].deleted_at ?? null).toBeNull();
   });
 
+  it('actualizarCliente actualiza nombre y telefono del mismo id y setea updated_at', async () => {
+    await service.crearCliente(crearClienteParcial({ id: 'c1', nombre: 'Ana', telefono: '' }));
+
+    await service.actualizarCliente(crearClienteParcial({ id: 'c1', nombre: 'Ana Maria', telefono: '3009998888' }));
+
+    const clientes = obtenerMockClientes();
+    expect(clientes.length).toBe(1);
+    expect(clientes[0].id).toBe('c1');
+    expect(clientes[0].nombre).toBe('Ana Maria');
+    expect(clientes[0].telefono).toBe('3009998888');
+    expect(clientes[0].updated_at).toEqual(jasmine.any(Number));
+  });
+
+  it('actualizarCliente NO altera created_at ni fecha_creacion', async () => {
+    const fecha = 1700000000000;
+    await service.crearCliente(crearClienteParcial({ id: 'c2', created_at: 1700000000000, fecha_creacion: fecha }));
+
+    await service.actualizarCliente(crearClienteParcial({ id: 'c2', nombre: 'Nuevo Nombre' }));
+
+    const cliente = obtenerMockClientes().find((c) => c.id === 'c2');
+    expect(cliente?.created_at).toBe(1700000000000);
+    expect(cliente?.fecha_creacion).toBe(fecha);
+  });
+
   it('obtenerTransacciones returns all non-deleted transactions ordered by fecha DESC on the web mock path', async () => {
     await service.crearTransaccion(crearTransaccionParcial({ id: 'tx-old', fecha: 10, cliente_id: 'cliente-1' }));
     await service.crearTransaccion(crearTransaccionParcial({ id: 'tx-mid', fecha: 20, cliente_id: 'cliente-2' }));

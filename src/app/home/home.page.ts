@@ -140,6 +140,7 @@ export class HomePage {
       this.clientesActivos.push({
         id: cliente.id,
         nombre: cliente.nombre,
+        telefono: cliente.telefono,
         deudaTotal: deudaCliente
       });
       this.totalCartera += deudaCliente;
@@ -173,6 +174,20 @@ export class HomePage {
       component: NuevoClienteComponent,
       breakpoints: [0, 0.75],
       initialBreakpoint: 0.75,
+    });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    if (data && data.guardado) {
+      await this.cargarClientesYDeudas();
+    }
+  }
+
+  async abrirModalEditarCliente(cliente: any) {
+    const modal = await this.modalCtrl.create({
+      component: NuevoClienteComponent,
+      breakpoints: [0, 0.75],
+      initialBreakpoint: 0.75,
+      componentProps: { modo: 'editar', cliente },
     });
     await modal.present();
     const { data } = await modal.onWillDismiss();

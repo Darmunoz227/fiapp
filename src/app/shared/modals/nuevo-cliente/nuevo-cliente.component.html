@@ -1,6 +1,6 @@
 <ion-header class="ion-no-border">
   <ion-toolbar color="dark">
-    <ion-title class="ion-text-center" style="font-size: 16px;">NUEVO CLIENTE</ion-title>
+    <ion-title class="ion-text-center" style="font-size: 16px;">{{ modo === 'editar' ? 'EDITAR CLIENTE' : 'NUEVO CLIENTE' }}</ion-title>
   </ion-toolbar>
 </ion-header>
 
@@ -15,7 +15,7 @@
 
     <!-- Campo Teléfono -->
     <ion-item lines="none" style="--background: var(--ion-item-background); --border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.03);">
-      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">Teléfono (WhatsApp) *</ion-label>
+      <ion-label position="stacked" style="font-weight: bold; color: var(--ion-color-medium); margin-bottom: 8px;">Teléfono (WhatsApp)</ion-label>
       <ion-input type="tel" placeholder="Ej. 312 000 0000" [(ngModel)]="telefono"></ion-input>
     </ion-item>
 
@@ -36,7 +36,7 @@
       </ion-button>
     </ion-col>
     <ion-col size="6">
-      <ion-button expand="block" color="dark" style="--border-radius: 12px; font-weight: bold;" (click)="guardarCliente()" [disabled]="!nombre || !telefono || !habeasData">
+      <ion-button expand="block" color="dark" style="--border-radius: 12px; font-weight: bold;" (click)="guardarCliente()" [disabled]="!nombre || !habeasData">
         Guardar
       </ion-button>
     </ion-col>

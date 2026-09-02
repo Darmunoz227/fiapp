@@ -1090,3 +1090,57 @@ verificarPin). Fix de spec: el mock de PreferencesService en
 configuraciones.page.spec.ts necesito getPinAdministrador resolviendo null
 para que los 3 tests de reset siguieran verdes (sin PIN = ejecuta directo),
 proveyendo la dependencia sin debilitar aserciones.
+
+### Decision 050 - Editar cliente (nombre + telefono) sin reescribir historia; telefono pasa a opcional
+
+**Contexto:** el merchant ambulante fia a clientes cuyo telefono no
+siempre tiene al momento de crearlos; los completa de a poco. No existia
+forma de editar un cliente: la unica via era eliminarlo (bloqueado si
+deudaTotal > 0, Decision 007) o saldar la deuda. Friccion severa sobre
+el flujo estrella de fiados.
+
+**Decision - actualizarCliente nombra solo sus columnas editables.**
+UPDATE clientes SET nombre, telefono, updated_at WHERE id AND deleted_at
+IS NULL. created_at, fecha_creacion, habeas_data_flag, store_id NO se
+tocan. Primer codigo del proyecto que escribe updated_at en clientes
+(la columna existia sin uso desde Feature #1). Mismo corte que editar
+producto (Decision 038) y patron de INSERT completo de Decision 048.
+
+**Decision - reuso de NuevoClienteComponent con @Input modo.**
+modo: 'crear' | 'editar' (default crear) + @Input cliente. En editar,
+ngOnInit precarga nombre/telefono/habeas y guardarCliente bifurca a
+actualizarCliente sobre el MISMO id. Se evito un componente nuevo para
+no duplicar formulario ni validacion (espejo de Feature #25).
+
+**Decision - editar usa puedeEscribir, NO puedeAgregarCliente.**
+Editar es una escritura de negocio, no un alta. El flujo de crear queda
+intacto con puedeAgregarCliente; editar se gatea con puedeEscribir
+(Decision 033). SIN PIN: editar nombre/telefono no es destructivo, a
+diferencia de las tres acciones de Decision 049.
+
+**Decision - telefono pasa a OPCIONAL en ambos modos.** El boton Guardar
+solo exige nombre y habeas data ([disabled]="!nombre || !habeasData").
+Antes obligaba telefono, lo que contradecia el uso real: el merchant fia
+sin tener el numero y lo agrega despues. habeas_data_flag se mantiene
+obligatorio por ser la autorizacion legal de registro.
+
+**Bug encontrado en device y corregido:** la proyeccion de Home
+(cargarClientesYDeudas) construia objetos con solo id, nombre y
+deudaTotal, descartando telefono. Al pasar ese objeto al modal, el
+telefono precargaba vacio mientras el nombre si aparecia. Se agrego
+telefono a la proyeccion. El titulo del modal era estatico "NUEVO
+CLIENTE"; ahora es dinamico segun modo. La opcion de swipe usaba
+icon-only sin texto; se agrego el label "Editar".
+
+**Sin schema, sin migracion:** las columnas ya existian. Schema v7
+intacto, SCHEMA_VERSION sin cambios.
+
+**Evidencia, on Android Pixel_8, BY HAND y via respaldo JSON:** un
+cliente creado a las 1788387300430 y editado a las 1788387480248 mostro
+updated_at con timestamp y created_at/fecha_creacion intactos. Un
+"Cliente sin telefono" se creo sin numero y luego se le agrego
+"3145987875", con updated_at fresco y created_at sin cambios. El bloqueo
+por trial expirado se verifico retrocediendo fecha_instalacion mas de 25
+dias: la edicion quedo bloqueada por puedeEscribir. 207 tests green
+(202 base + 2 datos + 3 UI). La suite prueba SOLO la rama web mock; el
+UPDATE nativo y el guard freemium se verificaron en device.
