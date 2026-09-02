@@ -181,6 +181,20 @@ export class HomePage {
     }
   }
 
+  async abrirModalEditarCliente(cliente: any) {
+    const modal = await this.modalCtrl.create({
+      component: NuevoClienteComponent,
+      breakpoints: [0, 0.75],
+      initialBreakpoint: 0.75,
+      componentProps: { modo: 'editar', cliente },
+    });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    if (data && data.guardado) {
+      await this.cargarClientesYDeudas();
+    }
+  }
+
   async confirmarEliminarCliente(cliente: any) {
     if (cliente.deudaTotal > 0) {
       const alert = await this.alertCtrl.create({
