@@ -1144,3 +1144,55 @@ por trial expirado se verifico retrocediendo fecha_instalacion mas de 25
 dias: la edicion quedo bloqueada por puedeEscribir. 207 tests green
 (202 base + 2 datos + 3 UI). La suite prueba SOLO la rama web mock; el
 UPDATE nativo y el guard freemium se verificaron en device.
+
+### Decision 051 - Comprobante de fiado por WhatsApp, atajo directo con saldo actualizado
+
+**Contexto:** tras registrar un fiado por productos (Feature #22), la
+pantalla "Fiado registrado" solo ofrecia Ver deuda y Registrar otro.
+Enviar el comprobante por WhatsApp obligaba a navegar al detalle del
+cliente. El ambulante, en su flujo post-pico, necesitaba mandarlo de
+una vez.
+
+**Decision - extraer antes de replicar (Decision 036).** Se
+encontraron 2 piezas de logica DUPLICADAS en el proyecto: el armado de
+URL wa.me + limpieza de telefono (2 copias en cliente-detalle) y el
+calculo de saldo fiado-menos-abono (repetido en Home y cliente-detalle).
+Se extrajeron construirUrlWhatsApp (core/whatsapp) y calcularSaldoCliente
+(core/fiado/saldo), ambas puras y testeadas, ANTES de escribir el boton
+nuevo. cliente-detalle se migro a construirUrlWhatsApp sin cambiar el
+TEXTO de sus mensajes existentes.
+
+**Decision - wa.me directo, NO Share.share.** Se considero usar
+Share.share (patron de Decision 039) por robustez ante numeros mal
+formateados, pero se descarto: el proyecto YA tiene un patron establecido
+(wa.me directo al chat del cliente) en cliente-detalle. Usar Share.share
+en la pantalla nueva habria creado DOS experiencias distintas para el
+mismo tipo de mensaje. Consistencia sobre preferencia personal.
+
+**Decision - saldo se calcula DESPUES de guardar el fiado.**
+enviarComprobante consulta obtenerTransaccionesPorCliente tras el guardado
+ya ocurrido, por lo que el saldo mostrado INCLUYE el fiado recien
+registrado (deuda vieja + este fiado), no el saldo previo.
+
+**Decision - sin telefono, toast guia, NO wa.me roto.** Si el cliente no
+tiene telefono se muestra un toast sugiriendo usar Editar (Feature #28)
+en vez de intentar abrir una URL invalida. El boton SIEMPRE es visible
+(no se oculta), decision tomada para maximizar descubribilidad ahora que
+el telefono es editable.
+
+**Decision - NO gatear con freemium.** Enviar un recibo es comunicacion,
+no una escritura de negocio; el guard puedeEscribir ya corrio al guardar
+el fiado. Gatear el envio habria sido redundante.
+
+**Sin schema, sin cambios en BD:** cero migracion, git diff vacio en
+database.service.ts.
+
+**Evidencia, en Android (bundle verificado fresco via grep) y en
+simulador iOS, BY HAND:** un fiado registrado a un cliente con telefono
+abrio WhatsApp con recibo, nombre, total, concepto y saldo actualizado
+correctamente. Un cliente sin telefono mostro el toast guia y no abrio
+WhatsApp. Los botones preexistentes de cobro y recibo en cliente-detalle
+siguieron enviando el MISMO texto de siempre tras la migracion al
+helper compartido. 213 tests green (207 base + 3 construirUrlWhatsApp +
+3 calcularSaldoCliente). La suite prueba SOLO la logica pura; el
+window.open y el toast se verificaron en device/simulador.

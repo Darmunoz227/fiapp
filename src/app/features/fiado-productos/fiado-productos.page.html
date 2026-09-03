@@ -112,6 +112,10 @@
     <ion-button expand="block" color="primary" class="confirm-btn" (click)="irADetalleCliente()">
       Ver deuda de {{ clienteSeleccionado?.nombre }}
     </ion-button>
+    <ion-button expand="block" fill="outline" color="success" class="confirm-btn" (click)="enviarComprobante()">
+      <ion-icon slot="start" name="logo-whatsapp"></ion-icon>
+      Enviar comprobante
+    </ion-button>
     <ion-button expand="block" fill="outline" color="medium" class="confirm-btn" (click)="registrarOtro()">
       Registrar otro fiado
     </ion-button>

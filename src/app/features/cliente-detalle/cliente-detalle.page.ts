@@ -12,6 +12,7 @@ import { arrowUpOutline, arrowDownOutline, trash, logoWhatsapp, receiptOutline }
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { PreferencesService } from '../../core/preferences/preferences.service';
+import { construirUrlWhatsApp } from '../../core/whatsapp/whatsapp';
 import { Cliente } from '../../core/models/cliente.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { NuevaTransaccionComponent } from '../../shared/modals/nueva-transaccion/nueva-transaccion.component';
@@ -199,8 +200,7 @@ export class ClienteDetallePage implements OnInit {
     const nombreNegocio = await this.prefs.getNombreNegocio();
     const origen = (nombreNegocio && nombreNegocio.trim() !== '') ? nombreNegocio : 'la tienda';
     const mensaje = '¡Hola! Te escribo de ' + origen + ' para recordarte tu saldo actual que es de $' + this.formatearMonto(this.deudaTotal) + ', ' + this.cliente.nombre + '. ¡Quedo atento, gracias!';
-    const telefonoLimpio = this.cliente.telefono.replace(/\D/g,'');
-    const url = 'https://wa.me/57' + telefonoLimpio + '?text=' + encodeURIComponent(mensaje);
+    const url = construirUrlWhatsApp(this.cliente.telefono, mensaje);
     window.open(url, '_blank');
   }
 
@@ -213,8 +213,7 @@ export class ClienteDetallePage implements OnInit {
     // Armamos un mini recibo con emojis
     const mensaje = '🧾 Recibo de Transacción\nHola ' + this.cliente.nombre + ', registramos ' + tipoTexto + ' por valor de $' + this.formatearMonto(t.monto) + '.\nConcepto: ' + conceptoTexto + '\n\nSaldo actual: $' + this.formatearMonto(this.deudaTotal) + '';
     
-    const telefonoLimpio = this.cliente.telefono.replace(/\D/g,'');
-    const url = 'https://wa.me/57' + telefonoLimpio + '?text=' + encodeURIComponent(mensaje);
+    const url = construirUrlWhatsApp(this.cliente.telefono, mensaje);
     window.open(url, '_blank');
   }
 }
