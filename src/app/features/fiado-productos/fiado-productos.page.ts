@@ -12,6 +12,8 @@ import { Cliente } from '../../core/models/cliente.model';
 import { CatalogoItem } from '../../core/models/catalogo-item.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { CarritoFiado, calcularTotalFiado, construirConceptoFiado } from '../../core/fiado/fiado-productos';
+import { calcularSaldoCliente } from '../../core/fiado/saldo';
+import { construirUrlWhatsApp } from '../../core/whatsapp/whatsapp';
 
 type Paso = 'cliente' | 'productos' | 'confirmacion';
 
@@ -143,6 +145,38 @@ export class FiadoProductosPage {
     if (this.clienteSeleccionado) {
       this.router.navigate(['/cliente-detalle', this.clienteSeleccionado.id]);
     }
+  }
+
+  async enviarComprobante() {
+    if (!this.clienteSeleccionado) return;
+
+    const telefono = this.clienteSeleccionado.telefono;
+    if (!telefono || telefono.trim() === '') {
+      const toast = await this.toastCtrl.create({
+        message: 'Este cliente no tiene telefono. Agregalo con Editar para enviar el comprobante.',
+        duration: 3500,
+        position: 'bottom',
+        color: 'warning',
+      });
+      await toast.present();
+      return;
+    }
+
+    const transacciones = await this.dbService.obtenerTransaccionesPorCliente(this.clienteSeleccionado.id);
+    const saldo = calcularSaldoCliente(transacciones);
+    const nombreNegocio = await this.prefs.getNombreNegocio();
+    const origen = nombreNegocio && nombreNegocio.trim() !== '' ? nombreNegocio : 'Mi Negocio';
+
+    const mensaje =
+      '\u{1F9FE} Recibo de Fiado\n' +
+      'Hola ' + this.clienteSeleccionado.nombre + ', registramos tu fiado por $' +
+      this.totalGuardado.toLocaleString('es-CO') + '.\n' +
+      'Detalle: ' + this.conceptoGuardado + '\n\n' +
+      'Saldo actual: $' + saldo.toLocaleString('es-CO') + '\n' +
+      origen;
+
+    const url = construirUrlWhatsApp(telefono, mensaje);
+    window.open(url, '_blank');
   }
 
   registrarOtro() {
