@@ -24,6 +24,40 @@ porque una empanada nunca se compra, se produce.
    mensuales (mano de obra, gas, arriendo, servicios) porque el sistema
    financiero se los pide asi para evaluar creditos.
 
+## Evidencia de MERCADO (experiencia agregada, 5 anos Bancamia)
+A diferencia de la evidencia de campo (1 caso puntual: la hija del
+ambulante), esta seccion resume patrones observados en CIENTOS de
+microproductores evaluados para credito en Bancamia. Es evidencia
+estadisticamente mas confiable para decisiones GENERICAS de producto,
+porque FiApp no es software a la medida de unos pocos pilotos.
+
+1. COSTO A OJO ES DOMINANTE: 85% de los productores conocian su costo
+   unitario a ojo, sin desglose ingrediente por ingrediente. Confirma
+   con fuerza estadistica el modelo "costo declarado, sin BOM".
+2. PRODUCCION ES DIARIA: la mayoria produce a diario (igual la hija del
+   ambulante: la panaderia le pide a diario). El registro de produccion
+   debe sentirse como una VENTA diaria (rapido, repetible), no como un
+   evento raro tipo compra mensual.
+3. SUBPRODUCTOS SON COMUNES, NO AISLADOS: en panaderias de barrio (no
+   las grandes, fuera del nicho de FiApp) es MUY comun que un evento de
+   produccion genere VARIOS productos de salida (ganchos de venta,
+   recortes, etc). Esto invalida el supuesto "1 produccion = 1 producto".
+4. OVERHEAD NO SE MANTIENE FRESCO: los productores rara vez actualizaban
+   su desglose de gastos fijos. El calculador de overhead debe ser
+   MANUAL/ocasional, nunca un dashboard que exija actualizacion constante.
+5. INSUMOS EN BODEGA: proporcion 50/50, NO es nicho minoritario. Sigue
+   siendo opt-in (la mitad no lo quiere), pero pasa a ser modulo serio
+   de Fase 2, no una idea descartable.
+6. PRECIO DETAL/MAYORISTA: depende del rubro (panaderia = detal, cuero
+   u otros productos = mayorista). Confirmado como patron RECURRENTE
+   real, pero sigue fuera del MVP (backlog anotado).
+7. ESTABILIDAD DEL COSTO ES BAJA, NO ALTA: contradice la hipotesis
+   inicial (evidencia de un caso). Es PRACTICAMENTE UNIVERSAL que el
+   costo fluctue por factores extrinsecos de la economia nacional. La
+   arquitectura de costo declarado se mantiene (sigue siendo correcta
+   por el punto 1), pero la UX de EDITAR el costo debe ser tan rapida y
+   friccionless como editar un precio de venta, NUNCA algo enterrado.
+
 ## Modelo propuesto: COSTO EN DOS CAPAS
 Costo real por unidad = costo directo aprox + prorrateo de fijos.
 
@@ -50,6 +84,15 @@ Esto es un cambio conceptual frente a Decision 009/040 (donde el costo
 se deriva de COMPRAS), pero es legitimo: para un productor no hay compra
 que derivar, hay un costo que el conoce. Debe documentarse como decision
 formal cuando se escriba el spec.
+
+## CORRECCION v2: produccion es MULTI-LINEA, no 1 producto
+Hallazgo de mercado #3 invalida el supuesto original de "1 produccion =
+1 producto". Un evento de produccion debe soportar VARIAS lineas de
+producto de salida (subproductos/ganchos de venta), igual patron que
+venta multi-linea (venta_items, Feature #11, Decision 031). Cada linea
+declara su PROPIO costo unitario por separado (hallazgo #1: nadie
+quiere prorratear costo compartido entre subproductos, siguen estimando
+"a ojo" cada uno). Cero matematica de prorrateo automatico entre lineas.
 
 ## Como entra el producto al stock (2 opciones, POR DECIDIR)
 Hoy los movimientos son COMPRA/VENTA/AJUSTE/MERMA y deben ser
@@ -81,6 +124,17 @@ costo de produccion correcto. La utilidad sale sola.
 - Cliente mayorista con pedidos recurrentes / estado de cuenta: backlog.
 - Mismo producto con dos precios (papa detal / hija por mayor): tema
   aparte de variantes-multiprecio, no mezclar aqui.
+
+## Preguntas abiertas - RESUELTAS por evidencia de mercado (v2)
+1. Unidades vs solo costo -> produccion MULTI-LINEA, cada linea declara
+   unidades + costo propio (ver correccion arriba).
+2. Overhead mensual fijo vs recalculado -> MANUAL/ocasional, nunca
+   automatico (hallazgo #4).
+3. Clientes mayoristas de la hija -> AUN sin numero exacto, pero
+   confirmado que precio detal/mayorista depende del RUBRO (hallazgo
+   #6), no es universal; permanece backlog, fuera del MVP.
+4. Insumos en bodega -> proporcion 50/50 confirmada (hallazgo #5), opt-in
+   pero modulo serio de Fase 2, ya no descartable.
 
 ## Preguntas abiertas por validar en la proxima visita
 - Al registrar produccion, prefieren capturar UNIDADES producidas
