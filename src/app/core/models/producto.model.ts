@@ -7,6 +7,7 @@ export interface Producto {
   tipo_venta: TipoVenta;
   minimo_stock: number;
   costo_promedio: number;
+  modo_produccion?: boolean;
   created_at?: number | null;
   updated_at?: number | null;
   deleted_at?: number | null;

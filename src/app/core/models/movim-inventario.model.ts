@@ -1,4 +1,4 @@
-export type TipoMovimientoInventario = 'COMPRA' | 'VENTA' | 'AJUSTE' | 'MERMA';
+export type TipoMovimientoInventario = 'COMPRA' | 'VENTA' | 'AJUSTE' | 'MERMA' | 'PRODUCCION';
 
 export interface MovimInventario {
   id: string;
