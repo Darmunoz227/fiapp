@@ -291,6 +291,17 @@ describe('InventoryMovementPage', () => {
     }));
   });
 
+  it('anular a PRODUCCION does NOT call softDeleteMovimiento and shows a danger toast', async () => {
+    const produccion = crearMovimientoParcial({ id: 'mov-produccion', tipo: 'PRODUCCION', cantidad: 10, costo_unitario: 800 });
+
+    await component.anularMovimiento(produccion);
+
+    expect(databaseServiceMock.softDeleteMovimiento).not.toHaveBeenCalled();
+    expect(toastControllerMock.create).toHaveBeenCalledWith(jasmine.objectContaining({
+      color: 'danger',
+    }));
+  });
+
   it('undo path calls restoreMovimiento', async () => {
     movimientosMock = [
       crearMovimientoParcial({ id: 'mov-compra', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 }),
