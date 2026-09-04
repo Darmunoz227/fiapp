@@ -10,7 +10,7 @@ export function calcularStockDerivado(movimientos: MovimInventario[]): number {
       return stock;
     }
 
-    if (movimiento.tipo === 'COMPRA') {
+    if (movimiento.tipo === 'COMPRA' || movimiento.tipo === 'PRODUCCION') {
       return stock + movimiento.cantidad;
     }
 

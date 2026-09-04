@@ -1,4 +1,4 @@
-import { esStockBajo, calcularValorTotalInventario, LineaValorInventario } from './inventory-calculations';
+import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado } from './inventory-calculations';
 
 describe('inventory-calculations', () => {
   describe('esStockBajo', () => {
@@ -47,5 +47,35 @@ describe('calcularValorTotalInventario', () => {
       { stock_derivado: 0, costo_promedio: 9000 },
     ];
     expect(calcularValorTotalInventario(lineas)).toBe(0);
+  });
+});
+
+describe('calcularStockDerivado - PRODUCCION', () => {
+  function movProduccion(cantidad: number): any {
+    return {
+      id: 'm1',
+      producto_id: 'p1',
+      tipo: 'PRODUCCION',
+      cantidad,
+      costo_unitario: 800,
+      motivo: null,
+      fecha: Date.now(),
+      actor_id: null,
+      stock_calculado_anterior: null,
+      cantidad_fisica: null,
+      diferencia_calculada: null,
+      deleted_at: null,
+    };
+  }
+
+  it('PRODUCCION suma cantidad al stock, igual que COMPRA', () => {
+    const movimientos = [movProduccion(50)];
+    expect(calcularStockDerivado(movimientos)).toBe(50);
+  });
+
+  it('PRODUCCION se acumula con otros movimientos existentes', () => {
+    const compra: any = { ...movProduccion(10), tipo: 'COMPRA' };
+    const produccion = movProduccion(20);
+    expect(calcularStockDerivado([compra, produccion])).toBe(30);
   });
 });
