@@ -8,6 +8,8 @@ import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
 import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
+import { Produccion } from '../models/produccion.model';
+import { ProduccionItem } from '../models/produccion-item.model';
 import { Venta } from '../models/venta.model';
 import { RespaldoData } from '../models/respaldo.model';
 import { ConteoImportacion } from '../models/conteo-importacion.model';
@@ -54,6 +56,8 @@ export class DatabaseService {
   private mockWebMovimInventario: MovimInventario[] = [];
   private mockWebVentas: Venta[] = [];
   private mockWebVentaItems: VentaItem[] = [];
+  private mockWebProducciones: Produccion[] = [];
+  private mockWebProduccionItems: ProduccionItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
     if (this.isInitialized) {
@@ -212,6 +216,7 @@ export class DatabaseService {
 
     await this.crearIndiceVentasFechaSiFalta();
     await this.crearVentaItemsSiFaltan();
+    await this.crearProduccionesSiFaltan();
   }
 
   private async migrarEsquemaSiNecesario(): Promise<void> {
@@ -233,6 +238,8 @@ export class DatabaseService {
     await this.backfillMontosVentas();
     await this.crearVentaItemsSiFaltan();
     await this.reconstruirVentasParaMultiItem();
+    await this.agregarColumnaSiFalta('productos', 'modo_produccion', 'INTEGER DEFAULT 0');
+    await this.crearProduccionesSiFaltan();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -247,6 +254,48 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS ventas_fecha_idx
       ON ventas(fecha);
     `, !dentroDeTx);
+  }
+
+  private async crearProduccionesSiFaltan(): Promise<void> {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS producciones (
+        id TEXT PRIMARY KEY NOT NULL,
+        fecha INTEGER NOT NULL,
+        nota TEXT DEFAULT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS produccion_items (
+        id TEXT PRIMARY KEY NOT NULL,
+        produccion_id TEXT NOT NULL,
+        producto_id TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        costo_unitario_declarado REAL NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (produccion_id) REFERENCES producciones(id),
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS produccion_items_produccion_id_idx
+      ON produccion_items(produccion_id);
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS produccion_items_producto_id_idx
+      ON produccion_items(producto_id);
+    `);
   }
 
   private async crearVentaItemsSiFaltan(): Promise<void> {
