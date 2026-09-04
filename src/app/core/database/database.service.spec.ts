@@ -583,6 +583,23 @@ describe('DatabaseService', () => {
     }));
     expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
   });
+  it('PRODUCCION actualiza costo_promedio via promedio ponderado, igual que COMPRA', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-produccion-1',
+      producto_id: 'p1',
+      tipo: 'PRODUCCION',
+      cantidad: 10,
+      costo_unitario: 800,
+    }));
+
+    const costoDespues = (await service.obtenerProductos())
+      .find((producto) => producto.id === 'p1')!.costo_promedio;
+
+    expect(costoDespues).toBe(800);
+  });
+
   it('COMPRA rollback: if the movement insert fails, costo_promedio is NOT modified', async () => {
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
 

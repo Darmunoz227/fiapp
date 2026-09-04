@@ -679,7 +679,7 @@ export class DatabaseService {
       throw new Error('Stock insuficiente para registrar el movimiento');
     }
 
-    if (movimiento.tipo === 'COMPRA') {
+    if (movimiento.tipo === 'COMPRA' || movimiento.tipo === 'PRODUCCION') {
       const producto = await this.obtenerProductoPorIdInterno(movimiento.producto_id);
       if (producto == null) {
         throw new Error('Producto no encontrado');
