@@ -125,6 +125,16 @@ describe('EditarProductoComponent', () => {
     expect(toggle).not.toBeNull();
   });
 
+  it('modo duplicar: NO copia modo_produccion (Decision 052, deliberado)', async () => {
+    component.producto = { ...producto, modo_produccion: true };
+    component.ngOnInit();
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    await component.guardar();
+    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    expect(arg.modo_produccion).toBeUndefined();
+  });
+
   it('modo duplicar: no crea si el freemium bloquea', async () => {
     freemiumMock.puedeEscribir.and.resolveTo(false);
     component.modo = 'duplicar';
