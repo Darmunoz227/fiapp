@@ -1,4 +1,5 @@
-import { construirProduccion, CarritoProduccion } from './produccion';
+import { construirProduccion, CarritoProduccion, filtrarProductosDeProduccion } from './produccion';
+import { Producto } from '../models/producto.model';
 
 describe('construirProduccion', () => {
   let n = 0;
@@ -67,5 +68,23 @@ describe('construirProduccion', () => {
 
     expect(armada.items[0].produccion_id).toBe(armada.produccion.id);
     expect(armada.items[1].produccion_id).toBe(armada.produccion.id);
+  });
+});
+
+describe('filtrarProductosDeProduccion', () => {
+  const base = { precio_venta: 100, tipo_venta: 'UNIDAD' as const, minimo_stock: 0, costo_promedio: 0 };
+
+  it('acepta boolean true (rama web) y 1 numerico (rama nativa SQLite)', () => {
+    const productos = [
+      { id: 'a', nombre: 'Empanada', ...base, modo_produccion: true },
+      { id: 'b', nombre: 'Arepa', ...base, modo_produccion: 1 as unknown as boolean },
+      { id: 'c', nombre: 'Arroz', ...base, modo_produccion: false },
+      { id: 'd', nombre: 'Aceite', ...base, modo_produccion: 0 as unknown as boolean },
+      { id: 'e', nombre: 'Sal', ...base },
+    ] as Producto[];
+
+    const filtrados = filtrarProductosDeProduccion(productos);
+
+    expect(filtrados.map((p) => p.id)).toEqual(['a', 'b']);
   });
 });

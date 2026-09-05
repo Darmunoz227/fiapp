@@ -1,6 +1,7 @@
 import { Produccion } from '../models/produccion.model';
 import { ProduccionItem } from '../models/produccion-item.model';
 import { MovimInventario } from '../models/movim-inventario.model';
+import { Producto } from '../models/producto.model';
 
 export interface LineaProduccion {
   cantidad: number;
@@ -58,4 +59,8 @@ export function construirProduccion(
   }
 
   return { produccion: { id: produccionId, fecha }, items, movimientos };
+}
+
+export function filtrarProductosDeProduccion(productos: Producto[]): Producto[] {
+  return productos.filter((producto) => !!producto.modo_produccion);
 }
