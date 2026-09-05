@@ -632,6 +632,26 @@ describe('DatabaseService', () => {
     expect(costoDespues).toBe(1000);
     expect((await obtenerMovimientosPorProducto('p1')).length).toBe(1);
   });
+  it('actualizarProducto activa modo_produccion cuando se provee explicitamente', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await service.actualizarProducto('p1', 'Empanada', 1500, 5, true);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p1');
+    expect(producto?.modo_produccion).toBe(true);
+  });
+
+  it('actualizarProducto NO altera modo_produccion cuando no se provee (compatibilidad hacia atras)', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p2', costo_promedio: 1000 }));
+    await service.actualizarProducto('p2', 'Camiseta', 30000, 3, true);
+
+    await service.actualizarProducto('p2', 'Camiseta Roja', 32000, 3);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p2');
+    expect(producto?.modo_produccion).toBe(true);
+    expect(producto?.nombre).toBe('Camiseta Roja');
+  });
+
   it('registrarProduccion crea 1 cabecera + N items + N movimientos en una sola transaccion', async () => {
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
     await service.crearProducto(crearProductoParcial({ id: 'p2', costo_promedio: 500 }));

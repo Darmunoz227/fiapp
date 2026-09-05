@@ -730,19 +730,31 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, true);
   }
 
-  async actualizarProducto(id: string, nombre: string, precioVenta: number, minimoStock: number): Promise<void> {
+  async actualizarProducto(id: string, nombre: string, precioVenta: number, minimoStock: number, modoProduccion?: boolean): Promise<void> {
     const ahora = Date.now();
 
     if (Capacitor.getPlatform() === "web") {
       this.mockWebProductos = this.mockWebProductos.map((producto) => (
         producto.id === id
-          ? { ...producto, nombre, precio_venta: precioVenta, minimo_stock: minimoStock, updated_at: ahora }
+          ? {
+              ...producto,
+              nombre,
+              precio_venta: precioVenta,
+              minimo_stock: minimoStock,
+              modo_produccion: modoProduccion !== undefined ? modoProduccion : producto.modo_produccion,
+              updated_at: ahora,
+            }
           : producto
       ));
       return;
     }
 
     if (!this.isInitialized) await this.initializePlugin();
+    if (modoProduccion !== undefined) {
+      const sql = "UPDATE productos SET nombre = ?, precio_venta = ?, minimo_stock = ?, modo_produccion = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL";
+      await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, modoProduccion ? 1 : 0, ahora, id], false);
+      return;
+    }
     const sql = "UPDATE productos SET nombre = ?, precio_venta = ?, minimo_stock = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL";
     await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, ahora, id], false);
   }
