@@ -1,14 +1,14 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, ToastController } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, ToastController, AlertController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { removeOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Producto } from '../../core/models/producto.model';
-import { CarritoProduccion, construirProduccion, filtrarProductosDeProduccion, calcularCostoTotalProduccion } from '../../core/produccion/produccion';
+import { CarritoProduccion, construirProduccion, filtrarProductosDeProduccion, calcularCostoTotalProduccion, calcularCostoSugerido } from '../../core/produccion/produccion';
 
 type PasoProduccion = 'productos' | 'confirmacion';
 
@@ -31,6 +31,7 @@ export class RegistrarProduccionPage {
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
     private toastCtrl: ToastController,
+    private alertCtrl: AlertController,
     private router: Router,
   ) {
     addIcons({ removeOutline, checkmarkCircleOutline });
@@ -136,6 +137,41 @@ export class RegistrarProduccionPage {
     this.totalGuardado = 0;
     this.lineasGuardadas = 0;
     this.paso = 'productos';
+  }
+
+  fijarCosto(producto: Producto, valor: number) {
+    const linea = this.carrito[producto.id];
+    if (!linea) {
+      return;
+    }
+    this.carrito = {
+      ...this.carrito,
+      [producto.id]: { cantidad: linea.cantidad, costoUnitario: valor },
+    };
+  }
+
+  async abrirCalculadora(producto: Producto) {
+    const alert = await this.alertCtrl.create({
+      header: 'Calcular costo',
+      message: 'Gastos fijos del mes divididos entre las unidades que estimas producir.',
+      inputs: [
+        { name: 'fijos', type: 'number', placeholder: 'Gastos fijos del mes' },
+        { name: 'unidades', type: 'number', placeholder: 'Unidades estimadas' },
+      ],
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Usar este costo',
+          handler: (data) => {
+            const sugerido = calcularCostoSugerido(Number(data.fijos), Number(data.unidades));
+            if (sugerido > 0) {
+              this.fijarCosto(producto, Math.round(sugerido));
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   irAInventario() {
