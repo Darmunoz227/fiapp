@@ -78,3 +78,13 @@ export function calcularCostoTotalProduccion(carrito: CarritoProduccion): number
 
   return total;
 }
+
+export function calcularCostoSugerido(costosFijosMensuales: number, unidadesEstimadas: number): number {
+  if (!Number.isFinite(costosFijosMensuales) || costosFijosMensuales < 0) {
+    return 0;
+  }
+  if (!Number.isFinite(unidadesEstimadas) || unidadesEstimadas <= 0) {
+    return 0;
+  }
+  return costosFijosMensuales / unidadesEstimadas;
+}

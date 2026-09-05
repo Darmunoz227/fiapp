@@ -1,4 +1,4 @@
-import { construirProduccion, CarritoProduccion, filtrarProductosDeProduccion, calcularCostoTotalProduccion } from './produccion';
+import { construirProduccion, CarritoProduccion, filtrarProductosDeProduccion, calcularCostoTotalProduccion, calcularCostoSugerido } from './produccion';
 import { Producto } from '../models/producto.model';
 
 describe('construirProduccion', () => {
@@ -100,5 +100,21 @@ describe('calcularCostoTotalProduccion', () => {
 
   it('devuelve 0 con carrito vacio', () => {
     expect(calcularCostoTotalProduccion({})).toBe(0);
+  });
+});
+
+describe('calcularCostoSugerido', () => {
+  it('divide los costos fijos entre las unidades estimadas', () => {
+    expect(calcularCostoSugerido(600000, 3000)).toBe(200);
+  });
+
+  it('devuelve 0 si las unidades son 0, sin dividir por cero', () => {
+    expect(calcularCostoSugerido(600000, 0)).toBe(0);
+  });
+
+  it('devuelve 0 con entradas negativas o no numericas', () => {
+    expect(calcularCostoSugerido(-100, 10)).toBe(0);
+    expect(calcularCostoSugerido(600000, -5)).toBe(0);
+    expect(calcularCostoSugerido(NaN, 10)).toBe(0);
   });
 });
