@@ -33,6 +33,11 @@
     <ion-note slot="end">{{ producto.tipo_venta }}</ion-note>
   </ion-item>
 
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 12px;">
+    <ion-label>Modo produccion</ion-label>
+    <ion-toggle slot="end" [(ngModel)]="modoProduccion"></ion-toggle>
+  </ion-item>
+
   <ion-note color="medium" style="display: block; margin-bottom: 20px; font-size: 12px;">
     El tipo de venta no se puede cambiar porque afectaria las cantidades ya registradas. Editar el precio no modifica las ventas anteriores.
   </ion-note>

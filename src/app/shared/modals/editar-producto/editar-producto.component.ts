@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild, Input } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-  IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote
+  IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
 } from "@ionic/angular/standalone";
 
 import { DatabaseService } from "../../../core/database/database.service";
@@ -19,7 +19,7 @@ import { v4 as uuidv4 } from "uuid";
   imports: [
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-    IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote
+    IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
   ]
 })
 export class EditarProductoComponent implements OnInit {

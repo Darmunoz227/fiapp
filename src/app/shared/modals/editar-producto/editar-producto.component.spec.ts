@@ -119,6 +119,12 @@ describe('EditarProductoComponent', () => {
     expect(arg.tipo_venta).toBe('UNIDAD');
   });
 
+  it('renderiza el toggle de modo produccion', () => {
+    fixture.detectChanges();
+    const toggle = fixture.nativeElement.querySelector('ion-toggle');
+    expect(toggle).not.toBeNull();
+  });
+
   it('modo duplicar: no crea si el freemium bloquea', async () => {
     freemiumMock.puedeEscribir.and.resolveTo(false);
     component.modo = 'duplicar';
