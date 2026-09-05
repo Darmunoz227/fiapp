@@ -64,3 +64,17 @@ export function construirProduccion(
 export function filtrarProductosDeProduccion(productos: Producto[]): Producto[] {
   return productos.filter((producto) => !!producto.modo_produccion);
 }
+
+export function calcularCostoTotalProduccion(carrito: CarritoProduccion): number {
+  let total = 0;
+
+  for (const productoId of Object.keys(carrito)) {
+    const linea = carrito[productoId];
+    if (!linea || !lineaValida(linea)) {
+      continue;
+    }
+    total += linea.cantidad * linea.costoUnitario;
+  }
+
+  return total;
+}

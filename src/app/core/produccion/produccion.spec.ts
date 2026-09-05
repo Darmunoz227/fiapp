@@ -1,4 +1,4 @@
-import { construirProduccion, CarritoProduccion, filtrarProductosDeProduccion } from './produccion';
+import { construirProduccion, CarritoProduccion, filtrarProductosDeProduccion, calcularCostoTotalProduccion } from './produccion';
 import { Producto } from '../models/producto.model';
 
 describe('construirProduccion', () => {
@@ -86,5 +86,19 @@ describe('filtrarProductosDeProduccion', () => {
     const filtrados = filtrarProductosDeProduccion(productos);
 
     expect(filtrados.map((p) => p.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('calcularCostoTotalProduccion', () => {
+  it('suma cantidad por costo de cada linea e ignora las invalidas', () => {
+    expect(calcularCostoTotalProduccion({
+      'prod-a': { cantidad: 20, costoUnitario: 800 },
+      'prod-b': { cantidad: 5, costoUnitario: 1500 },
+      'prod-malo': { cantidad: -2, costoUnitario: 900 },
+    })).toBe(23500);
+  });
+
+  it('devuelve 0 con carrito vacio', () => {
+    expect(calcularCostoTotalProduccion({})).toBe(0);
   });
 });
