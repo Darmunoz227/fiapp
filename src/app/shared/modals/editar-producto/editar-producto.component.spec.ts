@@ -78,7 +78,7 @@ describe('EditarProductoComponent', () => {
     component.precio_venta = '4.200';
     component.minimo_stock = 8;
     await component.guardar();
-    expect(dbMock.actualizarProducto).toHaveBeenCalledWith('p1', 'Arroz Diana', 4200, 8);
+    expect(dbMock.actualizarProducto).toHaveBeenCalledWith('p1', 'Arroz Diana', 4200, 8, false);
   });
 
   it('no guarda si el freemium bloquea', async () => {

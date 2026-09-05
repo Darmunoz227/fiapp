@@ -29,6 +29,7 @@ export class EditarProductoComponent implements OnInit {
   nombre = "";
   precio_venta = "";
   minimo_stock: number | null = null;
+  modoProduccion = false;
 
   @ViewChild("precioInput") precioInput?: IonInput;
 
@@ -42,6 +43,7 @@ export class EditarProductoComponent implements OnInit {
     this.nombre = this.producto.nombre;
     this.precio_venta = formatCurrencyCOP(this.producto.precio_venta);
     this.minimo_stock = this.producto.minimo_stock;
+    this.modoProduccion = this.producto.modo_produccion ?? false;
   }
 
   cerrarModal() {
@@ -105,7 +107,7 @@ export class EditarProductoComponent implements OnInit {
         };
         await this.dbService.crearProducto(nuevo);
       } else {
-        await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock);
+        await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock, this.modoProduccion);
       }
       this.modalCtrl.dismiss({ guardado: true });
     } catch (error) {
