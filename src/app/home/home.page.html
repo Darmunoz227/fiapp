@@ -55,6 +55,11 @@
     Registrar fiado
   </ion-button>
 
+  <ion-button *ngIf="tieneProduccion" expand="block" color="tertiary" class="boton-registrar-produccion" (click)="irARegistrarProduccion()">
+    <ion-icon slot="start" name="cube-outline"></ion-icon>
+    Registrar produccion
+  </ion-button>
+
  <ion-searchbar placeholder="Buscar cliente..." mode="ios" (ionInput)="buscarCliente($event)"></ion-searchbar>
 
   <ion-list-header class="ion-no-padding" style="margin-bottom: 10px; padding-left: 10px;">
