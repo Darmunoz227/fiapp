@@ -632,6 +632,77 @@ describe('DatabaseService', () => {
     expect(costoDespues).toBe(1000);
     expect((await obtenerMovimientosPorProducto('p1')).length).toBe(1);
   });
+  it('registrarProduccion crea 1 cabecera + N items + N movimientos en una sola transaccion', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+    await service.crearProducto(crearProductoParcial({ id: 'p2', costo_promedio: 500 }));
+
+    const produccion = { id: 'produccion-1', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-1', produccion_id: 'produccion-1', producto_id: 'p1', cantidad: 20, costo_unitario_declarado: 800 } as any,
+      { id: 'pi-2', produccion_id: 'produccion-1', producto_id: 'p2', cantidad: 15, costo_unitario_declarado: 300 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-p1', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 20, costo_unitario: 800 }),
+      crearMovimientoParcial({ id: 'mov-p2', producto_id: 'p2', tipo: 'PRODUCCION', cantidad: 15, costo_unitario: 300 }),
+    ];
+
+    await service.registrarProduccion(produccion, items, movimientos);
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(1);
+    expect(producciones[0].items.length).toBe(2);
+    expect(producciones[0].produccion.id).toBe('produccion-1');
+
+    const costoP1 = (await service.obtenerProductos()).find((p) => p.id === 'p1')!.costo_promedio;
+    const costoP2 = (await service.obtenerProductos()).find((p) => p.id === 'p2')!.costo_promedio;
+    expect(costoP1).toBe(800);
+    expect(costoP2).toBe(300);
+  });
+
+  it('cada linea de produccion actualiza el costo_promedio de SU propio producto, sin mezclar costos', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'pan', costo_promedio: 1000 }));
+    await service.crearProducto(crearProductoParcial({ id: 'recorte', costo_promedio: 100 }));
+
+    const produccion = { id: 'produccion-2', fecha: Date.now(), nota: 'horneada manana' } as any;
+    const items = [
+      { id: 'pi-3', produccion_id: 'produccion-2', producto_id: 'pan', cantidad: 30, costo_unitario_declarado: 900 } as any,
+      { id: 'pi-4', produccion_id: 'produccion-2', producto_id: 'recorte', cantidad: 10, costo_unitario_declarado: 50 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-pan', producto_id: 'pan', tipo: 'PRODUCCION', cantidad: 30, costo_unitario: 900 }),
+      crearMovimientoParcial({ id: 'mov-recorte', producto_id: 'recorte', tipo: 'PRODUCCION', cantidad: 10, costo_unitario: 50 }),
+    ];
+
+    await service.registrarProduccion(produccion, items, movimientos);
+
+    const costoPan = (await service.obtenerProductos()).find((p) => p.id === 'pan')!.costo_promedio;
+    const costoRecorte = (await service.obtenerProductos()).find((p) => p.id === 'recorte')!.costo_promedio;
+    expect(costoPan).toBe(900);
+    expect(costoRecorte).toBe(50);
+  });
+
+  it('registrarProduccion ROLLBACK: si una linea falla, NADA persiste', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    const produccion = { id: 'produccion-fallida', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-ok', produccion_id: 'produccion-fallida', producto_id: 'p1', cantidad: 10, costo_unitario_declarado: 800 } as any,
+      { id: 'pi-fail', produccion_id: 'produccion-fallida', producto_id: 'no-existe', cantidad: 5, costo_unitario_declarado: 400 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-ok', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 10, costo_unitario: 800 }),
+      crearMovimientoParcial({ id: 'mov-fail', producto_id: 'no-existe', tipo: 'PRODUCCION', cantidad: 5, costo_unitario: 400 }),
+    ];
+
+    await expectAsync(service.registrarProduccion(produccion, items, movimientos)).toBeRejected();
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(0);
+
+    const costoP1 = (await service.obtenerProductos()).find((p) => p.id === 'p1')!.costo_promedio;
+    expect(costoP1).toBe(1000);
+  });
+
   it('ROLLBACK (mandatory): if a write fails, NOTHING persists', async () => {
     await service.crearCliente(crearClienteParcial({ id: 'c1' }));
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));

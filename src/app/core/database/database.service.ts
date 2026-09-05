@@ -10,6 +10,7 @@ import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Produccion } from '../models/produccion.model';
 import { ProduccionItem } from '../models/produccion-item.model';
+import { ProduccionConItems } from '../models/produccion-con-items.model';
 import { Venta } from '../models/venta.model';
 import { RespaldoData } from '../models/respaldo.model';
 import { ConteoImportacion } from '../models/conteo-importacion.model';
@@ -841,6 +842,8 @@ export class DatabaseService {
       const snapMovim = [...this.mockWebMovimInventario];
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
+      const snapProducciones = [...this.mockWebProducciones];
+      const snapProduccionItems = [...this.mockWebProduccionItems];
 
       try {
         return await operacion();
@@ -851,6 +854,8 @@ export class DatabaseService {
         this.mockWebMovimInventario = snapMovim;
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
+        this.mockWebProducciones = snapProducciones;
+        this.mockWebProduccionItems = snapProduccionItems;
         throw error;
       }
     }
@@ -940,6 +945,111 @@ export class DatabaseService {
         await this.crearTransaccion(transaccionFiado, true);
       }
     });
+  }
+
+  private construirProduccionConItems(produccion: Produccion, items: ProduccionItem[]): ProduccionConItems {
+    return { produccion, items };
+  }
+
+  private combinarProduccionesConItems(producciones: Produccion[], items: ProduccionItem[]): ProduccionConItems[] {
+    const itemsPorProduccion = new Map<string, ProduccionItem[]>();
+
+    for (const item of items) {
+      const itemsProduccion = itemsPorProduccion.get(item.produccion_id) ?? [];
+      itemsProduccion.push(item);
+      itemsPorProduccion.set(item.produccion_id, itemsProduccion);
+    }
+
+    return producciones.map((p) => this.construirProduccionConItems(p, itemsPorProduccion.get(p.id) ?? []));
+  }
+
+  private async insertProduccion(produccion: Produccion): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProducciones.push({
+        id: produccion.id,
+        fecha: produccion.fecha,
+        nota: produccion.nota ?? null,
+        created_at: produccion.created_at ?? null,
+        updated_at: produccion.updated_at ?? null,
+        deleted_at: produccion.deleted_at ?? null,
+        store_id: produccion.store_id ?? null,
+        created_by: produccion.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO producciones (
+        id, fecha, nota, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      produccion.id,
+      produccion.fecha,
+      produccion.nota ?? null,
+      produccion.created_at ?? null,
+      produccion.updated_at ?? null,
+      produccion.deleted_at ?? null,
+      produccion.store_id ?? null,
+      produccion.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  private async insertProduccionItem(item: ProduccionItem): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProduccionItems.push({ ...item, deleted_at: item.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO produccion_items (
+        id, produccion_id, producto_id, cantidad, costo_unitario_declarado,
+        created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      item.id,
+      item.produccion_id,
+      item.producto_id,
+      item.cantidad,
+      item.costo_unitario_declarado,
+      item.created_at ?? null,
+      item.updated_at ?? null,
+      item.deleted_at ?? null,
+      item.store_id ?? null,
+      item.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  async registrarProduccion(produccion: Produccion, items: ProduccionItem[], movimientos: MovimInventario[]): Promise<void> {
+    return this.ejecutarEnTransaccion(async () => {
+      await this.insertProduccion(produccion);
+      for (const item of items) {
+        await this.insertProduccionItem(item);
+      }
+      for (const movimiento of movimientos) {
+        await this.crearMovimientoInterno(movimiento);
+      }
+    });
+  }
+
+  async obtenerProducciones(): Promise<ProduccionConItems[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      const producciones = this.filtrarActivos(this.mockWebProducciones);
+      const items = this.filtrarActivos(this.mockWebProduccionItems);
+      return this.combinarProduccionesConItems(producciones, items);
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const produccionesRes = await this.db.query('SELECT * FROM producciones WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    const itemsRes = await this.db.query('SELECT * FROM produccion_items WHERE deleted_at IS NULL ORDER BY created_at ASC, id ASC');
+    const producciones: Produccion[] = produccionesRes.values ?? [];
+    const items: ProduccionItem[] = itemsRes.values ?? [];
+    return this.combinarProduccionesConItems(producciones, items);
   }
 
   async obtenerVentas(): Promise<VentaConItems[]> {
