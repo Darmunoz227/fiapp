@@ -804,6 +804,8 @@ export class DatabaseService {
       movim_inventario: data.movim_inventario.length,
       ventas: data.ventas.length,
       venta_items: data.venta_items.length,
+      producciones: data.producciones.length,
+      produccion_items: data.produccion_items.length,
     };
 
     return this.ejecutarEnTransaccion(async () => {
@@ -814,10 +816,14 @@ export class DatabaseService {
         this.mockWebVentas = [...data.ventas];
         this.mockWebProductos = [...data.productos];
         this.mockWebClientes = [...data.clientes];
+        this.mockWebProducciones = [...data.producciones];
+        this.mockWebProduccionItems = [...data.produccion_items];
         return conteo;
       }
 
       await this.ejecutarRun("DELETE FROM venta_items", [], true);
+      await this.ejecutarRun("DELETE FROM produccion_items", [], true);
+      await this.ejecutarRun("DELETE FROM producciones", [], true);
       await this.ejecutarRun("DELETE FROM movim_inventario", [], true);
       await this.ejecutarRun("DELETE FROM transacciones", [], true);
       await this.ejecutarRun("DELETE FROM ventas", [], true);
@@ -858,6 +864,14 @@ export class DatabaseService {
 
       for (const i of data.venta_items) {
         await this.insertVentaItem(i);
+      }
+
+      for (const pr of data.producciones) {
+        await this.insertProduccion(pr);
+      }
+
+      for (const pi of data.produccion_items) {
+        await this.insertProduccionItem(pi);
       }
 
       return conteo;

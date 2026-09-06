@@ -5,4 +5,6 @@ export interface ConteoImportacion {
   movim_inventario: number;
   ventas: number;
   venta_items: number;
+  producciones: number;
+  produccion_items: number;
 }

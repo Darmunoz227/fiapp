@@ -679,6 +679,31 @@ describe('DatabaseService', () => {
     expect(costoP2).toBe(300);
   });
 
+  it('reemplazarTodo restaura producciones, items y el flag modo_produccion', async () => {
+    const data: any = {
+      clientes: [],
+      transacciones: [],
+      productos: [{ id: 'p1', nombre: 'Empanada', precio_venta: 2500, tipo_venta: 'UNIDAD', minimo_stock: 5, costo_promedio: 800, modo_produccion: true }],
+      movim_inventario: [],
+      ventas: [],
+      venta_items: [],
+      producciones: [{ id: 'prod-1', fecha: 1700000000000, nota: null }],
+      produccion_items: [{ id: 'pi-1', produccion_id: 'prod-1', producto_id: 'p1', cantidad: 10, costo_unitario_declarado: 800 }],
+    };
+
+    const conteo: any = await service.reemplazarTodo(data);
+
+    expect(conteo.producciones).toBe(1);
+    expect(conteo.produccion_items).toBe(1);
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(1);
+    expect(producciones[0].items.length).toBe(1);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p1');
+    expect(producto?.modo_produccion).toBeTruthy();
+  });
+
   it('resetInventario borra tambien producciones y produccion_items (schema v8)', async () => {
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
 
