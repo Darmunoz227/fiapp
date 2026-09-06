@@ -665,7 +665,7 @@ export class DatabaseService {
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, modo_produccion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
     const values = [
       producto.id,
       producto.nombre,
@@ -673,6 +673,7 @@ export class DatabaseService {
       producto.tipo_venta,
       producto.minimo_stock,
       producto.costo_promedio,
+      producto.modo_produccion ? 1 : 0,
       createdAt,
       producto.updated_at ?? null,
       producto.deleted_at ?? null,
@@ -840,8 +841,8 @@ export class DatabaseService {
 
       for (const p of data.productos) {
         await this.ejecutarRun(
-          "INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [p.id, p.nombre, p.precio_venta, p.tipo_venta, p.minimo_stock, p.costo_promedio, p.created_at ?? null, p.updated_at ?? null, p.deleted_at ?? null, p.store_id ?? null, p.created_by ?? null],
+          "INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, modo_produccion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [p.id, p.nombre, p.precio_venta, p.tipo_venta, p.minimo_stock, p.costo_promedio, p.modo_produccion ? 1 : 0, p.created_at ?? null, p.updated_at ?? null, p.deleted_at ?? null, p.store_id ?? null, p.created_by ?? null],
           true
         );
       }
