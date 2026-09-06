@@ -2,7 +2,7 @@
 
 > Purpose: preserve the important product and architecture decisions so future chats, agents, and developers do not re-litigate or accidentally reverse them.
 >
-> Last updated: 2026-07-16
+> Last updated: 2026-09-06
 
 ---
 
@@ -1091,7 +1091,7 @@ configuraciones.page.spec.ts necesito getPinAdministrador resolviendo null
 para que los 3 tests de reset siguieran verdes (sin PIN = ejecuta directo),
 proveyendo la dependencia sin debilitar aserciones.
 
-### Decision 050 - Editar cliente (nombre + telefono) sin reescribir historia; telefono pasa a opcional
+## Decision 050 - Editar cliente (nombre + telefono) sin reescribir historia; telefono pasa a opcional
 
 **Contexto:** el merchant ambulante fia a clientes cuyo telefono no
 siempre tiene al momento de crearlos; los completa de a poco. No existia
@@ -1145,7 +1145,7 @@ dias: la edicion quedo bloqueada por puedeEscribir. 207 tests green
 (202 base + 2 datos + 3 UI). La suite prueba SOLO la rama web mock; el
 UPDATE nativo y el guard freemium se verificaron en device.
 
-### Decision 051 - Comprobante de fiado por WhatsApp, atajo directo con saldo actualizado
+## Decision 051 - Comprobante de fiado por WhatsApp, atajo directo con saldo actualizado
 
 **Contexto:** tras registrar un fiado por productos (Feature #22), la
 pantalla "Fiado registrado" solo ofrecia Ver deuda y Registrar otro.
@@ -1196,3 +1196,125 @@ siguieron enviando el MISMO texto de siempre tras la migracion al
 helper compartido. 213 tests green (207 base + 3 construirUrlWhatsApp +
 3 calcularSaldoCliente). La suite prueba SOLO la logica pura; el
 window.open y el toast se verificaron en device/simulador.
+
+---
+
+## Decision 052 - Produccion: costo declarado multi-linea, y las tablas nuevas obligan a revisar TODA operacion que enumera tablas
+
+**Contexto:** FiApp nacio para comerciantes de compra-venta. Dos prospectos
+son PRODUCTORES (la hija del ambulante que produce por pedido, y una
+panaderia referida por Bancamia). El costo de un producto fabricado no
+puede derivarse de COMPRA (Decision 009/040): una empanada nunca se
+compra, se produce. El diseno se apoya en evidencia de MERCADO (cientos
+de productores evaluados en microfinanzas), no en un piloto puntual,
+porque FiApp debe servir a miles de merchants.
+
+**Decision - schema v8, dos tablas nuevas, espejo de ventas.** producciones
+y produccion_items replican exactamente el patron ventas/venta_items
+(Decision 031): cabecera + N lineas, CREATE TABLE IF NOT EXISTS sin
+rebuild. Columna modo_produccion INTEGER DEFAULT 0 en productos, opt-in
+explicito por producto.
+
+**Decision - una produccion es MULTI-LINEA.** Cada linea lleva su propio
+costo_unitario_declarado independiente, sin prorrateo entre lineas. Esto
+invalida el supuesto inicial de "1 produccion = 1 producto": los
+subproductos y ganchos de venta son comunes en panaderias de barrio, no
+un caso nicho. El productor declara el costo "a ojo"; nunca se le pide
+desglose de materia prima.
+
+**Correccion al spec - fueron 3 OR y 1 bloque nuevo, no 4 OR.** El spec y
+el plan dicen "4 cambios quirurgicos aditivos (||)". En el codigo real
+solo 3 son un OR sobre la condicion de COMPRA (union type,
+calcularStockDerivado, crearMovimientoInterno). El cuarto,
+anularMovimiento, es un BLOQUE NUEVO separado y esa fue la decision
+correcta: un OR habria mostrado el mensaje de COMPRA, y la PRODUCCION
+necesita el suyo ("Las PRODUCCIONES se corrigen con un AJUSTE"). El
+bloque quedo ANTES de ejecutarConPin, respetando la Decision 049: no se
+pide PIN para una accion que se rechazara igual.
+
+**Decision - AC-07 se interpreta HACIA ADELANTE.** "Editar el costo en
+cualquier momento" significa declarar un costo fresco en la proxima
+produccion, NO reescribir una produccion pasada. El
+costo_unitario_declarado de un evento ya registrado es un hecho
+ocurrido que ya alimento el promedio ponderado. Editarlo obligaria a
+recalcular costo_promedio, destruyendo por la puerta de atras lo que
+AC-04 protege por la puerta de adelante al bloquear la anulacion.
+Mismo criterio que Decision 024 (movimientos inmutables) y Decision 038
+(editar un precio no reescribe historia). CONSECUENCIA: T034 del
+tasks.md quedo mal redactado ("editar el costo de un producto ya
+producido") y debe reformularse a "registrar una segunda produccion con
+costo distinto y confirmar que el promedio se mueve sin alterar la
+produccion anterior".
+
+**Decision - duplicar NO copia modo_produccion.** Deliberado, no efecto
+colateral. Se documenta igual que la Decision 047 documento que
+costo_promedio nunca se copia. Blindado con un test de caracterizacion
+para que nadie lo revierta por accidente.
+
+**Hallazgo central - una tabla nueva rompe TODA operacion que enumera
+tablas a mano.** Schema v8 agrego 2 tablas y apararecieron CUATRO puntos
+rotos, todos del mismo patron, ninguno previsto en el tasks.md:
+
+1. ejecutarEnTransaccion snapshoteaba 6 mocks web para rollback y no los
+   2 nuevos (mismo patron que Decision 037 documento para mockWebClientes).
+2. resetInventario borraba 4 tablas sin las de produccion. En device
+   fallaba con FOREIGN KEY constraint failed, porque produccion_items
+   referencia productos y el PRAGMA foreign_keys esta ON. REGRESION real
+   sobre una funcion que los merchants ya usan.
+3. El respaldo omitia las 2 tablas nuevas: exactamente el problema que
+   la Decision 035 titulo "un backup que omite cuatro tablas no es un
+   backup". La produccion del merchant no viajaba en su respaldo.
+4. reemplazarTodo no restauraba producciones ni items, y su INSERT de
+   productos no escribia modo_produccion: al importar, todos los
+   productos volvian en modo comerciante.
+
+**Deuda del patron Decision 048 que seguia abierta:** crearProducto
+tampoco escribia modo_produccion. Se corrigio en el mismo commit. El
+orden de borrado e insercion es obligatorio: hijos (produccion_items)
+antes que padres (productos) al borrar, y al reves al insertar.
+
+**Limite estructural descubierto - la suite es CIEGA a la rama nativa.**
+Dos bugs pasaron con la suite en verde porque los tests corren solo la
+rama web: (a) el toggle de modo_produccion nunca se agrego al template
+y modoProduccion era un round-trip cerrado; (b) el INSERT de
+reemplazarTodo omitia el flag, pero el test pasaba porque la rama web
+usa spread y conserva el objeto entero. REGLA: cualquier cambio que
+toque SOLO la rama nativa (SQL, INSERT, DELETE) exige verificacion en
+dispositivo. La suite no puede verlo.
+
+**Divergencia web/nativo en modo_produccion:** el mock web guarda boolean
+true, SQLite guarda INTEGER 1. Ambas conviven. Se contuvo en
+filtrarProductosDeProduccion usando truthiness (!!valor), nunca === true.
+Un === true habria pasado la suite y dejado el boton invisible en Android.
+
+**Fix de spec sin debilitar aserciones:** editar-producto.component.spec.ts
+nunca llamaba fixture.detectChanges(); su template jamas estuvo cubierto
+en toda la vida del proyecto. Por eso el toggle ausente paso desapercibido.
+Los tests nuevos lo llaman explicitamente (criterio Decision 022).
+
+**Riesgo abierto, al backlog:** validarRespaldo compara schema_version por
+igualdad exacta, asi que TODO respaldo exportado con v7 queda inservible
+tras esta feature. No lo causo esta feature (se dispara con cualquier
+cambio de schema) pero es la primera vez que ocurre con merchants en
+piloto. Se asumio conscientemente: solo un merchant usa la app con
+disciplina y Duplicar producto (Feature #25) hace barato recrear
+inventario.
+
+**Bug de UI encontrado en device:** el campo de costo no se veia como
+campo (un 0 suelto sin caja). Causa: la pantalla reutiliza el .scss de
+fiado-productos y el template usaba clases que ese archivo NO define.
+Se reconstruyo con ion-item/ion-label. El styleUrls cruzado fue una
+decision equivocada: dio falsa sensacion de tener estilos. Darle su
+propio .scss queda al backlog.
+
+**Evidencia, en Android emulator, BY HAND y via respaldo JSON exportado:**
+un producto sin modo_produccion mostro CERO UI nueva y su flujo
+COMPRA/VENTA/AJUSTE/MERMA quedo identico (AC-06, verificado ademas con
+git diff: los 3 archivos del Home tienen CERO eliminaciones). Activado
+el flag en Empanada y Arepa, el boton aparecio en Home. Una produccion
+multi-linea de 10 Empanadas a 800 y 5 Arepas a 1200 dejo, en el JSON
+crudo, modo_produccion=1 y costo_promedio 800 y 1200 respectivamente:
+cada linea con SU costo, sin prorrateo (AC-01, AC-02). El ciclo
+exportar -> reiniciar -> importar restauro producciones, items y el
+flag, y el boton de Home reaparecio solo. 242 tests green (213 base +
+29 nuevos).

@@ -8,6 +8,9 @@ import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model'; 
 import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
+import { Produccion } from '../models/produccion.model';
+import { ProduccionItem } from '../models/produccion-item.model';
+import { ProduccionConItems } from '../models/produccion-con-items.model';
 import { Venta } from '../models/venta.model';
 import { RespaldoData } from '../models/respaldo.model';
 import { ConteoImportacion } from '../models/conteo-importacion.model';
@@ -54,6 +57,8 @@ export class DatabaseService {
   private mockWebMovimInventario: MovimInventario[] = [];
   private mockWebVentas: Venta[] = [];
   private mockWebVentaItems: VentaItem[] = [];
+  private mockWebProducciones: Produccion[] = [];
+  private mockWebProduccionItems: ProduccionItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
     if (this.isInitialized) {
@@ -212,6 +217,7 @@ export class DatabaseService {
 
     await this.crearIndiceVentasFechaSiFalta();
     await this.crearVentaItemsSiFaltan();
+    await this.crearProduccionesSiFaltan();
   }
 
   private async migrarEsquemaSiNecesario(): Promise<void> {
@@ -233,6 +239,8 @@ export class DatabaseService {
     await this.backfillMontosVentas();
     await this.crearVentaItemsSiFaltan();
     await this.reconstruirVentasParaMultiItem();
+    await this.agregarColumnaSiFalta('productos', 'modo_produccion', 'INTEGER DEFAULT 0');
+    await this.crearProduccionesSiFaltan();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -247,6 +255,48 @@ export class DatabaseService {
       CREATE INDEX IF NOT EXISTS ventas_fecha_idx
       ON ventas(fecha);
     `, !dentroDeTx);
+  }
+
+  private async crearProduccionesSiFaltan(): Promise<void> {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS producciones (
+        id TEXT PRIMARY KEY NOT NULL,
+        fecha INTEGER NOT NULL,
+        nota TEXT DEFAULT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS produccion_items (
+        id TEXT PRIMARY KEY NOT NULL,
+        produccion_id TEXT NOT NULL,
+        producto_id TEXT NOT NULL,
+        cantidad INTEGER NOT NULL,
+        costo_unitario_declarado REAL NOT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL,
+        FOREIGN KEY (produccion_id) REFERENCES producciones(id),
+        FOREIGN KEY (producto_id) REFERENCES productos(id)
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS produccion_items_produccion_id_idx
+      ON produccion_items(produccion_id);
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS produccion_items_producto_id_idx
+      ON produccion_items(producto_id);
+    `);
   }
 
   private async crearVentaItemsSiFaltan(): Promise<void> {
@@ -533,6 +583,20 @@ export class DatabaseService {
     return (res.values as VentaItem[]) ?? [];
   }
 
+  async leerCrudoProducciones(): Promise<Produccion[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProducciones;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM producciones");
+    return (res.values as Produccion[]) ?? [];
+  }
+
+  async leerCrudoProduccionItems(): Promise<ProduccionItem[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProduccionItems;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM produccion_items");
+    return (res.values as ProduccionItem[]) ?? [];
+  }
+
   async obtenerClientes(): Promise<Cliente[]> {
     if (Capacitor.getPlatform() === 'web') return this.filtrarActivos(this.mockWebClientes) as Cliente[];
     if (!this.isInitialized) await this.initializePlugin();
@@ -601,7 +665,7 @@ export class DatabaseService {
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, modo_produccion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
     const values = [
       producto.id,
       producto.nombre,
@@ -609,6 +673,7 @@ export class DatabaseService {
       producto.tipo_venta,
       producto.minimo_stock,
       producto.costo_promedio,
+      producto.modo_produccion ? 1 : 0,
       createdAt,
       producto.updated_at ?? null,
       producto.deleted_at ?? null,
@@ -630,7 +695,7 @@ export class DatabaseService {
       throw new Error('Stock insuficiente para registrar el movimiento');
     }
 
-    if (movimiento.tipo === 'COMPRA') {
+    if (movimiento.tipo === 'COMPRA' || movimiento.tipo === 'PRODUCCION') {
       const producto = await this.obtenerProductoPorIdInterno(movimiento.producto_id);
       if (producto == null) {
         throw new Error('Producto no encontrado');
@@ -680,19 +745,31 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, true);
   }
 
-  async actualizarProducto(id: string, nombre: string, precioVenta: number, minimoStock: number): Promise<void> {
+  async actualizarProducto(id: string, nombre: string, precioVenta: number, minimoStock: number, modoProduccion?: boolean): Promise<void> {
     const ahora = Date.now();
 
     if (Capacitor.getPlatform() === "web") {
       this.mockWebProductos = this.mockWebProductos.map((producto) => (
         producto.id === id
-          ? { ...producto, nombre, precio_venta: precioVenta, minimo_stock: minimoStock, updated_at: ahora }
+          ? {
+              ...producto,
+              nombre,
+              precio_venta: precioVenta,
+              minimo_stock: minimoStock,
+              modo_produccion: modoProduccion !== undefined ? modoProduccion : producto.modo_produccion,
+              updated_at: ahora,
+            }
           : producto
       ));
       return;
     }
 
     if (!this.isInitialized) await this.initializePlugin();
+    if (modoProduccion !== undefined) {
+      const sql = "UPDATE productos SET nombre = ?, precio_venta = ?, minimo_stock = ?, modo_produccion = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL";
+      await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, modoProduccion ? 1 : 0, ahora, id], false);
+      return;
+    }
     const sql = "UPDATE productos SET nombre = ?, precio_venta = ?, minimo_stock = ?, updated_at = ? WHERE id = ? AND deleted_at IS NULL";
     await this.ejecutarRun(sql, [nombre, precioVenta, minimoStock, ahora, id], false);
   }
@@ -702,6 +779,8 @@ export class DatabaseService {
       this.mockWebVentaItems = [];
       this.mockWebMovimInventario = [];
       this.mockWebVentas = [];
+      this.mockWebProduccionItems = [];
+      this.mockWebProducciones = [];
       this.mockWebProductos = [];
       return;
     }
@@ -710,6 +789,8 @@ export class DatabaseService {
 
     await this.ejecutarEnTransaccion(async () => {
       await this.ejecutarRun('DELETE FROM venta_items', [], true);
+      await this.ejecutarRun('DELETE FROM produccion_items', [], true);
+      await this.ejecutarRun('DELETE FROM producciones', [], true);
       await this.ejecutarRun('DELETE FROM movim_inventario', [], true);
       await this.ejecutarRun('DELETE FROM ventas', [], true);
       await this.ejecutarRun('DELETE FROM productos', [], true);
@@ -724,6 +805,8 @@ export class DatabaseService {
       movim_inventario: data.movim_inventario.length,
       ventas: data.ventas.length,
       venta_items: data.venta_items.length,
+      producciones: data.producciones.length,
+      produccion_items: data.produccion_items.length,
     };
 
     return this.ejecutarEnTransaccion(async () => {
@@ -734,10 +817,14 @@ export class DatabaseService {
         this.mockWebVentas = [...data.ventas];
         this.mockWebProductos = [...data.productos];
         this.mockWebClientes = [...data.clientes];
+        this.mockWebProducciones = [...data.producciones];
+        this.mockWebProduccionItems = [...data.produccion_items];
         return conteo;
       }
 
       await this.ejecutarRun("DELETE FROM venta_items", [], true);
+      await this.ejecutarRun("DELETE FROM produccion_items", [], true);
+      await this.ejecutarRun("DELETE FROM producciones", [], true);
       await this.ejecutarRun("DELETE FROM movim_inventario", [], true);
       await this.ejecutarRun("DELETE FROM transacciones", [], true);
       await this.ejecutarRun("DELETE FROM ventas", [], true);
@@ -754,8 +841,8 @@ export class DatabaseService {
 
       for (const p of data.productos) {
         await this.ejecutarRun(
-          "INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [p.id, p.nombre, p.precio_venta, p.tipo_venta, p.minimo_stock, p.costo_promedio, p.created_at ?? null, p.updated_at ?? null, p.deleted_at ?? null, p.store_id ?? null, p.created_by ?? null],
+          "INSERT INTO productos (id, nombre, precio_venta, tipo_venta, minimo_stock, costo_promedio, modo_produccion, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [p.id, p.nombre, p.precio_venta, p.tipo_venta, p.minimo_stock, p.costo_promedio, p.modo_produccion ? 1 : 0, p.created_at ?? null, p.updated_at ?? null, p.deleted_at ?? null, p.store_id ?? null, p.created_by ?? null],
           true
         );
       }
@@ -780,6 +867,14 @@ export class DatabaseService {
         await this.insertVentaItem(i);
       }
 
+      for (const pr of data.producciones) {
+        await this.insertProduccion(pr);
+      }
+
+      for (const pi of data.produccion_items) {
+        await this.insertProduccionItem(pi);
+      }
+
       return conteo;
     });
   }
@@ -792,6 +887,8 @@ export class DatabaseService {
       const snapMovim = [...this.mockWebMovimInventario];
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
+      const snapProducciones = [...this.mockWebProducciones];
+      const snapProduccionItems = [...this.mockWebProduccionItems];
 
       try {
         return await operacion();
@@ -802,6 +899,8 @@ export class DatabaseService {
         this.mockWebMovimInventario = snapMovim;
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
+        this.mockWebProducciones = snapProducciones;
+        this.mockWebProduccionItems = snapProduccionItems;
         throw error;
       }
     }
@@ -891,6 +990,111 @@ export class DatabaseService {
         await this.crearTransaccion(transaccionFiado, true);
       }
     });
+  }
+
+  private construirProduccionConItems(produccion: Produccion, items: ProduccionItem[]): ProduccionConItems {
+    return { produccion, items };
+  }
+
+  private combinarProduccionesConItems(producciones: Produccion[], items: ProduccionItem[]): ProduccionConItems[] {
+    const itemsPorProduccion = new Map<string, ProduccionItem[]>();
+
+    for (const item of items) {
+      const itemsProduccion = itemsPorProduccion.get(item.produccion_id) ?? [];
+      itemsProduccion.push(item);
+      itemsPorProduccion.set(item.produccion_id, itemsProduccion);
+    }
+
+    return producciones.map((p) => this.construirProduccionConItems(p, itemsPorProduccion.get(p.id) ?? []));
+  }
+
+  private async insertProduccion(produccion: Produccion): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProducciones.push({
+        id: produccion.id,
+        fecha: produccion.fecha,
+        nota: produccion.nota ?? null,
+        created_at: produccion.created_at ?? null,
+        updated_at: produccion.updated_at ?? null,
+        deleted_at: produccion.deleted_at ?? null,
+        store_id: produccion.store_id ?? null,
+        created_by: produccion.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO producciones (
+        id, fecha, nota, created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      produccion.id,
+      produccion.fecha,
+      produccion.nota ?? null,
+      produccion.created_at ?? null,
+      produccion.updated_at ?? null,
+      produccion.deleted_at ?? null,
+      produccion.store_id ?? null,
+      produccion.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  private async insertProduccionItem(item: ProduccionItem): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProduccionItems.push({ ...item, deleted_at: item.deleted_at ?? null });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = `
+      INSERT INTO produccion_items (
+        id, produccion_id, producto_id, cantidad, costo_unitario_declarado,
+        created_at, updated_at, deleted_at, store_id, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      item.id,
+      item.produccion_id,
+      item.producto_id,
+      item.cantidad,
+      item.costo_unitario_declarado,
+      item.created_at ?? null,
+      item.updated_at ?? null,
+      item.deleted_at ?? null,
+      item.store_id ?? null,
+      item.created_by ?? null,
+    ];
+    await this.ejecutarRun(sql, values, true);
+  }
+
+  async registrarProduccion(produccion: Produccion, items: ProduccionItem[], movimientos: MovimInventario[]): Promise<void> {
+    return this.ejecutarEnTransaccion(async () => {
+      await this.insertProduccion(produccion);
+      for (const item of items) {
+        await this.insertProduccionItem(item);
+      }
+      for (const movimiento of movimientos) {
+        await this.crearMovimientoInterno(movimiento);
+      }
+    });
+  }
+
+  async obtenerProducciones(): Promise<ProduccionConItems[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      const producciones = this.filtrarActivos(this.mockWebProducciones);
+      const items = this.filtrarActivos(this.mockWebProduccionItems);
+      return this.combinarProduccionesConItems(producciones, items);
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const produccionesRes = await this.db.query('SELECT * FROM producciones WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    const itemsRes = await this.db.query('SELECT * FROM produccion_items WHERE deleted_at IS NULL ORDER BY created_at ASC, id ASC');
+    const producciones: Produccion[] = produccionesRes.values ?? [];
+    const items: ProduccionItem[] = itemsRes.values ?? [];
+    return this.combinarProduccionesConItems(producciones, items);
   }
 
   async obtenerVentas(): Promise<VentaConItems[]> {

@@ -2,7 +2,7 @@ import { validarRespaldo } from './respaldo-validator';
 import { SCHEMA_VERSION } from '../database/schema-version';
 
 describe('validarRespaldo', () => {
-  const tablas = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [] };
+  const tablas = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [] };
   const valido = { schema_version: SCHEMA_VERSION, exported_at: '2026-08-06T00:00:00.000Z', data: tablas };
 
   it('acepta un respaldo bien formado', () => {
@@ -26,6 +26,22 @@ describe('validarRespaldo', () => {
     const sinVentas = { ...tablas };
     delete (sinVentas as Record<string, unknown>)['ventas'];
     const r = validarRespaldo({ ...valido, data: sinVentas });
+    expect(r.valido).toBe(false);
+    expect(r.motivo).toBe('TABLA_FALTANTE');
+  });
+
+  it('rechaza si falta producciones (schema v8)', () => {
+    const sinProducciones = { ...tablas };
+    delete (sinProducciones as Record<string, unknown>)['producciones'];
+    const r = validarRespaldo({ ...valido, data: sinProducciones });
+    expect(r.valido).toBe(false);
+    expect(r.motivo).toBe('TABLA_FALTANTE');
+  });
+
+  it('rechaza si falta produccion_items (schema v8)', () => {
+    const sinItems = { ...tablas };
+    delete (sinItems as Record<string, unknown>)['produccion_items'];
+    const r = validarRespaldo({ ...valido, data: sinItems });
     expect(r.valido).toBe(false);
     expect(r.motivo).toBe('TABLA_FALTANTE');
   });

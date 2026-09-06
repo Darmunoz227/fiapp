@@ -1,0 +1,94 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home" text="Atrás"></ion-back-button>
+    </ion-buttons>
+    <ion-title style="font-size: 16px;">Registrar producción</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div *ngIf="paso === 'productos'" class="paso-productos">
+    <div class="paso-header">
+      <h1 class="paso-title">¿Qué produjiste hoy?</h1>
+      <p class="paso-subtitle">Pon la cantidad y cuánto te costó cada unidad</p>
+    </div>
+
+    <div *ngIf="productos.length === 0" class="catalogo-vacio">
+      <p class="vacio-texto">Ningún producto está en modo producción.</p>
+      <ion-button expand="block" color="primary" (click)="irAInventario()">
+        Activar en un producto
+      </ion-button>
+    </div>
+
+    <div *ngIf="productos.length > 0" class="grid-scroll">
+      <div *ngFor="let p of productos" class="product-row" [class.has-qty]="cantidad(p) > 0">
+        <button class="product-add-btn" (click)="sumar(p)">
+          <span class="product-info">
+            <span class="product-emoji">📦</span>
+            <span class="product-details">
+              <span class="product-name">{{ p.nombre }}</span>
+              <span class="product-price">Toca para sumar</span>
+            </span>
+          </span>
+          <span class="product-qty-badge" *ngIf="cantidad(p) > 0">{{ cantidad(p) }}</span>
+        </button>
+        <button class="product-sub-btn" *ngIf="cantidad(p) > 0" (click)="restar(p)">
+          <ion-icon name="remove-outline"></ion-icon>
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="hayLineas" class="costos-bloque">
+      <p class="paso-subtitle">¿Cuánto te costó cada unidad?</p>
+      <ion-item *ngFor="let p of productosConCantidad" lines="inset" style="--border-radius: 12px; margin-bottom: 8px;">
+        <ion-label position="stacked">{{ p.nombre }} × {{ cantidad(p) }} <span *ngIf="costo(p) > 0">= $ {{ (cantidad(p) * costo(p)).toLocaleString('es-CO') }}</span></ion-label>
+        <ion-input
+          type="number"
+          inputmode="numeric"
+          placeholder="Costo por unidad (ej. 800)"
+          [value]="costo(p) > 0 ? costo(p) : null"
+          (ionInput)="cambiarCosto(p, $event)">
+        </ion-input>
+        <ion-button slot="end" fill="outline" size="small" (click)="abrirCalculadora(p)">
+          Calcular
+        </ion-button>
+      </ion-item>
+    </div>
+
+    <div *ngIf="productos.length > 0" class="footer-fijo">
+      <div class="total-fila">
+        <span class="total-label">COSTO TOTAL:</span>
+        <span class="total-valor">$ {{ costoTotal.toLocaleString('es-CO') }}</span>
+      </div>
+      <ion-button
+        expand="block"
+        color="danger"
+        class="guardar-btn"
+        [disabled]="!puedeGuardar || guardando"
+        (click)="guardarProduccion()">
+        GUARDAR PRODUCCIÓN
+      </ion-button>
+    </div>
+  </div>
+
+  <div *ngIf="paso === 'confirmacion'" class="paso-confirmacion">
+    <ion-icon name="checkmark-circle-outline" color="success" class="check-icon"></ion-icon>
+    <h2 class="confirm-title">¡Producción registrada!</h2>
+
+    <div class="recibo-card">
+      <p class="recibo-concepto">{{ lineasGuardadas }} producto(s) agregados a tu inventario</p>
+      <div class="recibo-total-fila">
+        <span class="recibo-total-label">COSTO TOTAL</span>
+        <span class="recibo-total-val">$ {{ totalGuardado.toLocaleString('es-CO') }} COP</span>
+      </div>
+    </div>
+
+    <ion-button expand="block" color="primary" class="confirm-btn" (click)="irAInventario()">
+      Ver mi inventario
+    </ion-button>
+    <ion-button expand="block" fill="outline" color="medium" class="confirm-btn" (click)="registrarOtra()">
+      Registrar otra producción
+    </ion-button>
+  </div>
+</ion-content>

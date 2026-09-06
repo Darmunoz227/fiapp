@@ -583,6 +583,23 @@ describe('DatabaseService', () => {
     }));
     expect(deudasCliente).toContain(jasmine.objectContaining({ id: 'transaccion-fiado-1', tipo: 'fiado' }));
   });
+  it('PRODUCCION actualiza costo_promedio via promedio ponderado, igual que COMPRA', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await crearMovimiento(crearMovimientoParcial({
+      id: 'movimiento-produccion-1',
+      producto_id: 'p1',
+      tipo: 'PRODUCCION',
+      cantidad: 10,
+      costo_unitario: 800,
+    }));
+
+    const costoDespues = (await service.obtenerProductos())
+      .find((producto) => producto.id === 'p1')!.costo_promedio;
+
+    expect(costoDespues).toBe(800);
+  });
+
   it('COMPRA rollback: if the movement insert fails, costo_promedio is NOT modified', async () => {
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
 
@@ -615,6 +632,141 @@ describe('DatabaseService', () => {
     expect(costoDespues).toBe(1000);
     expect((await obtenerMovimientosPorProducto('p1')).length).toBe(1);
   });
+  it('actualizarProducto activa modo_produccion cuando se provee explicitamente', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    await service.actualizarProducto('p1', 'Empanada', 1500, 5, true);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p1');
+    expect(producto?.modo_produccion).toBe(true);
+  });
+
+  it('actualizarProducto NO altera modo_produccion cuando no se provee (compatibilidad hacia atras)', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p2', costo_promedio: 1000 }));
+    await service.actualizarProducto('p2', 'Camiseta', 30000, 3, true);
+
+    await service.actualizarProducto('p2', 'Camiseta Roja', 32000, 3);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p2');
+    expect(producto?.modo_produccion).toBe(true);
+    expect(producto?.nombre).toBe('Camiseta Roja');
+  });
+
+  it('registrarProduccion crea 1 cabecera + N items + N movimientos en una sola transaccion', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+    await service.crearProducto(crearProductoParcial({ id: 'p2', costo_promedio: 500 }));
+
+    const produccion = { id: 'produccion-1', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-1', produccion_id: 'produccion-1', producto_id: 'p1', cantidad: 20, costo_unitario_declarado: 800 } as any,
+      { id: 'pi-2', produccion_id: 'produccion-1', producto_id: 'p2', cantidad: 15, costo_unitario_declarado: 300 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-p1', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 20, costo_unitario: 800 }),
+      crearMovimientoParcial({ id: 'mov-p2', producto_id: 'p2', tipo: 'PRODUCCION', cantidad: 15, costo_unitario: 300 }),
+    ];
+
+    await service.registrarProduccion(produccion, items, movimientos);
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(1);
+    expect(producciones[0].items.length).toBe(2);
+    expect(producciones[0].produccion.id).toBe('produccion-1');
+
+    const costoP1 = (await service.obtenerProductos()).find((p) => p.id === 'p1')!.costo_promedio;
+    const costoP2 = (await service.obtenerProductos()).find((p) => p.id === 'p2')!.costo_promedio;
+    expect(costoP1).toBe(800);
+    expect(costoP2).toBe(300);
+  });
+
+  it('reemplazarTodo restaura producciones, items y el flag modo_produccion', async () => {
+    const data: any = {
+      clientes: [],
+      transacciones: [],
+      productos: [{ id: 'p1', nombre: 'Empanada', precio_venta: 2500, tipo_venta: 'UNIDAD', minimo_stock: 5, costo_promedio: 800, modo_produccion: true }],
+      movim_inventario: [],
+      ventas: [],
+      venta_items: [],
+      producciones: [{ id: 'prod-1', fecha: 1700000000000, nota: null }],
+      produccion_items: [{ id: 'pi-1', produccion_id: 'prod-1', producto_id: 'p1', cantidad: 10, costo_unitario_declarado: 800 }],
+    };
+
+    const conteo: any = await service.reemplazarTodo(data);
+
+    expect(conteo.producciones).toBe(1);
+    expect(conteo.produccion_items).toBe(1);
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(1);
+    expect(producciones[0].items.length).toBe(1);
+
+    const producto = (await service.obtenerProductos()).find((p) => p.id === 'p1');
+    expect(producto?.modo_produccion).toBeTruthy();
+  });
+
+  it('resetInventario borra tambien producciones y produccion_items (schema v8)', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    const produccion = { id: 'produccion-reset', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-reset', produccion_id: 'produccion-reset', producto_id: 'p1', cantidad: 5, costo_unitario_declarado: 400 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-reset', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 5, costo_unitario: 400 }),
+    ];
+    await service.registrarProduccion(produccion, items, movimientos);
+    expect((await service.obtenerProducciones()).length).toBe(1);
+
+    await service.resetInventario();
+
+    expect((await service.obtenerProducciones()).length).toBe(0);
+    expect((await service.obtenerProductos()).length).toBe(0);
+  });
+
+  it('cada linea de produccion actualiza el costo_promedio de SU propio producto, sin mezclar costos', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'pan', costo_promedio: 1000 }));
+    await service.crearProducto(crearProductoParcial({ id: 'recorte', costo_promedio: 100 }));
+
+    const produccion = { id: 'produccion-2', fecha: Date.now(), nota: 'horneada manana' } as any;
+    const items = [
+      { id: 'pi-3', produccion_id: 'produccion-2', producto_id: 'pan', cantidad: 30, costo_unitario_declarado: 900 } as any,
+      { id: 'pi-4', produccion_id: 'produccion-2', producto_id: 'recorte', cantidad: 10, costo_unitario_declarado: 50 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-pan', producto_id: 'pan', tipo: 'PRODUCCION', cantidad: 30, costo_unitario: 900 }),
+      crearMovimientoParcial({ id: 'mov-recorte', producto_id: 'recorte', tipo: 'PRODUCCION', cantidad: 10, costo_unitario: 50 }),
+    ];
+
+    await service.registrarProduccion(produccion, items, movimientos);
+
+    const costoPan = (await service.obtenerProductos()).find((p) => p.id === 'pan')!.costo_promedio;
+    const costoRecorte = (await service.obtenerProductos()).find((p) => p.id === 'recorte')!.costo_promedio;
+    expect(costoPan).toBe(900);
+    expect(costoRecorte).toBe(50);
+  });
+
+  it('registrarProduccion ROLLBACK: si una linea falla, NADA persiste', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    const produccion = { id: 'produccion-fallida', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-ok', produccion_id: 'produccion-fallida', producto_id: 'p1', cantidad: 10, costo_unitario_declarado: 800 } as any,
+      { id: 'pi-fail', produccion_id: 'produccion-fallida', producto_id: 'no-existe', cantidad: 5, costo_unitario_declarado: 400 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-ok', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 10, costo_unitario: 800 }),
+      crearMovimientoParcial({ id: 'mov-fail', producto_id: 'no-existe', tipo: 'PRODUCCION', cantidad: 5, costo_unitario: 400 }),
+    ];
+
+    await expectAsync(service.registrarProduccion(produccion, items, movimientos)).toBeRejected();
+
+    const producciones = await service.obtenerProducciones();
+    expect(producciones.length).toBe(0);
+
+    const costoP1 = (await service.obtenerProductos()).find((p) => p.id === 'p1')!.costo_promedio;
+    expect(costoP1).toBe(1000);
+  });
+
   it('ROLLBACK (mandatory): if a write fails, NOTHING persists', async () => {
     await service.crearCliente(crearClienteParcial({ id: 'c1' }));
     await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));

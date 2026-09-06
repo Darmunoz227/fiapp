@@ -12,6 +12,7 @@ import { addIcons } from 'ionicons';
 import { add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, fastFoodOutline } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
+import { filtrarProductosDeProduccion } from '../core/produccion/produccion';
 import { FreemiumService } from '../core/freemium/freemium.service';
 import { formatCurrencyCOP } from '../shared/utils/formatters';
 import { PreferencesService } from '../core/preferences/preferences.service';
@@ -55,10 +56,22 @@ export class HomePage {
     addIcons({ add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, fastFoodOutline }); 
   }
 
+  tieneProduccion = false;
+
   ionViewWillEnter() {
     this.checkNombreNegocio();
     this.cargarClientesYDeudas();
+    void this.cargarProductosDeProduccion();
     void this.registrarListenerEstadoApp();
+  }
+
+  async cargarProductosDeProduccion(): Promise<void> {
+    const productos = await this.dbService.obtenerProductos();
+    this.tieneProduccion = filtrarProductosDeProduccion(productos).length > 0;
+  }
+
+  irARegistrarProduccion() {
+    this.router.navigate(['/registrar-produccion']);
   }
 
   ionViewWillLeave() {

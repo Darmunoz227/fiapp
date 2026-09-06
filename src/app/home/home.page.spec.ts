@@ -17,6 +17,7 @@ const databaseServiceMock = jasmine.createSpyObj('DatabaseService', [
   'obtenerTransaccionesPorCliente',
   'softDeleteCliente',
   'restoreCliente',
+  'obtenerProductos',
 ]);
 const preferencesServiceMock = jasmine.createSpyObj('PreferencesService', [
   'getNombreNegocio',
@@ -64,6 +65,7 @@ describe('HomePage', () => {
     databaseServiceMock.obtenerTransaccionesPorCliente.and.resolveTo([]);
     databaseServiceMock.softDeleteCliente.and.resolveTo(undefined);
     databaseServiceMock.restoreCliente.and.resolveTo(undefined);
+    databaseServiceMock.obtenerProductos.and.resolveTo([]);
     preferencesServiceMock.getNombreNegocio.and.resolveTo('');
     preferencesServiceMock.setNombreNegocio.and.resolveTo(undefined);
     freemiumServiceMock.puedeAgregarCliente.and.resolveTo(true);
@@ -85,6 +87,25 @@ describe('HomePage', () => {
     component = fixture.componentInstance;
     spyOn(component, 'cargarClientesYDeudas').and.resolveTo();
   }));
+
+  it('muestra el boton de produccion si hay un producto en modo produccion', async () => {
+    databaseServiceMock.obtenerProductos.and.resolveTo([
+      { id: 'a', nombre: 'Empanada', ...{ precio_venta: 100, tipo_venta: 'UNIDAD', minimo_stock: 0, costo_promedio: 0 }, modo_produccion: 1 },
+    ] as any);
+    await component.cargarProductosDeProduccion();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.boton-registrar-produccion')).not.toBeNull();
+  });
+
+  it('AC-06 REGRESION: no muestra el boton si ningun producto tiene modo produccion', async () => {
+    databaseServiceMock.obtenerProductos.and.resolveTo([
+      { id: 'b', nombre: 'Arroz', ...{ precio_venta: 100, tipo_venta: 'UNIDAD', minimo_stock: 0, costo_promedio: 0 }, modo_produccion: false },
+      { id: 'c', nombre: 'Sal', ...{ precio_venta: 100, tipo_venta: 'UNIDAD', minimo_stock: 0, costo_promedio: 0 } },
+    ] as any);
+    await component.cargarProductosDeProduccion();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.boton-registrar-produccion')).toBeNull();
+  });
 
   it('shows the block alert and does not soft-delete when the client has positive debt', async () => {
     const cliente = {

@@ -95,6 +95,11 @@ export class InventoryMovementPage {
       return;
     }
 
+    if (movimiento.tipo === 'PRODUCCION') {
+      await this.mostrarToast('Las PRODUCCIONES se corrigen con un AJUSTE', 'danger');
+      return;
+    }
+
     await this.seguridadService.ejecutarConPin(async () => {
       try {
         await this.dbService.softDeleteMovimiento(movimiento.id);

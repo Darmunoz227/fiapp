@@ -12,6 +12,8 @@ export function construirRespaldo(data: RespaldoData, exportadoEn: string): Resp
       movim_inventario: data.movim_inventario,
       ventas: data.ventas,
       venta_items: data.venta_items,
+      producciones: data.producciones,
+      produccion_items: data.produccion_items,
     },
   };
 }

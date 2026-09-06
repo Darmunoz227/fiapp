@@ -2,7 +2,7 @@ import { Component, OnInit, ViewChild, Input } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-  IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote
+  IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
 } from "@ionic/angular/standalone";
 
 import { DatabaseService } from "../../../core/database/database.service";
@@ -19,7 +19,7 @@ import { v4 as uuidv4 } from "uuid";
   imports: [
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-    IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote
+    IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
   ]
 })
 export class EditarProductoComponent implements OnInit {
@@ -29,6 +29,7 @@ export class EditarProductoComponent implements OnInit {
   nombre = "";
   precio_venta = "";
   minimo_stock: number | null = null;
+  modoProduccion = false;
 
   @ViewChild("precioInput") precioInput?: IonInput;
 
@@ -42,6 +43,7 @@ export class EditarProductoComponent implements OnInit {
     this.nombre = this.producto.nombre;
     this.precio_venta = formatCurrencyCOP(this.producto.precio_venta);
     this.minimo_stock = this.producto.minimo_stock;
+    this.modoProduccion = this.producto.modo_produccion ?? false;
   }
 
   cerrarModal() {
@@ -105,7 +107,7 @@ export class EditarProductoComponent implements OnInit {
         };
         await this.dbService.crearProducto(nuevo);
       } else {
-        await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock);
+        await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock, this.modoProduccion);
       }
       this.modalCtrl.dismiss({ guardado: true });
     } catch (error) {

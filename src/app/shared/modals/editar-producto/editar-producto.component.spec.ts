@@ -78,7 +78,7 @@ describe('EditarProductoComponent', () => {
     component.precio_venta = '4.200';
     component.minimo_stock = 8;
     await component.guardar();
-    expect(dbMock.actualizarProducto).toHaveBeenCalledWith('p1', 'Arroz Diana', 4200, 8);
+    expect(dbMock.actualizarProducto).toHaveBeenCalledWith('p1', 'Arroz Diana', 4200, 8, false);
   });
 
   it('no guarda si el freemium bloquea', async () => {
@@ -117,6 +117,22 @@ describe('EditarProductoComponent', () => {
     await component.guardar();
     const arg = dbMock.crearProducto.calls.mostRecent().args[0];
     expect(arg.tipo_venta).toBe('UNIDAD');
+  });
+
+  it('renderiza el toggle de modo produccion', () => {
+    fixture.detectChanges();
+    const toggle = fixture.nativeElement.querySelector('ion-toggle');
+    expect(toggle).not.toBeNull();
+  });
+
+  it('modo duplicar: NO copia modo_produccion (Decision 052, deliberado)', async () => {
+    component.producto = { ...producto, modo_produccion: true };
+    component.ngOnInit();
+    component.modo = 'duplicar';
+    component.nombre = 'Arroz Diana';
+    await component.guardar();
+    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    expect(arg.modo_produccion).toBeUndefined();
   });
 
   it('modo duplicar: no crea si el freemium bloquea', async () => {

@@ -9,7 +9,7 @@ export interface ResultadoValidacion {
   data?: RespaldoData;
 }
 
-const TABLAS = ["clientes", "transacciones", "productos", "movim_inventario", "ventas", "venta_items"];
+const TABLAS = ["clientes", "transacciones", "productos", "movim_inventario", "ventas", "venta_items", "producciones", "produccion_items"];
 
 export function validarRespaldo(entrada: unknown): ResultadoValidacion {
   if (entrada === null || typeof entrada !== "object") {
