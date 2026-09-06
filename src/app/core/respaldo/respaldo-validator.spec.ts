@@ -75,6 +75,29 @@ describe('validarRespaldo', () => {
     expect(r.motivo).toBe('TABLA_INVALIDA');
   });
 
+  it('devuelve config cuando el respaldo la trae', () => {
+    const config = {
+      catalogo_fiado: [{ id: 'c1', nombre: 'Tinto', precio: 1500 }],
+      nombre_negocio: 'Tienda Diego',
+    };
+    const r = validarRespaldo({ ...valido, config });
+    expect(r.valido).toBe(true);
+    expect(r.config?.nombre_negocio).toBe('Tienda Diego');
+    expect(r.config?.catalogo_fiado.length).toBe(1);
+  });
+
+  it('acepta un respaldo SIN config y devuelve config undefined', () => {
+    const r = validarRespaldo(valido);
+    expect(r.valido).toBe(true);
+    expect(r.config).toBeUndefined();
+  });
+
+  it('acepta el respaldo aunque config sea invalida, ignorandola', () => {
+    const r = validarRespaldo({ ...valido, config: 'nope' });
+    expect(r.valido).toBe(true);
+    expect(r.config).toBeUndefined();
+  });
+
   it('rechaza null o cualquier cosa que no sea objeto', () => {
     expect(validarRespaldo(null).motivo).toBe('SIN_DATA');
     expect(validarRespaldo('texto').motivo).toBe('SIN_DATA');

@@ -1,5 +1,5 @@
 import { SCHEMA_VERSION } from "../database/schema-version";
-import { RespaldoData } from "../models/respaldo.model";
+import { RespaldoData, RespaldoConfig } from "../models/respaldo.model";
 
 export type MotivoRechazo = "SIN_DATA" | "VERSION_INCOMPATIBLE" | "TABLA_FALTANTE" | "TABLA_INVALIDA";
 
@@ -7,6 +7,7 @@ export interface ResultadoValidacion {
   valido: boolean;
   motivo?: MotivoRechazo;
   data?: RespaldoData;
+  config?: RespaldoConfig;
 }
 
 const SCHEMA_VERSION_MINIMA_SOPORTADA = 7;
@@ -43,5 +44,11 @@ export function validarRespaldo(entrada: unknown): ResultadoValidacion {
     }
   }
 
-  return { valido: true, data: completo as unknown as RespaldoData };
+  const configCruda = raiz["config"];
+  const config =
+    configCruda !== null && typeof configCruda === "object" && !Array.isArray(configCruda)
+      ? (configCruda as unknown as RespaldoConfig)
+      : undefined;
+
+  return { valido: true, data: completo as unknown as RespaldoData, config };
 }
