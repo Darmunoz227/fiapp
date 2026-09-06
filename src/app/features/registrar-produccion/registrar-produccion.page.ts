@@ -152,11 +152,11 @@ export class RegistrarProduccionPage {
 
   async abrirCalculadora(producto: Producto) {
     const alert = await this.alertCtrl.create({
-      header: 'Calcular costo',
-      message: 'Gastos fijos del mes divididos entre las unidades que estimas producir.',
+      header: 'Calcular costo fijo por unidad',
+      message: 'Reparte tus gastos del mes (arriendo, luz, gas) entre lo que produces. Ejemplo: 600.000 entre 3.000 unidades = 200 por unidad. Despues sumale la materia prima.',
       inputs: [
-        { name: 'fijos', type: 'number', placeholder: 'Gastos fijos del mes' },
-        { name: 'unidades', type: 'number', placeholder: 'Unidades estimadas' },
+        { name: 'fijos', type: 'number', placeholder: 'Arriendo, luz, gas del mes' },
+        { name: 'unidades', type: 'number', placeholder: 'Unidades que produces al mes' },
       ],
       buttons: [
         { text: 'Cancelar', role: 'cancel' },
