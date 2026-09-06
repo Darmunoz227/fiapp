@@ -583,6 +583,20 @@ export class DatabaseService {
     return (res.values as VentaItem[]) ?? [];
   }
 
+  async leerCrudoProducciones(): Promise<Produccion[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProducciones;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM producciones");
+    return (res.values as Produccion[]) ?? [];
+  }
+
+  async leerCrudoProduccionItems(): Promise<ProduccionItem[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebProduccionItems;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM produccion_items");
+    return (res.values as ProduccionItem[]) ?? [];
+  }
+
   async obtenerClientes(): Promise<Cliente[]> {
     if (Capacitor.getPlatform() === 'web') return this.filtrarActivos(this.mockWebClientes) as Cliente[];
     if (!this.isInitialized) await this.initializePlugin();

@@ -4,6 +4,8 @@ import { Producto } from './producto.model';
 import { MovimInventario } from './movim-inventario.model';
 import { Venta } from './venta.model';
 import { VentaItem } from './venta-item.model';
+import { Produccion } from './produccion.model';
+import { ProduccionItem } from './produccion-item.model';
 
 export interface RespaldoData {
   clientes: Cliente[];
@@ -12,6 +14,8 @@ export interface RespaldoData {
   movim_inventario: MovimInventario[];
   ventas: Venta[];
   venta_items: VentaItem[];
+  producciones: Produccion[];
+  produccion_items: ProduccionItem[];
 }
 
 export interface Respaldo {

@@ -303,6 +303,8 @@ export class ConfiguracionesPage {
       movim_inventario: await this.dbService.leerCrudoMovimInventario(),
       ventas: await this.dbService.leerCrudoVentas(),
       venta_items: await this.dbService.leerCrudoVentaItems(),
+      producciones: await this.dbService.leerCrudoProducciones(),
+      produccion_items: await this.dbService.leerCrudoProduccionItems(),
     };
 
     const respaldo = construirRespaldo(data, new Date().toISOString());

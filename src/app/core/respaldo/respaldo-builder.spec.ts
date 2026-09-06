@@ -6,7 +6,7 @@ import { Venta } from '../models/venta.model';
 import { VentaItem } from '../models/venta-item.model';
 
 describe('construirRespaldo', () => {
-  const vacio = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [] };
+  const vacio = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [] };
 
   it('incluye las seis tablas como arrays', () => {
     const r = construirRespaldo(vacio, '2026-08-05T00:00:00.000Z');
@@ -16,6 +16,13 @@ describe('construirRespaldo', () => {
     expect(Array.isArray(r.data.movim_inventario)).toBe(true);
     expect(Array.isArray(r.data.ventas)).toBe(true);
     expect(Array.isArray(r.data.venta_items)).toBe(true);
+  });
+
+  it('incluye producciones y produccion_items (schema v8)', () => {
+    const r = construirRespaldo(vacio as any, '2026-08-05T00:00:00.000Z');
+    const data = r.data as unknown as Record<string, unknown>;
+    expect(Array.isArray(data['producciones'])).toBe(true);
+    expect(Array.isArray(data['produccion_items'])).toBe(true);
   });
 
   it('embebe schema_version desde la constante, nunca un literal', () => {
