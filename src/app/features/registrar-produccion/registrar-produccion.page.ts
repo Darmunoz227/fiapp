@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, ToastController, AlertController } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, IonItem, IonLabel, ToastController, AlertController } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { removeOutline, checkmarkCircleOutline } from 'ionicons/icons';
 import { v4 as uuidv4 } from 'uuid';
@@ -17,7 +17,7 @@ type PasoProduccion = 'productos' | 'confirmacion';
   templateUrl: './registrar-produccion.page.html',
   styleUrls: ['../fiado-productos/fiado-productos.page.scss'],
   standalone: true,
-  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput],
+  imports: [CommonModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, IonIcon, IonInput, IonItem, IonLabel],
 })
 export class RegistrarProduccionPage {
   paso: PasoProduccion = 'productos';

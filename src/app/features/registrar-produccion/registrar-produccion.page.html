@@ -41,17 +41,19 @@
 
     <div *ngIf="hayLineas" class="costos-bloque">
       <p class="paso-subtitle">¿Cuánto te costó cada unidad?</p>
-      <div *ngFor="let p of productosConCantidad" class="costo-fila">
-        <span class="costo-nombre">{{ p.nombre }} × {{ cantidad(p) }}</span>
+      <ion-item *ngFor="let p of productosConCantidad" lines="inset" style="--border-radius: 12px; margin-bottom: 8px;">
+        <ion-label position="stacked">{{ p.nombre }} × {{ cantidad(p) }}</ion-label>
         <ion-input
           type="number"
           inputmode="numeric"
-          placeholder="Costo c/u"
-          [value]="costo(p)"
+          placeholder="Escribe cuanto te costo cada unidad"
+          [value]="costo(p) > 0 ? costo(p) : null"
           (ionInput)="cambiarCosto(p, $event)">
         </ion-input>
-        <ion-button fill="clear" size="small" (click)="abrirCalculadora(p)">Calcular</ion-button>
-      </div>
+        <ion-button slot="end" fill="outline" size="small" (click)="abrirCalculadora(p)">
+          Calcular
+        </ion-button>
+      </ion-item>
     </div>
 
     <div *ngIf="productos.length > 0" class="footer-fijo">
