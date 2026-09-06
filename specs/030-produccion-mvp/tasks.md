@@ -70,9 +70,11 @@
   correcta (precio_venta - costo_promedio actualizado por PRODUCCION).
 - T033 [DEVICE] Intentar anular un movimiento PRODUCCION: bloqueado,
   mensaje equivalente a COMPRA.
-- T034 [DEVICE] Editar el costo_unitario_declarado de un producto ya
-  producido: confirmar que es tan facil como editar precio_venta
-  (Feature #25), sin romper historia de producciones pasadas.
+- T034 [DEVICE] Costo que fluctua (AC-07, ver Decision 052): registrar
+  una SEGUNDA produccion del mismo producto con un costo declarado
+  distinto y confirmar que el costo_promedio se mueve por promedio
+  ponderado, mientras la produccion anterior queda INTACTA. El costo se
+  declara hacia adelante; NO se reescribe historia (Decision 024/038).
 
 ## Fase 6: Cierre
 - T035 Actualizar docs/DECISIONS.md (Decision 052) y
