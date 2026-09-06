@@ -22,28 +22,51 @@ describe('validarRespaldo', () => {
     expect(r.motivo).toBe('SIN_DATA');
   });
 
-  it('rechaza si falta una tabla', () => {
+  it('rellena vacia una tabla ausente en vez de rechazar (Feature 031)', () => {
     const sinVentas = { ...tablas };
     delete (sinVentas as Record<string, unknown>)['ventas'];
     const r = validarRespaldo({ ...valido, data: sinVentas });
-    expect(r.valido).toBe(false);
-    expect(r.motivo).toBe('TABLA_FALTANTE');
+    expect(r.valido).toBe(true);
+    expect(r.data?.ventas).toEqual([]);
+    expect(r.data?.clientes).toEqual([]);
   });
 
-  it('rechaza si falta producciones (schema v8)', () => {
+  it('rellena vacia producciones si el archivo no la trae', () => {
     const sinProducciones = { ...tablas };
     delete (sinProducciones as Record<string, unknown>)['producciones'];
     const r = validarRespaldo({ ...valido, data: sinProducciones });
-    expect(r.valido).toBe(false);
-    expect(r.motivo).toBe('TABLA_FALTANTE');
+    expect(r.valido).toBe(true);
+    expect(r.data?.producciones).toEqual([]);
   });
 
-  it('rechaza si falta produccion_items (schema v8)', () => {
+  it('rellena vacia produccion_items si el archivo no la trae', () => {
     const sinItems = { ...tablas };
     delete (sinItems as Record<string, unknown>)['produccion_items'];
     const r = validarRespaldo({ ...valido, data: sinItems });
+    expect(r.valido).toBe(true);
+    expect(r.data?.produccion_items).toEqual([]);
+  });
+
+  it('acepta un respaldo v7 y rellena vacias las tablas de produccion', () => {
+    const v7 = { ...tablas } as Record<string, unknown>;
+    delete v7['producciones'];
+    delete v7['produccion_items'];
+    const r = validarRespaldo({ schema_version: 7, exported_at: 'x', data: v7 });
+    expect(r.valido).toBe(true);
+    expect(r.data?.producciones).toEqual([]);
+    expect(r.data?.produccion_items).toEqual([]);
+  });
+
+  it('rechaza una version mayor a la actual', () => {
+    const r = validarRespaldo({ ...valido, schema_version: SCHEMA_VERSION + 1 });
     expect(r.valido).toBe(false);
-    expect(r.motivo).toBe('TABLA_FALTANTE');
+    expect(r.motivo).toBe('VERSION_INCOMPATIBLE');
+  });
+
+  it('rechaza una version anterior al piso soportado (menor a 7)', () => {
+    const r = validarRespaldo({ ...valido, schema_version: 6 });
+    expect(r.valido).toBe(false);
+    expect(r.motivo).toBe('VERSION_INCOMPATIBLE');
   });
 
   it('rechaza si una tabla no es arreglo', () => {
