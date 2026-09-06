@@ -23,10 +23,10 @@ todo el código lo hago yo.
 ## Estado actual (verificar SIEMPRE con archivos, no asumir)
 
 - Rama principal: `main`, sincronizada con `origin-privado/main`.
-- **Features #1 a #30 COMPLETAS y mergeadas.**
+- **Features #1 a #31 COMPLETAS y mergeadas.**
 - **Schema v8** (dos tablas nuevas de producción + `modo_produccion`, Feature #30).
-- **52 decisiones** documentadas en `docs/DECISIONS.md`.
-- **242 tests** pasando (Karma/ChromeHeadless).
+- **53 decisiones** documentadas en `docs/DECISIONS.md`.
+- **250 tests** pasando (Karma/ChromeHeadless).
 - Documentación viva: `docs/PROJECT_CONTEXT.md` y `docs/DECISIONS.md`.
 
 ## Metodología OBLIGATORIA: SDD + TDD estricto
@@ -105,34 +105,48 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
-1. **Desglose de forma de pago** en el momento de la venta (efectivo / billetera
-   virtual Nequi-Daviplata / datáfono Redeban-Credibanco), ligado al cierre de
-   caja. Ojo: puede tocar Decision 027 (montos son fuente de verdad, tipo_pago
-   es proyección) → sería **schema v9** (la v8 ya la ocupó Producción).
-2. **Restaurar respaldos de versiones anteriores.** `validarRespaldo` compara
-   `schema_version` por igualdad EXACTA, así que todo respaldo v7 quedó
-   inservible tras la Feature #30. Se disparará con CADA cambio de schema.
-   Riesgo asumido conscientemente en Decision 052.
+1. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
+   merchants de ropa coincidieron: necesitan saber con qué base abren el
+   día, cuánto entró por efectivo / billetera virtual (Nequi-Daviplata) /
+   datáfono (Redeban-Credibanco), qué gastos hubo, y con qué cierran.
+   Piensan primero en "cuánto tengo que vender hoy para cubrir el
+   arriendo": eso NO es un cierre, es un PUNTO DE EQUILIBRIO, y es la
+   parte más valiosa. Aritmética emparentada con la calculadora de
+   overhead de la Feature #30. Ojo: toca la Decision 027 (los montos son
+   fuente de verdad, `tipo_pago` es proyección) → sería **schema v9**.
+   NO fragmentar en features sueltas: forma de pago sin cierre es un dato
+   que nadie usa.
+2. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
+   compran mercancía a crédito). Simetría útil: ya existen los fiados de
+   clientes; esto es el fiado del merchant HACIA el proveedor.
 3. **Fase 2 de roles**: ocultar ganancias/margen al empleado. Requiere un
-   "modo sesión", más complejo que el PIN puntual de Feature #27. `created_by`
-   (Feature #26) ya está listo. Revisar de paso si el PIN al editar producto
-   tiene sentido para el PRODUCTOR (hoy lo pide por caer dentro del alcance de
-   la Decision 049; es efecto colateral, no decisión).
-4. **Fase 2 de variantes formales** (producto base + talla/color como atributos,
-   precio override por variante, schema nuevo). Solo si tras duplicar (Feature
-   #25) ambas merchants de ropa siguen necesitándolo.
-5. **Incluir el catálogo de fiado (`catalogo_fiado` en Preferences) en el
-   respaldo/exportación JSON.** Hoy respaldo-builder/validator cubren las 8
-   tablas SQLite; el catálogo vive en Preferences y no viaja con el backup.
-6. **Proveedores con compras a crédito** (nueva entidad).
-7. **Venta rápida sin producto.**
-8. **Reconciliación de fiados manuales que eran ventas.**
-9. **Dashboard financiero con evolución temporal.**
-10. **Sync entre turnos** (hipótesis a validar con uso real; `updated_at` de
-    Feature #26 ya está listo). Ojo: el respaldo actual es OVERWRITE, no merge.
-11. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza el de
-    `fiado-productos`); ícono `create` sin registrar en `addIcons`; módulo caja
-    registradora; módulo de gastos.
+   "modo sesión", más complejo que el PIN puntual de Feature #27.
+   `created_by` (Feature #26) ya está listo. Revisar de paso si el PIN al
+   editar producto tiene sentido para el PRODUCTOR (hoy lo pide por caer
+   dentro del alcance de la Decision 049; es efecto colateral, no decisión).
+4. **Fase 2 de variantes formales** (producto base + talla/color como
+   atributos, precio override por variante, schema nuevo). Condicionado:
+   solo si tras usar Duplicar (Feature #25) las merchants de ropa siguen
+   necesitándolo. Al 2026-09-06 ninguna lo tiene instalado todavía.
+5. **Venta rápida sin producto.**
+6. **Reconciliación de fiados manuales que eran ventas.**
+7. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
+8. **Sync entre turnos.** HIPÓTESIS sin validar. El respaldo actual es
+   OVERWRITE, no merge. No construir resolución de conflictos sin un caso
+   real confirmado.
+9. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza
+   el de `fiado-productos`); ícono `create` sin registrar en `addIcons`;
+   4 `as any` preexistentes en `core/fiado/fiado-productos.ts`.
+
+**DESCARTADO (no volver a proponerlo sin evidencia nueva):** calculadora
+de vueltas / sobrante en efectivo. Los merchants calculan el cambio
+mentalmente más rápido de lo que lo teclearían, y se apoyan en la
+calculadora del teléfono. Era una idea suelta anotada en campo, no un
+dolor reportado.
+
+**HECHO desde la última actualización:** restaurar respaldos de versiones
+anteriores y llevar el catálogo de fiado en el respaldo (ambos en la
+Feature #31, Decision 053).
 
 ## Cómo arrancamos esta sesión
 
