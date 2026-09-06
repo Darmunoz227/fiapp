@@ -764,6 +764,8 @@ export class DatabaseService {
       this.mockWebVentaItems = [];
       this.mockWebMovimInventario = [];
       this.mockWebVentas = [];
+      this.mockWebProduccionItems = [];
+      this.mockWebProducciones = [];
       this.mockWebProductos = [];
       return;
     }
@@ -772,6 +774,8 @@ export class DatabaseService {
 
     await this.ejecutarEnTransaccion(async () => {
       await this.ejecutarRun('DELETE FROM venta_items', [], true);
+      await this.ejecutarRun('DELETE FROM produccion_items', [], true);
+      await this.ejecutarRun('DELETE FROM producciones', [], true);
       await this.ejecutarRun('DELETE FROM movim_inventario', [], true);
       await this.ejecutarRun('DELETE FROM ventas', [], true);
       await this.ejecutarRun('DELETE FROM productos', [], true);

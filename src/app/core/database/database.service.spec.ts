@@ -679,6 +679,25 @@ describe('DatabaseService', () => {
     expect(costoP2).toBe(300);
   });
 
+  it('resetInventario borra tambien producciones y produccion_items (schema v8)', async () => {
+    await service.crearProducto(crearProductoParcial({ id: 'p1', costo_promedio: 1000 }));
+
+    const produccion = { id: 'produccion-reset', fecha: Date.now(), nota: null } as any;
+    const items = [
+      { id: 'pi-reset', produccion_id: 'produccion-reset', producto_id: 'p1', cantidad: 5, costo_unitario_declarado: 400 } as any,
+    ];
+    const movimientos = [
+      crearMovimientoParcial({ id: 'mov-reset', producto_id: 'p1', tipo: 'PRODUCCION', cantidad: 5, costo_unitario: 400 }),
+    ];
+    await service.registrarProduccion(produccion, items, movimientos);
+    expect((await service.obtenerProducciones()).length).toBe(1);
+
+    await service.resetInventario();
+
+    expect((await service.obtenerProducciones()).length).toBe(0);
+    expect((await service.obtenerProductos()).length).toBe(0);
+  });
+
   it('cada linea de produccion actualiza el costo_promedio de SU propio producto, sin mezclar costos', async () => {
     await service.crearProducto(crearProductoParcial({ id: 'pan', costo_promedio: 1000 }));
     await service.crearProducto(crearProductoParcial({ id: 'recorte', costo_promedio: 100 }));

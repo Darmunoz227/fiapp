@@ -249,7 +249,7 @@ export class ConfiguracionesPage {
 
     const alert = await this.alertCtrl.create({
       header: "Reiniciar inventario",
-      message: "Esto BORRA productos, movimientos de inventario, ventas y lineas de venta. Clientes, fiados y abonos se conservan. Escribe REINICIAR para continuar.",
+      message: "Esto BORRA productos, movimientos de inventario, ventas, lineas de venta y producciones. Clientes, fiados y abonos se conservan. Escribe REINICIAR para continuar.",
       inputs: [{ name: "palabra", type: "text", placeholder: "REINICIAR" }],
       buttons: [
         { text: "Cancelar", role: "cancel" },
