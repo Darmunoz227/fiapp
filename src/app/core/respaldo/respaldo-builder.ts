@@ -1,7 +1,7 @@
-import { Respaldo, RespaldoData } from '../models/respaldo.model';
+import { Respaldo, RespaldoData, RespaldoConfig } from '../models/respaldo.model';
 import { SCHEMA_VERSION } from '../database/schema-version';
 
-export function construirRespaldo(data: RespaldoData, exportadoEn: string): Respaldo {
+export function construirRespaldo(data: RespaldoData, exportadoEn: string, config?: RespaldoConfig): Respaldo {
   return {
     schema_version: SCHEMA_VERSION,
     exported_at: exportadoEn,
@@ -15,5 +15,6 @@ export function construirRespaldo(data: RespaldoData, exportadoEn: string): Resp
       producciones: data.producciones,
       produccion_items: data.produccion_items,
     },
+    ...(config ? { config } : {}),
   };
 }
