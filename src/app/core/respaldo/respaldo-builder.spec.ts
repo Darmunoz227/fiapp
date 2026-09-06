@@ -25,6 +25,22 @@ describe('construirRespaldo', () => {
     expect(Array.isArray(data['produccion_items'])).toBe(true);
   });
 
+  it('embebe config cuando se le entrega', () => {
+    const config = {
+      catalogo_fiado: [{ id: 'c1', nombre: 'Tinto', precio: 1500 }],
+      nombre_negocio: 'Tienda Diego',
+    };
+    const r = construirRespaldo(vacio as any, 'x', config as any);
+    expect(r.config?.nombre_negocio).toBe('Tienda Diego');
+    expect(r.config?.catalogo_fiado.length).toBe(1);
+    expect(r.config?.catalogo_fiado[0].nombre).toBe('Tinto');
+  });
+
+  it('NO emite config cuando no se le entrega', () => {
+    const r = construirRespaldo(vacio as any, 'x');
+    expect(r.config).toBeUndefined();
+  });
+
   it('embebe schema_version desde la constante, nunca un literal', () => {
     const r = construirRespaldo(vacio, '2026-08-05T00:00:00.000Z');
     expect(r.schema_version).toBe(SCHEMA_VERSION);

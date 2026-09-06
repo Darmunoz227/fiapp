@@ -14,6 +14,7 @@ import { Share } from '@capacitor/share';
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { construirRespaldo } from '../../core/respaldo/respaldo-builder';
 import { validarRespaldo, MotivoRechazo } from '../../core/respaldo/respaldo-validator';
+import { RespaldoConfig } from '../../core/models/respaldo.model';
 import { RespaldoData } from '../../core/models/respaldo.model';
 import { CatalogoItem } from '../../core/models/catalogo-item.model';
 
@@ -187,6 +188,7 @@ export class ConfiguracionesPage {
     }
 
     const datos = resultado.data;
+    const configImportada = resultado.config;
     const alert = await this.alertCtrl.create({
       header: "Reemplazar todos los datos",
       message: "Esto BORRA tus datos actuales y los reemplaza por los del archivo. Escribe REEMPLAZAR para continuar.",
@@ -200,7 +202,7 @@ export class ConfiguracionesPage {
               void this.alertaSimple("Importacion cancelada", "No escribiste REEMPLAZAR, asi que no se cambio nada.");
               return false;
             }
-            void this.ejecutarImportacion(datos);
+            void this.ejecutarImportacion(datos, configImportada);
             return true;
           },
         },
@@ -210,9 +212,10 @@ export class ConfiguracionesPage {
     await alert.present();
   }
 
-  private async ejecutarImportacion(datos: RespaldoData) {
+  private async ejecutarImportacion(datos: RespaldoData, config?: RespaldoConfig) {
     try {
       const conteo = await this.dbService.reemplazarTodo(datos);
+      await this.restaurarConfig(config);
       await this.alertaSimple(
         "Respaldo importado",
         "Clientes: " + conteo.clientes + ". Fiados y abonos: " + conteo.transacciones + ". Productos: " + conteo.productos + ". Movimientos: " + conteo.movim_inventario + ". Ventas: " + conteo.ventas + ". Lineas de venta: " + conteo.venta_items + "."
@@ -220,6 +223,24 @@ export class ConfiguracionesPage {
     } catch (error) {
       console.error("Fallo la importacion:", error);
       await this.alertaSimple("La importacion fallo", "Tus datos quedaron como estaban. No se perdio nada.");
+    }
+  }
+
+  // Un respaldo sin catalogo NO debe borrar el que el merchant ya construyo
+  // (mismo espiritu que Decision 041: no borrar lo que nadie pidio borrar).
+  private async restaurarConfig(config?: RespaldoConfig): Promise<void> {
+    if (!config) {
+      return;
+    }
+    if (Array.isArray(config.catalogo_fiado) && config.catalogo_fiado.length > 0) {
+      await this.prefs.setCatalogoFiado(config.catalogo_fiado);
+      // Refrescar la vista: sin esto la pantalla sigue mostrando el catalogo
+      // viejo y el merchant cree que la importacion fallo.
+      this.catalogoFiado = await this.prefs.getCatalogoFiado();
+    }
+    const nombre = (config.nombre_negocio ?? "").trim();
+    if (nombre !== "") {
+      await this.prefs.setNombreNegocio(nombre);
     }
   }
 
@@ -307,7 +328,12 @@ export class ConfiguracionesPage {
       produccion_items: await this.dbService.leerCrudoProduccionItems(),
     };
 
-    const respaldo = construirRespaldo(data, new Date().toISOString());
+    const config = {
+      catalogo_fiado: await this.prefs.getCatalogoFiado(),
+      nombre_negocio: await this.prefs.getNombreNegocio(),
+    };
+
+    const respaldo = construirRespaldo(data, new Date().toISOString(), config);
     const contenido = JSON.stringify(respaldo, null, 2);
     const fecha = new Date().toISOString().slice(0, 10);
     const nombre = prefijo + "-" + fecha + ".json";

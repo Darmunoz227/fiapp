@@ -1,5 +1,5 @@
 import { SCHEMA_VERSION } from "../database/schema-version";
-import { RespaldoData } from "../models/respaldo.model";
+import { RespaldoData, RespaldoConfig } from "../models/respaldo.model";
 
 export type MotivoRechazo = "SIN_DATA" | "VERSION_INCOMPATIBLE" | "TABLA_FALTANTE" | "TABLA_INVALIDA";
 
@@ -7,7 +7,10 @@ export interface ResultadoValidacion {
   valido: boolean;
   motivo?: MotivoRechazo;
   data?: RespaldoData;
+  config?: RespaldoConfig;
 }
+
+const SCHEMA_VERSION_MINIMA_SOPORTADA = 7;
 
 const TABLAS = ["clientes", "transacciones", "productos", "movim_inventario", "ventas", "venta_items", "producciones", "produccion_items"];
 
@@ -22,20 +25,30 @@ export function validarRespaldo(entrada: unknown): ResultadoValidacion {
     return { valido: false, motivo: "SIN_DATA" };
   }
 
-  if (raiz["schema_version"] !== SCHEMA_VERSION) {
+  const version = raiz["schema_version"];
+  if (typeof version !== "number" || version < SCHEMA_VERSION_MINIMA_SOPORTADA || version > SCHEMA_VERSION) {
     return { valido: false, motivo: "VERSION_INCOMPATIBLE" };
   }
 
   const data = raiz["data"] as Record<string, unknown>;
 
+  const completo: Record<string, unknown> = { ...data };
+
   for (const tabla of TABLAS) {
-    if (!(tabla in data)) {
-      return { valido: false, motivo: "TABLA_FALTANTE" };
+    if (!(tabla in completo)) {
+      completo[tabla] = [];
+      continue;
     }
-    if (!Array.isArray(data[tabla])) {
+    if (!Array.isArray(completo[tabla])) {
       return { valido: false, motivo: "TABLA_INVALIDA" };
     }
   }
 
-  return { valido: true, data: data as unknown as RespaldoData };
+  const configCruda = raiz["config"];
+  const config =
+    configCruda !== null && typeof configCruda === "object" && !Array.isArray(configCruda)
+      ? (configCruda as unknown as RespaldoConfig)
+      : undefined;
+
+  return { valido: true, data: completo as unknown as RespaldoData, config };
 }

@@ -6,6 +6,7 @@ import { Venta } from './venta.model';
 import { VentaItem } from './venta-item.model';
 import { Produccion } from './produccion.model';
 import { ProduccionItem } from './produccion-item.model';
+import { CatalogoItem } from './catalogo-item.model';
 
 export interface RespaldoData {
   clientes: Cliente[];
@@ -18,8 +19,14 @@ export interface RespaldoData {
   produccion_items: ProduccionItem[];
 }
 
+export interface RespaldoConfig {
+  catalogo_fiado: CatalogoItem[];
+  nombre_negocio: string | null;
+}
+
 export interface Respaldo {
   schema_version: number;
   exported_at: string;
   data: RespaldoData;
+  config?: RespaldoConfig;
 }

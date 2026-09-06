@@ -1318,3 +1318,103 @@ cada linea con SU costo, sin prorrateo (AC-01, AC-02). El ciclo
 exportar -> reiniciar -> importar restauro producciones, items y el
 flag, y el boton de Home reaparecio solo. 242 tests green (213 base +
 29 nuevos).
+
+---
+
+## Decision 053 - Un respaldo debe sobrevivir al cambio de version y llevar la configuracion del negocio
+
+**Contexto:** la Decision 052 dejo dos huecos anotados y esta feature los
+cierra. (1) `validarRespaldo` comparaba `schema_version` por igualdad
+EXACTA, asi que al pasar a v8 TODO respaldo anterior quedo inservible; el
+unico merchant con uso disciplinado tenia un backup v7 que la app
+rechazaba. (2) El catalogo de fiado vive en Preferences, no en SQLite, y
+el respaldo solo cubria las 8 tablas: si el ambulante perdia el telefono,
+perdia el catalogo que usa a diario.
+
+**Decision - piso explicito de version, no compatibilidad universal.** El
+validador acepta `schema_version` entre 7 y la actual. Se puede
+garantizar que una TABLA ausente se rellene vacia, pero NO que las
+COLUMNAS de una version vieja calcen: un respaldo v4 no tendria
+monto_contado/monto_fiado (Decision 027). Prometer compatibilidad que no
+podemos probar contradice la Decision 003. Subir el piso despues es
+trivial; retirar una promesa rota no lo es.
+
+**Costo asumido conscientemente.** Al rellenar tablas ausentes en vez de
+rechazar, se pierde la capacidad de detectar un archivo v8 truncado al
+que le falte una tabla. Se acepta: un JSON realmente truncado falla en
+JSON.parse mucho antes de llegar al validador, y distinguir "falta por
+vieja" de "falta por corrupta" exigiria un mapa de tablas por version.
+Complejidad real a cambio de un caso improbable.
+
+**Decision - viaja la configuracion del NEGOCIO; nunca el estado del
+dispositivo, la licencia ni la seguridad.** De las 7 claves de
+PreferencesService entran SOLO dos: `catalogo_fiado` (lo construyo el
+merchant a mano) y `nombreNegocio` (aparece en los comprobantes de
+WhatsApp). Quedan fuera con razon explicita:
+
+- `pin_administrador`: iria en texto plano en un JSON que se comparte por
+  WhatsApp. La Decision 049 ya admite que el PIN no es seguridad
+  criptografica; ponerlo en un archivo compartible seria empeorarlo gratis.
+- `licencia_premium`: convertiria el respaldo en una llave de activacion
+  transferible.
+- `fecha_instalacion` y `trial_bloqueado`: estado del dispositivo;
+  restaurarlos moveria el trial de un telefono a otro.
+- `ultimo_dia_recordatorio_mostrado`: efimero.
+
+Esta regla debe citarse cada vez que se agregue una clave a Preferences.
+
+**Decision - `config` va FUERA de `data` y es OPCIONAL.** `data` es el
+espejo de las tablas SQLite y el validador lo recorre tabla por tabla;
+mezclar una clave que no es tabla romperia ese contrato. Es opcional
+porque un respaldo v7 no la trae y debe seguir siendo valido. Una
+`config` presente pero invalida (primitivo, null o arreglo) se IGNORA sin
+rechazar el respaldo: la configuracion es un extra, nunca un motivo de
+rechazo.
+
+**Decision - restaurar NUNCA borra con vacio.** Si el archivo trae el
+catalogo vacio o no trae `config`, no se toca el catalogo actual. Un
+respaldo viejo no debe destruir lo que el merchant construyo despues
+(mismo espiritu que Decision 041: no borrar lo que nadie pidio borrar).
+
+**Bug de UX encontrado en device:** tras importar, la pantalla de
+Configuraciones seguia mostrando el catalogo viejo; el nuevo solo
+aparecia al entrar a Registrar fiado, que recarga en ionViewWillEnter. El
+dato estaba bien guardado, pero el merchant veia vacio y podia concluir
+que la importacion fallo y repetir una operacion destructiva. Se corrigio
+releyendo el catalogo desde Preferences (no asignando el objeto
+importado) para que la pantalla muestre lo que QUEDO guardado, no lo que
+creemos que se guardo.
+
+**Aprendizajes de metodo, sin los cuales esta feature habria "fallado"
+tres veces sin tener un solo bug:**
+
+1. `npx cap sync` NO instala nada en el dispositivo; solo copia al
+   proyecto Android. Instalar exige `npx cap run android`.
+2. `npx cap run android` pide el dispositivo de forma INTERACTIVA. Con
+   una tuberia (`| tail`) el prompt se pierde y el comando muere sin
+   instalar. Usar `--target <emulador>` y nunca redirigir su salida.
+3. Verificar el bundle con una cadena que YA existia en el codigo viejo
+   (`catalogo_fiado`) da un falso positivo. Hay que elegir un string que
+   solo exista en el codigo nuevo (`nombre_negocio`).
+4. La marca de tiempo del artefacto es evidencia: un `exported_at` 60
+   segundos posterior al comando de compilacion delata que el APK no se
+   reinstalo. Leerla ANTES de sospechar del codigo.
+
+**Sin schema, sin migracion:** SCHEMA_VERSION sigue en 8. Cero cambios en
+tablas.
+
+**Evidencia, en Android emulator, BY HAND y sobre los JSON exportados:**
+un respaldo REAL v7 del 5 de agosto (`bueno.json`, generado por una
+version anterior de la app) se importo correctamente y restauro el
+inventario; hasta esta feature la app lo rechazaba con
+VERSION_INCOMPATIBLE. Ese mismo archivo NO trae `config` y el catalogo de
+fiado que el merchant tenia en la app SOBREVIVIO intacto a la
+importacion. Un respaldo exportado con el catalogo vacio tampoco borro
+los items creados despues. El JSON exportado tras el cambio contiene
+`config` con exactamente dos claves (`catalogo_fiado` con 4 items y sus
+emojis, y `nombre_negocio`), y una busqueda sobre el archivo COMPLETO
+devolvio CERO ocurrencias de pin, licencia, premium, fecha_instalacion,
+trial y recordatorio: ninguna clave sensible viaja en el respaldo. El
+archivo de prueba con schema_version 99 (`version-mala.json`) siguio
+siendo RECHAZADO por incompatible, confirmando que relajar el rango de
+versiones no aflojo la validacion hacia arriba. 250 tests green (242 base + 8 nuevos).
