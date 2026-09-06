@@ -234,6 +234,9 @@ export class ConfiguracionesPage {
     }
     if (Array.isArray(config.catalogo_fiado) && config.catalogo_fiado.length > 0) {
       await this.prefs.setCatalogoFiado(config.catalogo_fiado);
+      // Refrescar la vista: sin esto la pantalla sigue mostrando el catalogo
+      // viejo y el merchant cree que la importacion fallo.
+      this.catalogoFiado = await this.prefs.getCatalogoFiado();
     }
     const nombre = (config.nombre_negocio ?? "").trim();
     if (nombre !== "") {
