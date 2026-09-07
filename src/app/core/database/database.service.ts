@@ -9,6 +9,8 @@ import { Transaccion } from '../models/transaccion.model';
 import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Produccion } from '../models/produccion.model';
+import { Gasto } from '../models/gasto.model';
+import { GastoRecurrente } from '../models/gasto-recurrente.model';
 import { ProduccionItem } from '../models/produccion-item.model';
 import { ProduccionConItems } from '../models/produccion-con-items.model';
 import { Venta } from '../models/venta.model';
@@ -58,6 +60,8 @@ export class DatabaseService {
   private mockWebVentas: Venta[] = [];
   private mockWebVentaItems: VentaItem[] = [];
   private mockWebProducciones: Produccion[] = [];
+  private mockWebGastos: Gasto[] = [];
+  private mockWebGastosRecurrentes: GastoRecurrente[] = [];
   private mockWebProduccionItems: ProduccionItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
@@ -218,6 +222,7 @@ export class DatabaseService {
     await this.crearIndiceVentasFechaSiFalta();
     await this.crearVentaItemsSiFaltan();
     await this.crearProduccionesSiFaltan();
+    await this.crearGastosSiFaltan();
   }
 
   private async migrarEsquemaSiNecesario(): Promise<void> {
@@ -241,6 +246,7 @@ export class DatabaseService {
     await this.reconstruirVentasParaMultiItem();
     await this.agregarColumnaSiFalta('productos', 'modo_produccion', 'INTEGER DEFAULT 0');
     await this.crearProduccionesSiFaltan();
+    await this.crearGastosSiFaltan();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -296,6 +302,46 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS produccion_items_producto_id_idx
       ON produccion_items(producto_id);
+    `);
+  }
+
+  private async crearGastosSiFaltan(): Promise<void> {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS gastos_recurrentes (
+        id TEXT PRIMARY KEY NOT NULL,
+        categoria TEXT NOT NULL,
+        valor_estimado REAL NOT NULL,
+        tipo_gasto TEXT NOT NULL,
+        frecuencia TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS gastos (
+        id TEXT PRIMARY KEY NOT NULL,
+        categoria TEXT NOT NULL,
+        valor REAL NOT NULL,
+        fecha INTEGER NOT NULL,
+        observacion TEXT DEFAULT NULL,
+        tipo_gasto TEXT NOT NULL,
+        recurrente_id TEXT DEFAULT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS gastos_fecha_idx
+      ON gastos(fecha);
     `);
   }
 
