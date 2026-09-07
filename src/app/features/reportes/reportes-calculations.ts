@@ -2,7 +2,7 @@ import { VentaConItems } from '../../core/models/venta-con-items.model';
 import { Transaccion } from '../../core/models/transaccion.model';
 import { calcularTotalVenta, derivarTipoPago } from '../ventas/ventas-calculations';
 
-export type RangoReporte = 'HOY' | 'TODO';
+export type RangoReporte = 'HOY' | 'MES' | 'TODO';
 
 export interface ResumenVentas {
   totalVendido: number;
@@ -33,6 +33,16 @@ export function filtrarPorRangoFecha<T>(
   }
 
   const fechaActual = new Date(ahora);
+
+  if (rango === 'MES') {
+    const inicioMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1, 0, 0, 0, 0).getTime();
+    const inicioMesSiguiente = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 1, 0, 0, 0, 0).getTime();
+    return registros.filter((registro) => {
+      const fecha = obtenerFecha(registro);
+      return fecha >= inicioMes && fecha < inicioMesSiguiente;
+    });
+  }
+
   const startOfDay = new Date(
     fechaActual.getFullYear(),
     fechaActual.getMonth(),
