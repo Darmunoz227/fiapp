@@ -1,5 +1,5 @@
 .home-toolbar {
-  --min-height: calc(28px + env(safe-area-inset-top));
+  --min-height: calc(64px + env(safe-area-inset-top));
   --background: #1e3a5f;
   --color: #ffffff;
 }
@@ -58,6 +58,37 @@
 
 .header-actions {
   flex: 0 0 auto;
+}
+
+/* Los iconos eran azules sobre azul marino: contraste insuficiente y sin
+   etiqueta. Blancos, mas grandes y rotulados (AC-01). */
+.header-action-btn {
+  --color: #ffffff;
+  --padding-start: 4px;
+  --padding-end: 4px;
+  height: 52px;
+  min-width: 52px;
+}
+
+.header-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  ion-icon {
+    font-size: 24px;
+    color: #ffffff;
+  }
+}
+
+.header-action-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  color: #ffffff;
+  line-height: 1;
 }
 
 @media (max-width: 360px) {

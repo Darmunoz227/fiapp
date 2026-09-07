@@ -10,17 +10,29 @@
 
       <div class="header-actions">
         <ion-buttons>
-          <ion-button (click)="irAReportes()">
-            <ion-icon name="stats-chart-outline"></ion-icon>
+          <ion-button class="header-action-btn" (click)="irAReportes()">
+            <div class="header-action">
+              <ion-icon name="stats-chart-outline"></ion-icon>
+              <span class="header-action-label">Reportes</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAVentas()">
-            <ion-icon name="cart-outline"></ion-icon>
+          <ion-button class="header-action-btn" (click)="irAVentas()">
+            <div class="header-action">
+              <ion-icon name="cart-outline"></ion-icon>
+              <span class="header-action-label">Vender</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAInventario()">
-            <ion-icon name="cube-outline"></ion-icon>
+          <ion-button class="header-action-btn" (click)="irAInventario()">
+            <div class="header-action">
+              <ion-icon name="cube-outline"></ion-icon>
+              <span class="header-action-label">Inventario</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAConfiguraciones()">
-            <ion-icon name="settings-outline"></ion-icon>
+          <ion-button class="header-action-btn" (click)="irAConfiguraciones()">
+            <div class="header-action">
+              <ion-icon name="settings-outline"></ion-icon>
+              <span class="header-action-label">Ajustes</span>
+            </div>
           </ion-button>
         </ion-buttons>
       </div>
