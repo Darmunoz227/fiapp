@@ -85,6 +85,36 @@ Funcion pura: gastos fijos mensuales / margen promedio = venta necesaria.
 - Se muestra bajo demanda, con las dos cifras de origen visibles para que
   el merchant entienda de donde sale.
 
+## Clasificar FIJO vs VARIABLE sin saber contabilidad
+
+**Problema real (feedback de campo):** varios merchants no distinguen un
+gasto fijo de uno variable. Si clasifican mal, el punto de equilibrio da
+un numero erroneo y la feature pierde su valor.
+
+**Decision - la pregunta discriminante es "lo pagas aunque no vendas
+nada?".** Se descarta la formulacion "se repite todos los meses" porque
+es AMBIGUA: la mercancia tambien se compra todos los meses y no es un
+gasto fijo. El texto en pantalla debe ser:
+
+- FIJO: "Lo pagas aunque no vendas nada." Ejemplos: arriendo, servicios,
+  internet, vigilancia.
+- VARIABLE: "Solo lo pagas cuando el negocio se mueve." Ejemplos:
+  mercancia, transporte, domicilios, tintos.
+
+**Decision - la categoria PRECARGA el tipo, editable.** Al elegir el chip
+de categoria, el tipo se marca solo: Arriendo y Servicios sugieren FIJO;
+Mercancia, Transporte y Comida sugieren VARIABLE. El merchant puede
+cambiarlo siempre. Asi no decide en la mayoria de los casos: la app
+propone y el corrige. Mismo criterio que la calculadora de overhead de la
+Decision 052 (sugerir sin imponer). La sugerencia es una funcion PURA y
+testeable, no logica dispersa en la UI.
+
+**Decision - NO se agrega un tercer tipo "extraordinario".** Un gasto
+como reparar la nevera no es fijo ni variable en sentido estricto, pero
+un tercer tipo complica la clasificacion para el merchant y el punto de
+equilibrio solo necesita saber que es FIJO. Se registra como VARIABLE; la
+categoria ya aporta el detalle si algun dia se necesita distinguirlo.
+
 ## Fuera de alcance
 - Cierre de caja y arqueo (cuadrar lo contado contra lo esperado).
 - Forma de pago discriminada (Feature #33).
@@ -106,6 +136,11 @@ Funcion pura: gastos fijos mensuales / margen promedio = venta necesaria.
   curso, usando filtrarPorRangoFecha.
 - AC-07: el punto de equilibrio normaliza correctamente cada frecuencia a
   base mensual.
+- AC-07b: el punto de equilibrio muestra tambien el equivalente DIARIO
+  (mensual / 30), porque el merchant decide al abrir la tienda, no a fin
+  de mes.
+- AC-07c: elegir una categoria precarga el tipo de gasto sugerido, y el
+  merchant puede cambiarlo antes de guardar.
 - AC-08: sin ventas registradas, el punto de equilibrio informa que aun
   no es calculable, sin dividir por cero.
 - AC-09: REGRESION - un merchant que nunca registre un gasto no ve
