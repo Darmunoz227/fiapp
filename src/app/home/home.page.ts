@@ -9,7 +9,7 @@ import {
 } from '@ionic/angular/standalone';
 import { App } from '@capacitor/app';
 import { addIcons } from 'ionicons';
-import { add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, fastFoodOutline } from 'ionicons/icons'; 
+import { add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, receiptOutline } from 'ionicons/icons'; 
 import { NuevoClienteComponent } from '../shared/modals/nuevo-cliente/nuevo-cliente.component';
 import { DatabaseService } from '../core/database/database.service';
 import { filtrarProductosDeProduccion } from '../core/produccion/produccion';
@@ -53,7 +53,7 @@ export class HomePage {
     private clienteDeleteUndoService: ClienteDeleteUndoService,
     private cdr: ChangeDetectorRef
   ) {
-    addIcons({ add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, fastFoodOutline }); 
+    addIcons({ add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, receiptOutline }); 
   }
 
   tieneProduccion = false;

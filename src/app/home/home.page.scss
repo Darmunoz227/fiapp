@@ -124,11 +124,34 @@
   background: var(--ion-card-background);
 }
 
+.monto-cartera {
+  font-weight: 700;
+  font-size: 32px;
+  margin-top: 6px;
+  color: var(--ion-text-color, #111827);
+  line-height: 1.1;
+}
+
+.monto-cartera-moneda {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+}
+
+.boton-fiado-productos {
+  --border-radius: 12px;
+  height: 56px;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0 16px;
+}
+
 ion-searchbar {
-  --border-radius: 20px;
+  --border-radius: 12px;
   --box-shadow: none;
   --background: var(--ion-item-background);
-  padding: 0 16px;
+  --border-width: 1px;
+  padding: 12px 16px;
 }
 
 .lista-clientes {

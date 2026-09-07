@@ -48,16 +48,14 @@
       <ion-text color="medium">
         <p>💰 TOTAL QUE ME DEBEN</p>
       </ion-text>
-      <ion-text color="warning">
-        <h1 style="font-weight: bold; font-size: 28px; margin-top: 5px;">
-          $ {{ formatearMonto(totalCartera) }} <span style="font-size: 16px; color: var(--ion-color-medium);">COP</span>
-        </h1>
-      </ion-text>
+      <h1 class="monto-cartera">
+        $ {{ formatearMonto(totalCartera) }} <span class="monto-cartera-moneda">COP</span>
+      </h1>
     </ion-card-content>
   </ion-card>
 
-  <ion-button expand="block" color="danger" class="boton-fiado-productos" (click)="irAFiadoProductos()">
-    <ion-icon slot="start" name="fast-food-outline"></ion-icon>
+  <ion-button expand="block" color="primary" class="boton-fiado-productos" (click)="irAFiadoProductos()">
+    <ion-icon slot="start" name="receipt-outline"></ion-icon>
     Registrar fiado
   </ion-button>
 
