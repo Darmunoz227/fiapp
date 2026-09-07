@@ -146,6 +146,41 @@ un tercer tipo complica la clasificacion para el merchant y el punto de
 equilibrio solo necesita saber que es FIJO. Se registra como VARIABLE; la
 categoria ya aporta el detalle si algun dia se necesita distinguirlo.
 
+## Evidencia de campo (2026-09-07, merchant de ropa deportiva)
+
+Preguntado por que gastos anota hoy, el merchant respondio: NO anota los
+gastos hormiga. Los tintos de la jornada y los almuerzos corrientes no
+los registra; solo anota lo significativo (un almuerzo caro, una
+reparacion) o cuando saca efectivo de la caja para un gasto familiar.
+
+**Consecuencia 1 - el punto de equilibrio NO se ve afectado.** Los gastos
+hormiga son VARIABLES, y calcularFijosMensuales solo suma los FIJOS. El
+calculo se apoya en arriendo y servicios, que son exactamente los que el
+merchant SI recuerda y registraria. La feature mas valiosa funciona con
+la disciplina que el merchant YA tiene, no con la que quisieramos.
+
+**Consecuencia 2 - el total de "gastos del mes" sera INCOMPLETO y la
+pantalla debe ser honesta.** No se fuerza al merchant a registrar
+hormigas: no lo hara, y una app que exige disciplina inexistente se
+abandona. En su lugar, bajo el total va una linea gris: "Solo cuenta lo
+que registraste." Mismo criterio que la Decision 049 al documentar el
+alcance real del PIN: no vender lo que no es.
+
+**Consecuencia 3 - RETIRO PERSONAL es un tercer concepto, distinto de
+costo y de gasto.** Sacar efectivo de la caja para la casa no es un gasto
+del negocio: registrarlo como tal hunde la utilidad y el punto de
+equilibrio exigiria vender de mas. Pero NO registrarlo hace que la caja
+no cuadre al cierre, que es justo la queja que origino el ciclo de caja.
+Es la causa mas probable de los descuadres reportados. Se documenta aqui
+y se resuelve en la feature de ciclo de caja, donde el arqueo le da
+sentido. Fuera de alcance de la #32.
+
+**Consecuencia 4 - reordena la prioridad DENTRO de la feature.** El
+registro de gasto suelto NO es la pantalla principal: tendra poco uso. El
+valor real esta en (a) las plantillas recurrentes, que se configuran una
+vez y se confirman con un toque al mes, y (b) el punto de equilibrio. La
+UI debe darles ese protagonismo.
+
 ## Fuera de alcance
 - Cierre de caja y arqueo (cuadrar lo contado contra lo esperado).
 - Forma de pago discriminada (Feature #33).
@@ -153,6 +188,8 @@ categoria ya aporta el detalle si algun dia se necesita distinguirlo.
   lista fija corta; ampliarla es backlog.
 - Reportes historicos de gastos por categoria.
 - Cualquier automatismo que cree gastos sin confirmacion.
+- Retiro personal / sacar efectivo de la caja para la casa: es un tercer
+  concepto, va con el ciclo de caja (ver Evidencia de campo).
 
 ## Criterios de aceptacion
 - AC-01: registrar un gasto suelto (categoria, valor, fecha, tipo,
