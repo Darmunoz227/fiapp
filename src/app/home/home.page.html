@@ -78,8 +78,9 @@
         </ion-avatar>
         <ion-label>
           <h2>{{ cliente.nombre }}</h2>
+          <p class="estado-cliente">{{ cliente.deudaTotal <= 0 ? 'Al dia' : 'Debe' }}</p>
         </ion-label>
-        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'warning'" class="deuda-texto">
+        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'danger'" class="deuda-texto">
           $ {{ formatearMonto(cliente.deudaTotal) }}
         </ion-note>
       </ion-item>
