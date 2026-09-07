@@ -1,5 +1,5 @@
 .home-toolbar {
-  --min-height: calc(64px + env(safe-area-inset-top));
+  --min-height: calc(112px + env(safe-area-inset-top));
   --background: #1e3a5f;
   --color: #ffffff;
 }
@@ -17,10 +17,12 @@
 
 .app-branding {
   display: flex;
-  flex-direction: column;
-  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1 0 100%;
+  order: 1;
   min-width: 0;
-  max-width: 70%;
 }
 
 /* La marca del merchant pesa mas que la nuestra: es su herramienta de
@@ -46,7 +48,7 @@
 
 .business-name {
   flex: 1 0 100%;
-  order: 3;
+  order: -1;
   color: #ffffff;
   font-size: 18px;
   font-weight: 700;
@@ -58,8 +60,18 @@
   padding: 2px 0 0;
 }
 
+/* Los iconos van en su propia fila, no compartiendo linea con la marca:
+   asi cada uno respira y el nombre del negocio manda (AC-01, AC-03). */
 .header-actions {
-  flex: 0 0 auto;
+  flex: 1 0 100%;
+  order: 2;
+  margin-top: 4px;
+
+  ion-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+  }
 }
 
 /* Los iconos eran azules sobre azul marino: contraste insuficiente y sin
@@ -121,7 +133,7 @@
   margin: 20px 16px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  background: var(--ion-card-background);
+  background: var(--ion-card-background, #ffffff);
 }
 
 .monto-cartera {
@@ -138,6 +150,19 @@
   color: var(--ion-color-medium);
 }
 
+.boton-fiado-productos,
+.boton-registrar-produccion {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.boton-registrar-produccion {
+  --border-radius: 12px;
+  height: 52px;
+  margin: 8px 16px 0;
+  font-weight: 600;
+}
+
 .boton-fiado-productos {
   --border-radius: 12px;
   height: 56px;
@@ -149,17 +174,17 @@
 ion-searchbar {
   --border-radius: 12px;
   --box-shadow: none;
-  --background: var(--ion-item-background);
+  --background: var(--ion-item-background, #ffffff);
   --border-width: 1px;
   padding: 12px 16px;
 }
 
 .lista-clientes {
   background: transparent;
-  padding: 0 16px;
+  padding: 0 16px 88px;
 
   .cliente-item {
-    --background: var(--ion-item-background);
+    --background: var(--ion-item-background, #ffffff);
     --border-radius: 12px;
     margin-bottom: 12px;
     --padding-start: 16px;
