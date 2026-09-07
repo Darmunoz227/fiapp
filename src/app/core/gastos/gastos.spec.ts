@@ -1,4 +1,4 @@
-import { normalizarAMensual, calcularFijosMensuales } from './gastos';
+import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio } from './gastos';
 import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
 describe('normalizarAMensual', () => {
@@ -50,5 +50,42 @@ describe('calcularFijosMensuales', () => {
 
   it('devuelve 0 con lista vacia', () => {
     expect(calcularFijosMensuales([])).toBe(0);
+  });
+});
+
+describe('calcularMargenPromedio', () => {
+  it('devuelve la proporcion de ganancia sobre lo vendido', () => {
+    expect(calcularMargenPromedio(1000000, 400000)).toBeCloseTo(0.4, 5);
+  });
+
+  it('devuelve 0 sin ventas, sin dividir por cero', () => {
+    expect(calcularMargenPromedio(0, 0)).toBe(0);
+    expect(calcularMargenPromedio(0, 50000)).toBe(0);
+  });
+
+  it('devuelve 0 con entradas no numericas o negativas', () => {
+    expect(calcularMargenPromedio(NaN, 400000)).toBe(0);
+    expect(calcularMargenPromedio(-100, 40)).toBe(0);
+    expect(calcularMargenPromedio(1000, -40)).toBe(0);
+  });
+});
+
+describe('calcularPuntoEquilibrio', () => {
+  it('divide los fijos entre el margen y expone el equivalente diario', () => {
+    const r = calcularPuntoEquilibrio(1500000, 0.4);
+    expect(r.calculable).toBe(true);
+    expect(r.ventaNecesariaMensual).toBe(3750000);
+    expect(r.ventaNecesariaDiaria).toBe(125000);
+  });
+
+  it('NO es calculable sin margen, y nunca devuelve Infinity', () => {
+    const r = calcularPuntoEquilibrio(1500000, 0);
+    expect(r.calculable).toBe(false);
+    expect(r.ventaNecesariaMensual).toBe(0);
+    expect(Number.isFinite(r.ventaNecesariaMensual)).toBe(true);
+  });
+
+  it('NO es calculable sin gastos fijos registrados', () => {
+    expect(calcularPuntoEquilibrio(0, 0.4).calculable).toBe(false);
   });
 });

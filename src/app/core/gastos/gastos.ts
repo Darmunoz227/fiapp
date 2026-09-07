@@ -37,3 +37,44 @@ export function calcularFijosMensuales(recurrentes: GastoRecurrente[]): number {
 
   return total;
 }
+
+export interface PuntoEquilibrio {
+  calculable: boolean;
+  ventaNecesariaMensual: number;
+  ventaNecesariaDiaria: number;
+}
+
+export function calcularMargenPromedio(totalVendido: number, gananciaTotal: number): number {
+  if (!Number.isFinite(totalVendido) || totalVendido <= 0) {
+    return 0;
+  }
+  if (!Number.isFinite(gananciaTotal) || gananciaTotal < 0) {
+    return 0;
+  }
+  return gananciaTotal / totalVendido;
+}
+
+const NO_CALCULABLE: PuntoEquilibrio = {
+  calculable: false,
+  ventaNecesariaMensual: 0,
+  ventaNecesariaDiaria: 0,
+};
+
+export function calcularPuntoEquilibrio(fijosMensuales: number, margen: number): PuntoEquilibrio {
+  // Sin margen real no hay respuesta honesta: decir "necesitas vender 0"
+  // seria tecnicamente correcto e inutil. Se informa que aun no se puede.
+  if (!Number.isFinite(fijosMensuales) || fijosMensuales <= 0) {
+    return NO_CALCULABLE;
+  }
+  if (!Number.isFinite(margen) || margen <= 0) {
+    return NO_CALCULABLE;
+  }
+
+  const mensual = fijosMensuales / margen;
+
+  return {
+    calculable: true,
+    ventaNecesariaMensual: mensual,
+    ventaNecesariaDiaria: mensual / 30,
+  };
+}
