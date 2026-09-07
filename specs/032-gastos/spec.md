@@ -85,6 +85,37 @@ Funcion pura: gastos fijos mensuales / margen promedio = venta necesaria.
 - Se muestra bajo demanda, con las dos cifras de origen visibles para que
   el merchant entienda de donde sale.
 
+## Costo y gasto NO son lo mismo (regla anti doble-conteo)
+
+**COSTO** es lo que cuesta el producto que se vende: vive dentro de la
+mercancia y YA esta implementado en FiApp como costo_promedio, que se
+actualiza con COMPRA (Feature #2) y con PRODUCCION (Decision 052) y se
+descuenta al vender para calcular la ganancia congelada (Decision 027).
+
+**GASTO** es lo que cuesta tener el negocio abierto: existe aunque no se
+venda nada. Es lo que esta feature introduce.
+
+**Riesgo detectado en el prototipo: DOBLE CONTEO.** Si el merchant
+registra una compra de mercancia como gasto, esa plata se descuenta dos
+veces: una via costo_promedio al vender, y otra como gasto. Peor aun en
+el punto de equilibrio, cuyo margen YA tiene descontado el costo de la
+mercancia; sumar la mercancia como gasto inflaria artificialmente cuanto
+cree el merchant que necesita vender.
+
+**Decision - regla en lenguaje del merchant:** "Si lo vas a vender, es
+una COMPRA de inventario. Si es para que el negocio funcione, es un
+GASTO."
+
+**Decision - la categoria "Mercancia" NO existe en gastos.** Se elimina
+de la lista de categorias. Las categorias del MVP son: Arriendo,
+Servicios, Transporte, Comida, Mantenimiento, Otro. Si el merchant busca
+donde registrar mercancia, la pantalla lo redirige a Inventario con una
+linea corta, en vez de dejarlo registrar mal.
+
+**Consecuencia para la Feature #34 (proveedores):** una compra a
+proveedor NO es un gasto. Es una COMPRA de inventario con una deuda
+asociada. Eso simplifica esa feature y evita duplicar el concepto.
+
 ## Clasificar FIJO vs VARIABLE sin saber contabilidad
 
 **Problema real (feedback de campo):** varios merchants no distinguen un
@@ -141,6 +172,9 @@ categoria ya aporta el detalle si algun dia se necesita distinguirlo.
   de mes.
 - AC-07c: elegir una categoria precarga el tipo de gasto sugerido, y el
   merchant puede cambiarlo antes de guardar.
+- AC-07d: la lista de categorias de gasto NO incluye "Mercancia"; la
+  pantalla ofrece una linea que redirige a Inventario para ese caso
+  (regla anti doble-conteo).
 - AC-08: sin ventas registradas, el punto de equilibrio informa que aun
   no es calculable, sin dividir por cero.
 - AC-09: REGRESION - un merchant que nunca registre un gasto no ve
