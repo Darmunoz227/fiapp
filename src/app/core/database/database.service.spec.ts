@@ -655,6 +655,44 @@ describe('DatabaseService', () => {
   });
 
 
+  it('resetInventario NO borra gastos: un gasto no es inventario (AC-10)', async () => {
+    await service.crearGasto({
+      id: 'g1', categoria: 'Arriendo', valor: 800000, fecha: 1700000000000,
+      tipo_gasto: 'FIJO', recurrente_id: null,
+    } as Gasto);
+    await service.crearGastoRecurrente({
+      id: 'r1', categoria: 'Arriendo', valor_estimado: 800000,
+      tipo_gasto: 'FIJO', frecuencia: 'MENSUAL', activo: true,
+    } as GastoRecurrente);
+
+    await service.resetInventario();
+
+    expect((await service.obtenerGastos()).length).toBe(1);
+    expect((await service.obtenerGastosRecurrentes()).length).toBe(1);
+  });
+
+  it('reemplazarTodo restaura gastos y plantillas (AC-10)', async () => {
+    const data: any = {
+      clientes: [], transacciones: [], productos: [], movim_inventario: [],
+      ventas: [], venta_items: [], producciones: [], produccion_items: [],
+      gastos: [{
+        id: 'g1', categoria: 'Servicios', valor: 180000, fecha: 1700000000000,
+        tipo_gasto: 'FIJO', recurrente_id: null,
+      }],
+      gastos_recurrentes: [{
+        id: 'r1', categoria: 'Arriendo', valor_estimado: 800000,
+        tipo_gasto: 'FIJO', frecuencia: 'MENSUAL', activo: true,
+      }],
+    };
+
+    const conteo: any = await service.reemplazarTodo(data);
+
+    expect(conteo.gastos).toBe(1);
+    expect(conteo.gastos_recurrentes).toBe(1);
+    expect((await service.obtenerGastos()).length).toBe(1);
+    expect((await service.obtenerGastosRecurrentes()).length).toBe(1);
+  });
+
   it('crearGasto persiste un gasto suelto con recurrente_id null (AC-01)', async () => {
     const gasto = {
       id: 'g1', categoria: 'Servicios', valor: 180000, fecha: 1700000000000,
@@ -740,6 +778,8 @@ describe('DatabaseService', () => {
       venta_items: [],
       producciones: [{ id: 'prod-1', fecha: 1700000000000, nota: null }],
       produccion_items: [{ id: 'pi-1', produccion_id: 'prod-1', producto_id: 'p1', cantidad: 10, costo_unitario_declarado: 800 }],
+      gastos: [],
+      gastos_recurrentes: [],
     };
 
     const conteo: any = await service.reemplazarTodo(data);

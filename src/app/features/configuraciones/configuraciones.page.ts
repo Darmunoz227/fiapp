@@ -326,6 +326,8 @@ export class ConfiguracionesPage {
       venta_items: await this.dbService.leerCrudoVentaItems(),
       producciones: await this.dbService.leerCrudoProducciones(),
       produccion_items: await this.dbService.leerCrudoProduccionItems(),
+      gastos: await this.dbService.leerCrudoGastos(),
+      gastos_recurrentes: await this.dbService.leerCrudoGastosRecurrentes(),
     };
 
     const config = {

@@ -636,6 +636,20 @@ export class DatabaseService {
     return (res.values as Produccion[]) ?? [];
   }
 
+  async leerCrudoGastos(): Promise<Gasto[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebGastos;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM gastos");
+    return (res.values as Gasto[]) ?? [];
+  }
+
+  async leerCrudoGastosRecurrentes(): Promise<GastoRecurrente[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebGastosRecurrentes;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM gastos_recurrentes");
+    return (res.values as GastoRecurrente[]) ?? [];
+  }
+
   async leerCrudoProduccionItems(): Promise<ProduccionItem[]> {
     if (Capacitor.getPlatform() === "web") return this.mockWebProduccionItems;
     if (!this.isInitialized) await this.initializePlugin();
@@ -853,6 +867,8 @@ export class DatabaseService {
       venta_items: data.venta_items.length,
       producciones: data.producciones.length,
       produccion_items: data.produccion_items.length,
+      gastos: data.gastos.length,
+      gastos_recurrentes: data.gastos_recurrentes.length,
     };
 
     return this.ejecutarEnTransaccion(async () => {
@@ -865,6 +881,8 @@ export class DatabaseService {
         this.mockWebClientes = [...data.clientes];
         this.mockWebProducciones = [...data.producciones];
         this.mockWebProduccionItems = [...data.produccion_items];
+        this.mockWebGastos = [...data.gastos];
+        this.mockWebGastosRecurrentes = [...data.gastos_recurrentes];
         return conteo;
       }
 
@@ -921,6 +939,17 @@ export class DatabaseService {
         await this.insertProduccionItem(pi);
       }
 
+      await this.ejecutarRun("DELETE FROM gastos", [], true);
+      await this.ejecutarRun("DELETE FROM gastos_recurrentes", [], true);
+
+      for (const gr of data.gastos_recurrentes) {
+        await this.crearGastoRecurrente(gr);
+      }
+
+      for (const g of data.gastos) {
+        await this.crearGasto(g);
+      }
+
       return conteo;
     });
   }
@@ -934,6 +963,8 @@ export class DatabaseService {
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
       const snapProducciones = [...this.mockWebProducciones];
+      const snapGastos = [...this.mockWebGastos];
+      const snapGastosRec = [...this.mockWebGastosRecurrentes];
       const snapProduccionItems = [...this.mockWebProduccionItems];
 
       try {
@@ -946,6 +977,8 @@ export class DatabaseService {
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
         this.mockWebProducciones = snapProducciones;
+        this.mockWebGastos = snapGastos;
+        this.mockWebGastosRecurrentes = snapGastosRec;
         this.mockWebProduccionItems = snapProduccionItems;
         throw error;
       }

@@ -12,7 +12,7 @@ export interface ResultadoValidacion {
 
 const SCHEMA_VERSION_MINIMA_SOPORTADA = 7;
 
-const TABLAS = ["clientes", "transacciones", "productos", "movim_inventario", "ventas", "venta_items", "producciones", "produccion_items"];
+const TABLAS = ["clientes", "transacciones", "productos", "movim_inventario", "ventas", "venta_items", "producciones", "produccion_items", "gastos", "gastos_recurrentes"];
 
 export function validarRespaldo(entrada: unknown): ResultadoValidacion {
   if (entrada === null || typeof entrada !== "object") {
