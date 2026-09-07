@@ -10,6 +10,8 @@ import { Producto } from '../models/producto.model';
 import { Transaccion } from '../models/transaccion.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Venta } from '../models/venta.model';
+import { Gasto } from '../models/gasto.model';
+import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
 describe('DatabaseService', () => {
   let service: DatabaseService;
@@ -650,6 +652,55 @@ describe('DatabaseService', () => {
     const producto = (await service.obtenerProductos()).find((p) => p.id === 'p2');
     expect(producto?.modo_produccion).toBe(true);
     expect(producto?.nombre).toBe('Camiseta Roja');
+  });
+
+
+  it('crearGasto persiste un gasto suelto con recurrente_id null (AC-01)', async () => {
+    const gasto = {
+      id: 'g1', categoria: 'Servicios', valor: 180000, fecha: 1700000000000,
+      observacion: 'recibo de la luz', tipo_gasto: 'FIJO', recurrente_id: null,
+    } as Gasto;
+
+    await service.crearGasto(gasto);
+
+    const gastos = await service.obtenerGastos();
+    expect(gastos.length).toBe(1);
+    expect(gastos[0].valor).toBe(180000);
+    expect(gastos[0].recurrente_id).toBeNull();
+    expect(gastos[0].observacion).toBe('recibo de la luz');
+  });
+
+  it('crearGastoRecurrente NO crea ningun gasto (AC-02)', async () => {
+    const plantilla = {
+      id: 'r1', categoria: 'Arriendo', valor_estimado: 800000,
+      tipo_gasto: 'FIJO', frecuencia: 'MENSUAL', activo: true,
+    } as GastoRecurrente;
+
+    await service.crearGastoRecurrente(plantilla);
+
+    expect((await service.obtenerGastosRecurrentes()).length).toBe(1);
+    expect((await service.obtenerGastos()).length).toBe(0);
+  });
+
+  it('desactivar una plantilla NO borra los gastos ya registrados (AC-05)', async () => {
+    const plantilla = {
+      id: 'r1', categoria: 'Arriendo', valor_estimado: 800000,
+      tipo_gasto: 'FIJO', frecuencia: 'MENSUAL', activo: true,
+    } as GastoRecurrente;
+    await service.crearGastoRecurrente(plantilla);
+    await service.crearGasto({
+      id: 'g1', categoria: 'Arriendo', valor: 800000, fecha: 1700000000000,
+      tipo_gasto: 'FIJO', recurrente_id: 'r1',
+    } as Gasto);
+
+    await service.desactivarGastoRecurrente('r1');
+
+    const gastos = await service.obtenerGastos();
+    expect(gastos.length).toBe(1);
+    expect(gastos[0].recurrente_id).toBe('r1');
+    const recurrentes = await service.obtenerGastosRecurrentes();
+    expect(recurrentes.length).toBe(1);
+    expect(recurrentes[0].activo).toBeFalsy();
   });
 
   it('registrarProduccion crea 1 cabecera + N items + N movimientos en una sola transaccion', async () => {

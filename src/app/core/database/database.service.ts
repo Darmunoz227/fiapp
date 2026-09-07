@@ -1128,6 +1128,95 @@ export class DatabaseService {
     });
   }
 
+  async crearGasto(gasto: Gasto): Promise<void> {
+    const createdAt = gasto.created_at ?? Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastos.push({
+        ...gasto,
+        observacion: gasto.observacion ?? null,
+        recurrente_id: gasto.recurrente_id ?? null,
+        created_at: createdAt,
+        updated_at: gasto.updated_at ?? null,
+        deleted_at: gasto.deleted_at ?? null,
+        store_id: gasto.store_id ?? null,
+        created_by: gasto.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'INSERT INTO gastos (id, categoria, valor, fecha, observacion, tipo_gasto, recurrente_id, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    await this.ejecutarRun(sql, [
+      gasto.id, gasto.categoria, gasto.valor, gasto.fecha,
+      gasto.observacion ?? null, gasto.tipo_gasto, gasto.recurrente_id ?? null,
+      createdAt, gasto.updated_at ?? null, gasto.deleted_at ?? null,
+      gasto.store_id ?? null, gasto.created_by ?? null,
+    ]);
+  }
+
+  async obtenerGastos(): Promise<Gasto[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebGastos) as Gasto[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query('SELECT * FROM gastos WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    return (res.values as Gasto[]) ?? [];
+  }
+
+  async crearGastoRecurrente(recurrente: GastoRecurrente): Promise<void> {
+    const createdAt = recurrente.created_at ?? Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastosRecurrentes.push({
+        ...recurrente,
+        created_at: createdAt,
+        updated_at: recurrente.updated_at ?? null,
+        deleted_at: recurrente.deleted_at ?? null,
+        store_id: recurrente.store_id ?? null,
+        created_by: recurrente.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'INSERT INTO gastos_recurrentes (id, categoria, valor_estimado, tipo_gasto, frecuencia, activo, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    await this.ejecutarRun(sql, [
+      recurrente.id, recurrente.categoria, recurrente.valor_estimado,
+      recurrente.tipo_gasto, recurrente.frecuencia, recurrente.activo ? 1 : 0,
+      createdAt, recurrente.updated_at ?? null, recurrente.deleted_at ?? null,
+      recurrente.store_id ?? null, recurrente.created_by ?? null,
+    ]);
+  }
+
+  async obtenerGastosRecurrentes(): Promise<GastoRecurrente[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebGastosRecurrentes) as GastoRecurrente[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query('SELECT * FROM gastos_recurrentes WHERE deleted_at IS NULL ORDER BY categoria');
+    return (res.values as GastoRecurrente[]) ?? [];
+  }
+
+  // Desactivar, NUNCA borrar: el historial de gastos ya pagados es
+  // intocable (por eso recurrente_id no lleva FK con CASCADE).
+  async desactivarGastoRecurrente(id: string): Promise<void> {
+    const ahora = Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastosRecurrentes = this.mockWebGastosRecurrentes.map((r) =>
+        r.id === id ? { ...r, activo: false, updated_at: ahora } : r
+      );
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE gastos_recurrentes SET activo = 0, updated_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.ejecutarRun(sql, [ahora, id], false);
+  }
+
   async obtenerProducciones(): Promise<ProduccionConItems[]> {
     if (Capacitor.getPlatform() === 'web') {
       const producciones = this.filtrarActivos(this.mockWebProducciones);
