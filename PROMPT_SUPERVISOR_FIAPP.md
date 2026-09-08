@@ -113,7 +113,7 @@ Notas de producto:
    arriendo": eso NO es un cierre, es un PUNTO DE EQUILIBRIO, y es la
    parte más valiosa. Aritmética emparentada con la calculadora de
    overhead de la Feature #30. Ojo: toca la Decision 027 (los montos son
-   fuente de verdad, `tipo_pago` es proyección) → sería **schema v9**.
+   fuente de verdad, `tipo_pago` es proyección) → sería **schema v10** (la v9 la ocupo la Feature #32, gastos).
    NO fragmentar en features sueltas: forma de pago sin cierre es un dato
    que nadie usa.
 2. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa

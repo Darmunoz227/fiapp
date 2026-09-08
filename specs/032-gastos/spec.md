@@ -181,6 +181,49 @@ valor real esta en (a) las plantillas recurrentes, que se configuran una
 vez y se confirman con un toque al mes, y (b) el punto de equilibrio. La
 UI debe darles ese protagonismo.
 
+## Por que gastos se separa del CICLO DE CAJA (justificacion del corte)
+
+El backlog advierte "NO fragmentar el ciclo de caja en features sueltas:
+forma de pago sin cierre es un dato que nadie usa". Esta feature NO
+contradice esa regla, y conviene dejar escrito por que.
+
+**El criterio no es "no fragmentar", es QUE PREGUNTA queda respondida.**
+Forma de pago sin cierre fragmenta por CAPA: guarda un dato cuyo sentido
+depende de una pieza que aun no existe. Gastos + punto de equilibrio
+responde una pregunta COMPLETA por si sola: "cuanto necesito vender para
+cubrir mis gastos" funciona sin apertura, sin forma de pago y sin cierre.
+Se entrega, se usa y da valor el mismo dia.
+
+**Evidencia que respalda el corte:** el merchant NO anota gastos hormiga
+pero SI recuerda arriendo y servicios, que son los unicos que alimentan
+el punto de equilibrio (ver Evidencia de campo). La feature funciona con
+la disciplina que el merchant YA tiene.
+
+**Sobre el schema v9:** no existe reserva de numeros. Las versiones son
+secuenciales, no un espacio nombrado. El backlog decia "seria v9" porque
+en ese momento era el siguiente. El ciclo de caja sera v10.
+
+**ACOPLAMIENTO CONOCIDO con el ciclo de caja - gastos NO registra forma
+de pago.** El arqueo del cierre calculara: base + ventas en efectivo -
+gastos en efectivo - retiros = lo esperado. La tabla gastos de v9 NO
+tiene columna de forma de pago. Si el arqueo asumiera que todo gasto
+salio de la caja, descuadraria cuando el merchant pague el arriendo por
+transferencia.
+
+Esto NO bloquea el diseno futuro: agregar una columna nullable es
+aditivo y el proyecto lo ha hecho repetidamente con agregarColumnaSiFalta
+(Decisions 027, 048, 052). Se documenta para que nadie asuma que gasto =
+efectivo. Cuando llegue el ciclo de caja, gastos ganara forma_pago
+nullable; los gastos historicos quedaran en null y el arqueo debera
+tratar null como "no se sabe", nunca como "efectivo".
+
+**Lo que SI se dejo deliberadamente fuera para no encajonar el diseno:**
+el retiro personal (sacar efectivo de la caja para la casa) NO se modelo
+como gasto, aunque era la via mas rapida. Es un tercer concepto y
+meterlo en gastos habria hundido la utilidad del negocio y contaminado el
+punto de equilibrio. Esa decision es la mejor prueba de que el corte fue
+deliberado y no oportunista.
+
 ## Fuera de alcance
 - Cierre de caja y arqueo (cuadrar lo contado contra lo esperado).
 - Forma de pago discriminada (Feature #33).
