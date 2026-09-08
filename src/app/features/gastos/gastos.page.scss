@@ -1,0 +1,109 @@
+.etiqueta-pequena {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--ion-color-medium);
+  margin: 0 0 4px;
+}
+
+.bloque-equilibrio,
+.bloque-origen,
+.bloque-total-mes,
+.tarjeta-plantilla,
+.tarjeta-gasto {
+  background: var(--ion-card-background, #ffffff);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.cifra-grande {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ion-text-color, #111827);
+}
+
+.cifra-media {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--ion-text-color, #111827);
+}
+
+.cifra-sub {
+  color: var(--ion-color-medium);
+  margin: 0 0 8px;
+}
+
+.divisor {
+  height: 1px;
+  background: rgba(128, 128, 128, 0.2);
+  margin: 12px 0;
+}
+
+.cifra-diaria,
+.nota-formula,
+.aviso-gris {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+  margin: 4px 0 0;
+}
+
+.fila-origen {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+.seccion-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 20px 0 8px;
+
+  h2 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+}
+
+.tarjeta-plantilla,
+.tarjeta-gasto {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.plantilla-info,
+.gasto-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.plantilla-nombre,
+.gasto-nombre {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.plantilla-detalle,
+.gasto-detalle {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+}
+
+.gasto-valor {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.pastilla-ok {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ion-color-success, #16a34a);
+  white-space: nowrap;
+}

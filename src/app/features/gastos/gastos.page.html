@@ -1,0 +1,105 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/reportes" text="Atrás"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis gastos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light" class="ion-padding">
+
+  <div class="bloque-equilibrio">
+    <p class="etiqueta-pequena">PARA CUBRIR TUS GASTOS FIJOS</p>
+
+    <ng-container *ngIf="punto.calculable; else noCalculable">
+      <h1 class="cifra-grande">{{ punto.ventaNecesariaMensual | currency:'COP':'symbol':'1.0-0' }}</h1>
+      <p class="cifra-sub">al mes</p>
+      <div class="divisor"></div>
+      <p class="cifra-diaria">
+        Eso es aproximadamente
+        <strong>{{ punto.ventaNecesariaDiaria | currency:'COP':'symbol':'1.0-0' }}</strong>
+        al día.
+      </p>
+    </ng-container>
+
+    <ng-template #noCalculable>
+      <p class="aviso-gris">
+        Todavía no podemos calcularlo. Necesitamos que registres tus gastos fijos
+        y que tengas ventas registradas en FiApp.
+      </p>
+    </ng-template>
+  </div>
+
+  <div class="bloque-origen" *ngIf="punto.calculable">
+    <p class="etiqueta-pequena">¿DE DÓNDE SALE ESTE NÚMERO?</p>
+    <div class="fila-origen">
+      <span>Tus gastos fijos del mes</span>
+      <strong>{{ fijosMensuales | currency:'COP':'symbol':'1.0-0' }}</strong>
+    </div>
+    <div class="fila-origen">
+      <span>Tu ganancia promedio por venta</span>
+      <strong>{{ margenPorcentaje }}%</strong>
+    </div>
+    <p class="nota-formula">
+      Este cálculo usa tus ventas reales registradas en FiApp.
+    </p>
+  </div>
+
+  <div class="seccion-header">
+    <h2>Gastos que se repiten</h2>
+    <ion-button fill="clear" size="small" (click)="abrirNuevaPlantilla()">Agregar</ion-button>
+  </div>
+
+  <p class="aviso-gris" *ngIf="recurrentes.length === 0">
+    Guarda aquí lo que pagas siempre (arriendo, servicios). FiApp no lo registra
+    solo: tú confirmas cada pago.
+  </p>
+
+  <div class="tarjeta-plantilla" *ngFor="let r of recurrentes">
+    <div class="plantilla-info">
+      <span class="plantilla-nombre">{{ r.categoria }}</span>
+      <span class="plantilla-detalle">
+        {{ r.valor_estimado | currency:'COP':'symbol':'1.0-0' }} · {{ etiquetaFrecuencia(r) }}
+      </span>
+    </div>
+
+    <div class="plantilla-accion">
+      <span class="pastilla-ok" *ngIf="yaPagadoEsteMes(r)">Pagado este mes</span>
+      <ion-button
+        *ngIf="!yaPagadoEsteMes(r)"
+        size="small"
+        (click)="registrarPagoDe(r)">
+        Registrar el pago
+      </ion-button>
+    </div>
+  </div>
+
+  <p class="nota-formula" *ngIf="recurrentes.length > 0">
+    Al tocar el botón se llenan los datos solos, pero puedes cambiarlos antes de guardar.
+  </p>
+
+  <div class="seccion-header">
+    <h2>Gastos de este mes</h2>
+    <ion-button fill="clear" size="small" (click)="abrirNuevoGasto()">Registrar</ion-button>
+  </div>
+
+  <div class="bloque-total-mes">
+    <p class="etiqueta-pequena">TOTAL DE ESTE MES</p>
+    <h2 class="cifra-media">{{ totalMes | currency:'COP':'symbol':'1.0-0' }}</h2>
+    <p class="nota-formula">Solo cuenta lo que registraste.</p>
+  </div>
+
+  <div class="tarjeta-gasto" *ngFor="let g of gastosMes">
+    <div class="gasto-info">
+      <span class="gasto-nombre">{{ g.categoria }}</span>
+      <span class="gasto-detalle">{{ g.fecha | date:'d MMM' }} · {{ g.tipo_gasto === 'FIJO' ? 'Fijo' : 'Variable' }}</span>
+    </div>
+    <span class="gasto-valor">{{ g.valor | currency:'COP':'symbol':'1.0-0' }}</span>
+  </div>
+
+  <p class="aviso-gris" *ngIf="gastosMes.length === 0">
+    Aún no has registrado gastos este mes.
+  </p>
+
+</ion-content>
