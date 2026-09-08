@@ -23,9 +23,9 @@ todo el código lo hago yo.
 ## Estado actual (verificar SIEMPRE con archivos, no asumir)
 
 - Rama principal: `main`, sincronizada con `origin-privado/main`.
-- **Features #1 a #31 COMPLETAS y mergeadas.**
+- **Features #1 a #32 COMPLETAS y mergeadas.**
 - **Schema v8** (dos tablas nuevas de producción + `modo_produccion`, Feature #30).
-- **53 decisiones** documentadas en `docs/DECISIONS.md`.
+- **54 decisiones** documentadas en `docs/DECISIONS.md`.
 - **250 tests** pasando (Karma/ChromeHeadless).
 - Documentación viva: `docs/PROJECT_CONTEXT.md` y `docs/DECISIONS.md`.
 
@@ -147,6 +147,14 @@ dolor reportado.
 **HECHO desde la última actualización:** restaurar respaldos de versiones
 anteriores y llevar el catálogo de fiado en el respaldo (ambos en la
 Feature #31, Decision 053).
+
+**REGLA NUEVA (Decision 054) - prototipar antes de codificar UI.** Todo
+cambio de interfaz se acuerda primero sobre un prototipo HTML. Ese metodo
+ya evito dos errores de producto que ningun test habria detectado.
+
+**REGLA NUEVA - ningun bloque `python3` avanza sin ver su `OK:`.** En una
+sola sesion cinco scripts se perdieron en silencio porque no se confirmo
+su salida; uno dejo un INSERT incompleto que solo aparecio en device.
 
 ## Cómo arrancamos esta sesión
 
