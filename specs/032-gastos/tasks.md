@@ -49,6 +49,15 @@
 - T028 Punto de equilibrio bajo demanda, mostrando las cifras de origen.
 - T029 [GATE] npm test + grep de seguridad.
 
+## ESTADO AL 2026-09-08 (retomar aqui)
+Fases 1 a 5 COMPLETAS en la rama 032-gastos. 274 tests verdes, arbol
+limpio. La rama ya tiene main mergeado (Feature 033 y Decision 054).
+PENDIENTE: Fase 6 (device) y Fase 7 (cierre).
+Prototipo visual acordado: output/prototipo-gastos-fiapp.html
+La UI se simplifico a UNA pantalla /gastos con tres secciones (punto de
+equilibrio, plantillas, gastos del mes) + captura via AlertController,
+en vez de las 4 pantallas del prototipo.
+
 ## Fase 6: Device
 - T030 Rebuild + cap sync + cap run --target, sin tuberia. Confirmar
   bundle con STRING LITERAL nuevo (Decision 053).
