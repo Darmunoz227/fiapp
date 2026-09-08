@@ -1,4 +1,5 @@
 import { FrecuenciaGasto, GastoRecurrente } from '../models/gasto-recurrente.model';
+import { Gasto } from '../models/gasto.model';
 
 const FACTOR_MENSUAL: Record<FrecuenciaGasto, number> = {
   DIARIO: 30,
@@ -77,4 +78,15 @@ export function calcularPuntoEquilibrio(fijosMensuales: number, margen: number):
     ventaNecesariaMensual: mensual,
     ventaNecesariaDiaria: mensual / 30,
   };
+}
+
+export function calcularTotalGastos(gastos: Gasto[]): number {
+  let total = 0;
+  for (const gasto of gastos) {
+    if (!gasto || !Number.isFinite(gasto.valor) || gasto.valor < 0) {
+      continue;
+    }
+    total += gasto.valor;
+  }
+  return total;
 }

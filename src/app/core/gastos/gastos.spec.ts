@@ -1,4 +1,5 @@
-import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio } from './gastos';
+import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos } from './gastos';
+import { Gasto } from '../models/gasto.model';
 import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
 describe('normalizarAMensual', () => {
@@ -87,5 +88,21 @@ describe('calcularPuntoEquilibrio', () => {
 
   it('NO es calculable sin gastos fijos registrados', () => {
     expect(calcularPuntoEquilibrio(0, 0.4).calculable).toBe(false);
+  });
+});
+
+describe('calcularTotalGastos', () => {
+  it('suma los valores e ignora los no numericos o negativos', () => {
+    const gastos = [
+      { id: 'a', valor: 800000 },
+      { id: 'b', valor: 180000 },
+      { id: 'c', valor: -500 },
+      { id: 'd', valor: NaN },
+    ] as Gasto[];
+    expect(calcularTotalGastos(gastos)).toBe(980000);
+  });
+
+  it('devuelve 0 con lista vacia', () => {
+    expect(calcularTotalGastos([])).toBe(0);
   });
 });
