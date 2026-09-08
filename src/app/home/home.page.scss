@@ -1,5 +1,5 @@
 .home-toolbar {
-  --min-height: calc(112px + env(safe-area-inset-top));
+  --min-height: calc(96px + env(safe-area-inset-top));
   --background: #1e3a5f;
   --color: #ffffff;
 }
@@ -11,8 +11,8 @@
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-  padding: calc(env(safe-area-inset-top)) 12px 4px;
-  gap: 6px;
+  padding: calc(env(safe-area-inset-top)) 12px 8px;
+  gap: 2px;
 }
 
 .app-branding {
@@ -80,8 +80,8 @@
   --color: #ffffff;
   --padding-start: 4px;
   --padding-end: 4px;
-  height: 52px;
-  min-width: 52px;
+  height: 48px;
+  min-width: 48px;
 }
 
 .header-action {
