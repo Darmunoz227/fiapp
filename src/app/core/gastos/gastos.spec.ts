@@ -1,4 +1,4 @@
-import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos } from './gastos';
+import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO } from './gastos';
 import { Gasto } from '../models/gasto.model';
 import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
@@ -104,5 +104,23 @@ describe('calcularTotalGastos', () => {
 
   it('devuelve 0 con lista vacia', () => {
     expect(calcularTotalGastos([])).toBe(0);
+  });
+});
+
+describe('sugerirTipoGasto', () => {
+  it('sugiere FIJO para arriendo y servicios', () => {
+    expect(sugerirTipoGasto('Arriendo')).toBe('FIJO');
+    expect(sugerirTipoGasto('Servicios')).toBe('FIJO');
+  });
+
+  it('sugiere VARIABLE para el resto', () => {
+    expect(sugerirTipoGasto('Transporte')).toBe('VARIABLE');
+    expect(sugerirTipoGasto('Comida')).toBe('VARIABLE');
+    expect(sugerirTipoGasto('Otro')).toBe('VARIABLE');
+  });
+
+  it('NO incluye Mercancia: eso es una COMPRA de inventario, no un gasto', () => {
+    expect(CATEGORIAS_GASTO).not.toContain('Mercancia');
+    expect(CATEGORIAS_GASTO).not.toContain('Mercancía');
   });
 });

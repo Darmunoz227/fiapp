@@ -90,3 +90,13 @@ export function calcularTotalGastos(gastos: Gasto[]): number {
   }
   return total;
 }
+
+import { TipoGasto } from '../models/gasto.model';
+
+export const CATEGORIAS_GASTO = ['Arriendo', 'Servicios', 'Transporte', 'Comida', 'Mantenimiento', 'Otro'];
+
+const CATEGORIAS_FIJAS = ['Arriendo', 'Servicios'];
+
+export function sugerirTipoGasto(categoria: string): TipoGasto {
+  return CATEGORIAS_FIJAS.includes(categoria) ? 'FIJO' : 'VARIABLE';
+}
