@@ -1418,3 +1418,104 @@ trial y recordatorio: ninguna clave sensible viaja en el respaldo. El
 archivo de prueba con schema_version 99 (`version-mala.json`) siguio
 siendo RECHAZADO por incompatible, confirmando que relajar el rango de
 versiones no aflojo la validacion hacia arriba. 250 tests green (242 base + 8 nuevos).
+
+---
+
+## Decision 054 - El Inicio se rediseña por legibilidad, no por estetica, y el prototipo se valida ANTES de escribir codigo
+
+**Contexto:** FiApp evoluciono a un MiniPOS con 31 features pero el Inicio
+conservaba la apariencia de las primeras versiones. Al revisar una
+captura del dispositivo aparecieron defectos concretos de legibilidad.
+
+**Principio rector - ningun elemento cambia de sitio.** El merchant ya
+tiene la pantalla memorizada; reordenarla seria peor que dejarla fea. Los
+cuatro iconos siguen arriba, el fiado sigue siendo la accion principal,
+los clientes siguen abajo. Solo cambia como se ve, nunca donde esta.
+
+**Decision - se prototipa en HTML ANTES de tocar codigo.** Se construyo
+una comparacion ANTES/DESPUES en HTML y sobre ella se acordo el diseno.
+Eso permitio que Diego señalara defectos concretos (pastillas separadas
+vs barra unica, franja demasiado alta, esquinas cuadradas) sin costo de
+implementacion. En la Feature 032 el mismo metodo evito DOS errores de
+producto antes de existir el codigo: un texto "Fijo/Variable" que ningun
+merchant habria sabido responder, y una categoria "Mercancia" que habria
+causado doble conteo en el punto de equilibrio. Ninguno de los cuatro lo
+habria atrapado un test. Prototipar deja de ser opcional para cambios de
+UI en este proyecto.
+
+**Decision - se CONSERVAN todas las clases CSS.** No se renombro ninguna.
+El test de regresion de AC-06 de la Feature 030 consulta
+querySelector('.boton-registrar-produccion') y es la unica garantia
+escrita de que un comerciante sin modo produccion no ve UI nueva. La
+feature cerro con CERO tests modificados.
+
+**Los cinco defectos corregidos:**
+
+1. Iconos AZULES sobre fondo AZUL MARINO, sin etiqueta. Contraste
+   insuficiente, no gusto. Ahora blancos, 24px, en pastillas
+   individuales con etiqueta y toque de 54px.
+2. Marca de agua "FIAPP" en SVG detras del buscador: eliminada.
+3. Seis colores compitiendo. Ahora un azul de acento + neutros; rojo
+   SOLO deuda, verde SOLO saldado. Se elimino el amarillo para montos.
+4. El boton de produccion (Feature 030) pasa de tertiary solido a
+   outline: sigue visible pero no compite con la accion principal.
+5. Filas de cliente sin jerarquia: ahora tarjetas de 64px con avatar,
+   nombre, linea de estado (Debe / Al dia) y monto en color semantico.
+
+**Decision - la marca del merchant por encima de la nuestra.** El nombre
+del negocio pasa a 18px blanco puro; "FiApp / Mi Negocio en el Bolsillo"
+baja a 13px atenuado. Es su herramienta de trabajo, no nuestro afiche.
+
+**Decision - los emoji de reconocimiento SE MANTIENEN.** El de la bolsa
+en "TOTAL QUE ME DEBEN" se conserva. Quitarlo era criterio estetico, no
+de usuario: funciona como ancla de RECONOCIMIENTO para la pareja mayor, y
+la app YA usa emoji en el catalogo de fiado. Regla: emoji para ETIQUETAR,
+SVG para lo que se TOCA.
+
+**Decision REVERTIDA por evidencia de campo - el FAB se conserva.** La
+propuesta inicial lo quitaba por "dos acciones primarias compiten". El
+merchant respondio que SI lo usa. Un principio de diseno abstracto no
+puede pesar mas que el uso real. Ademas el conflicto se disolvio solo al
+pasar el boton principal de rojo a azul: ya no compiten en intensidad.
+
+**Evidencia de campo (WhatsApp, merchant de ropa deportiva):**
+- Los iconos: "le da casi igual, pero piensa que debe tener mejor
+  contraste". Defecto confirmado pero NO doloroso; baja de critico a
+  mejora. HONESTIDAD: la justificacion de accesibilidad para la pareja
+  mayor del ambulante sigue siendo hipotesis, no se le ha preguntado.
+- HALLAZGO ABIERTO: "el fiado lo usa muy poco, pero le sirve mucho el
+  mensaje por WhatsApp (muy util e innovador)". El boton grande de fiado
+  ocupa el lugar de accion principal y este merchant casi no lo usa; el
+  ambulante en cambio vive del fiado. **La accion principal del Inicio
+  deberia depender del tipo de merchant y hoy esta fija para todos.** Es
+  n=1: no se resuelve aqui, va al backlog.
+
+**Tres bugs PREEXISTENTES destapados al mirar el dispositivo:**
+
+1. `.avatar-placeholder` y `.deuda-texto` se usaban en el template pero
+   NUNCA tuvieron estilos: la inicial del cliente aparecia suelta, sin
+   circulo.
+2. El media query de 360px apuntaba a `.home-toolbar-inner` y
+   `.home-title-wrap`, clases inexistentes, PERO tambien redefinia
+   `.app-title` y `.business-name`, pisando la jerarquia nueva en
+   pantallas angostas. Ningun test renderiza a 360px.
+3. Las tarjetas consumian `--ion-item-background` sin fallback y
+   resolvian al gris del fondo: exactamente el patron que la Decision 030
+   documento. Se agrego fallback y el modo oscuro se verifico intacto.
+
+**Aprendizaje tecnico:** `--border-radius` no siempre llega al elemento
+interno de un `ion-button`; `::part(native)` si. Y un `ion-button` con
+`fill="clear"` (el default dentro de `ion-buttons`) ignora el fondo.
+
+**Sin schema, sin logica de negocio:** cero cambios en BD. Solo
+home.page.html, home.page.scss y un icono en home.page.ts
+(fast-food-outline pasa a receipt-outline: la comida rapida no aplica a
+las tiendas de ropa).
+
+**Evidencia, en Android emulator, BY HAND:** los cuatro iconos se
+distinguen y se leen sus etiquetas; el fondo quedo sin marca de agua; el
+nombre del negocio manda sobre la marca incluso en pantalla angosta; las
+tarjetas de cliente se ven blancas con sombra y el monto en rojo cuando
+hay deuda y verde cuando esta al dia; el FAB sigue funcionando; el swipe
+de Editar y Eliminar sigue operativo (AC-07); y el modo oscuro quedo
+legible (AC-09). 250 tests green, CERO tests modificados.
