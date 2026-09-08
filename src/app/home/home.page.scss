@@ -1,5 +1,5 @@
 .home-toolbar {
-  --min-height: calc(96px + env(safe-area-inset-top));
+  --min-height: calc(88px + env(safe-area-inset-top));
   --background: #1e3a5f;
   --color: #ffffff;
 }
@@ -11,8 +11,8 @@
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-  padding: calc(env(safe-area-inset-top)) 12px 8px;
-  gap: 2px;
+  padding: calc(env(safe-area-inset-top)) 12px 6px;
+  gap: 0;
 }
 
 .app-branding {
@@ -49,6 +49,7 @@
 .business-name {
   flex: 1 0 100%;
   order: -1;
+  padding-top: 0;
   color: #ffffff;
   font-size: 18px;
   font-weight: 700;
@@ -71,22 +72,32 @@
      se leen como elementos huerfanos. */
   ion-buttons {
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
     width: 100%;
-    background: rgba(255, 255, 255, 0.10);
-    border-radius: 14px;
-    padding: 2px 4px;
+    gap: 8px;
   }
 }
 
 /* Los iconos eran azules sobre azul marino: contraste insuficiente y sin
    etiqueta. Blancos, mas grandes y rotulados (AC-01). */
+/* Cada icono en su propia pastilla: agrupados en una sola barra se leen
+   como un bloque, no como cuatro botones tocables. */
 .header-action-btn {
   --color: #ffffff;
-  --padding-start: 4px;
-  --padding-end: 4px;
-  height: 48px;
-  min-width: 48px;
+  --background: rgba(255, 255, 255, 0.10);
+  --background-hover: rgba(255, 255, 255, 0.18);
+  --background-activated: rgba(255, 255, 255, 0.22);
+  --border-radius: 12px;
+  --padding-start: 2px;
+  --padding-end: 2px;
+  flex: 1 1 0;
+  height: 54px;
+  margin: 0;
+}
+
+.header-action-btn::part(native) {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.10);
 }
 
 .header-action {
