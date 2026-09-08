@@ -1,5 +1,5 @@
 .home-toolbar {
-  --min-height: calc(28px + env(safe-area-inset-top));
+  --min-height: calc(88px + env(safe-area-inset-top));
   --background: #1e3a5f;
   --color: #ffffff;
 }
@@ -11,29 +11,33 @@
   justify-content: space-between;
   width: 100%;
   box-sizing: border-box;
-  padding: calc(env(safe-area-inset-top)) 12px 4px;
-  gap: 6px;
+  padding: calc(env(safe-area-inset-top)) 12px 6px;
+  gap: 0;
 }
 
 .app-branding {
   display: flex;
-  flex-direction: column;
-  flex: 0 0 auto;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 6px;
+  flex: 1 0 100%;
+  order: 1;
   min-width: 0;
-  max-width: 70%;
 }
 
+/* La marca del merchant pesa mas que la nuestra: es su herramienta de
+   trabajo, no nuestro afiche (AC-03). */
 .app-title {
-  color: #ffffff;
-  font-size: 16px;
-  font-weight: 700;
+  color: rgba(255,255,255,0.78);
+  font-size: 13px;
+  font-weight: 600;
   line-height: 1.05;
   letter-spacing: 0.3px;
 }
 
 .app-subtitle {
-  color: rgba(255,255,255,0.92);
-  font-size: 12px;
+  color: rgba(255,255,255,0.62);
+  font-size: 11px;
   font-weight: 600;
   line-height: 1.1;
   letter-spacing: 0.2px;
@@ -44,9 +48,10 @@
 
 .business-name {
   flex: 1 0 100%;
-  order: 3;
-  color: rgba(255,255,255,0.92);
-  font-size: 14px;
+  order: -1;
+  padding-top: 0;
+  color: #ffffff;
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.3;
   text-align: left;
@@ -56,8 +61,64 @@
   padding: 2px 0 0;
 }
 
+/* Los iconos van en su propia fila, no compartiendo linea con la marca:
+   asi cada uno respira y el nombre del negocio manda (AC-01, AC-03). */
 .header-actions {
-  flex: 0 0 auto;
+  flex: 1 0 100%;
+  order: 2;
+  margin-top: 4px;
+
+  /* Agrupados en una barra con fondo mas claro: sueltos sobre el azul
+     se leen como elementos huerfanos. */
+  ion-buttons {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    gap: 8px;
+  }
+}
+
+/* Los iconos eran azules sobre azul marino: contraste insuficiente y sin
+   etiqueta. Blancos, mas grandes y rotulados (AC-01). */
+/* Cada icono en su propia pastilla: agrupados en una sola barra se leen
+   como un bloque, no como cuatro botones tocables. */
+.header-action-btn {
+  --color: #ffffff;
+  --background: rgba(255, 255, 255, 0.10);
+  --background-hover: rgba(255, 255, 255, 0.18);
+  --background-activated: rgba(255, 255, 255, 0.22);
+  --border-radius: 12px;
+  --padding-start: 2px;
+  --padding-end: 2px;
+  flex: 1 1 0;
+  height: 54px;
+  margin: 0;
+}
+
+.header-action-btn::part(native) {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
+.header-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+
+  ion-icon {
+    font-size: 24px;
+    color: #ffffff;
+  }
+}
+
+.header-action-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: none;
+  color: #ffffff;
+  line-height: 1;
 }
 
 @media (max-width: 360px) {
@@ -88,60 +149,103 @@
   margin: 20px 16px;
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  background: var(--ion-card-background);
+  background: var(--ion-card-background, #ffffff);
+}
+
+.monto-cartera {
+  font-weight: 700;
+  font-size: 32px;
+  margin-top: 6px;
+  color: var(--ion-text-color, #111827);
+  line-height: 1.1;
+}
+
+.monto-cartera-moneda {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+}
+
+.boton-fiado-productos,
+.boton-registrar-produccion {
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.boton-registrar-produccion {
+  --border-radius: 12px;
+  height: 52px;
+  margin: 8px 16px 0;
+  font-weight: 600;
+}
+
+.boton-fiado-productos {
+  --border-radius: 12px;
+  height: 56px;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0 16px;
 }
 
 ion-searchbar {
-  --border-radius: 20px;
+  --border-radius: 12px;
   --box-shadow: none;
-  --background: var(--ion-item-background);
-  padding: 0 16px;
+  --background: var(--ion-item-background, #ffffff);
+  --border-width: 1px;
+  padding: 12px 16px;
 }
 
 .lista-clientes {
   background: transparent;
-  padding: 0 16px;
+  padding: 0 16px 88px;
 
   .cliente-item {
-    --background: var(--ion-item-background);
+    --background: var(--ion-item-background, #ffffff);
     --border-radius: 12px;
     margin-bottom: 12px;
     --padding-start: 16px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.03);
 
+    min-height: 64px;
+
     h2 {
       font-weight: 600;
+      font-size: 16px;
       color: var(--ion-text-color);
     }
   }
+}
+
+/* Estas clases se usaban en el template pero NUNCA tuvieron estilos: la
+   inicial aparecia suelta, sin circulo. */
+.avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--ion-color-primary, #3880ff);
+  color: var(--ion-color-primary-contrast, #ffffff);
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.estado-cliente {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 2px;
+}
+
+.deuda-texto {
+  font-weight: 700;
+  font-size: 15px;
 }
 
 ion-fab-button {
   --background: var(--ion-color-dark);
   --color: var(--ion-color-dark-contrast);
 }
-
-.watermark-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 300px;
-  height: 300px;
-  opacity: 0.08;
-  z-index: -1;
-  pointer-events: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.watermark-svg {
-  width: 100%;
-  height: 100%;
-  color: var(--ion-color-medium);
-}
-
 
 ion-fab[vertical="bottom"] {
   margin-bottom: env(safe-area-inset-bottom);

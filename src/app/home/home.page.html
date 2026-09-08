@@ -10,17 +10,29 @@
 
       <div class="header-actions">
         <ion-buttons>
-          <ion-button (click)="irAReportes()">
-            <ion-icon name="stats-chart-outline"></ion-icon>
+          <ion-button fill="solid" class="header-action-btn" (click)="irAReportes()">
+            <div class="header-action">
+              <ion-icon name="stats-chart-outline"></ion-icon>
+              <span class="header-action-label">Reportes</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAVentas()">
-            <ion-icon name="cart-outline"></ion-icon>
+          <ion-button fill="solid" class="header-action-btn" (click)="irAVentas()">
+            <div class="header-action">
+              <ion-icon name="cart-outline"></ion-icon>
+              <span class="header-action-label">Vender</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAInventario()">
-            <ion-icon name="cube-outline"></ion-icon>
+          <ion-button fill="solid" class="header-action-btn" (click)="irAInventario()">
+            <div class="header-action">
+              <ion-icon name="cube-outline"></ion-icon>
+              <span class="header-action-label">Inventario</span>
+            </div>
           </ion-button>
-          <ion-button (click)="irAConfiguraciones()">
-            <ion-icon name="settings-outline"></ion-icon>
+          <ion-button fill="solid" class="header-action-btn" (click)="irAConfiguraciones()">
+            <div class="header-action">
+              <ion-icon name="settings-outline"></ion-icon>
+              <span class="header-action-label">Ajustes</span>
+            </div>
           </ion-button>
         </ion-buttons>
       </div>
@@ -31,31 +43,23 @@
 
 <ion-content [fullscreen]="true" color="light" class="ion-padding">
   
-  <div class="watermark-container">
-    <svg viewBox="0 0 200 80" xmlns="http://www.w3.org/2000/svg" class="watermark-svg">
-      <text x="100" y="50" text-anchor="middle" font-size="48" font-weight="700" letter-spacing="2" fill="currentColor">FIAPP</text>
-    </svg>
-  </div>
-  
   <ion-card class="tarjeta-total">
     <ion-card-content>
       <ion-text color="medium">
         <p>💰 TOTAL QUE ME DEBEN</p>
       </ion-text>
-      <ion-text color="warning">
-        <h1 style="font-weight: bold; font-size: 28px; margin-top: 5px;">
-          $ {{ formatearMonto(totalCartera) }} <span style="font-size: 16px; color: var(--ion-color-medium);">COP</span>
-        </h1>
-      </ion-text>
+      <h1 class="monto-cartera">
+        $ {{ formatearMonto(totalCartera) }} <span class="monto-cartera-moneda">COP</span>
+      </h1>
     </ion-card-content>
   </ion-card>
 
-  <ion-button expand="block" color="danger" class="boton-fiado-productos" (click)="irAFiadoProductos()">
-    <ion-icon slot="start" name="fast-food-outline"></ion-icon>
+  <ion-button expand="block" color="primary" class="boton-fiado-productos" (click)="irAFiadoProductos()">
+    <ion-icon slot="start" name="receipt-outline"></ion-icon>
     Registrar fiado
   </ion-button>
 
-  <ion-button *ngIf="tieneProduccion" expand="block" color="tertiary" class="boton-registrar-produccion" (click)="irARegistrarProduccion()">
+  <ion-button *ngIf="tieneProduccion" expand="block" fill="outline" color="primary" class="boton-registrar-produccion" (click)="irARegistrarProduccion()">
     <ion-icon slot="start" name="cube-outline"></ion-icon>
     Registrar produccion
   </ion-button>
@@ -74,8 +78,9 @@
         </ion-avatar>
         <ion-label>
           <h2>{{ cliente.nombre }}</h2>
+          <p class="estado-cliente">{{ cliente.deudaTotal <= 0 ? 'Al dia' : 'Debe' }}</p>
         </ion-label>
-        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'warning'" class="deuda-texto">
+        <ion-note slot="end" [color]="cliente.deudaTotal <= 0 ? 'success' : 'danger'" class="deuda-texto">
           $ {{ formatearMonto(cliente.deudaTotal) }}
         </ion-note>
       </ion-item>
