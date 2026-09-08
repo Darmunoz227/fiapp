@@ -943,11 +943,11 @@ export class DatabaseService {
       await this.ejecutarRun("DELETE FROM gastos_recurrentes", [], true);
 
       for (const gr of data.gastos_recurrentes) {
-        await this.crearGastoRecurrente(gr);
+        await this.crearGastoRecurrente(gr, true);
       }
 
       for (const g of data.gastos) {
-        await this.crearGasto(g);
+        await this.crearGasto(g, true);
       }
 
       return conteo;
@@ -1161,7 +1161,7 @@ export class DatabaseService {
     });
   }
 
-  async crearGasto(gasto: Gasto): Promise<void> {
+  async crearGasto(gasto: Gasto, dentroDeTx = false): Promise<void> {
     const createdAt = gasto.created_at ?? Date.now();
 
     if (Capacitor.getPlatform() === 'web') {
@@ -1185,7 +1185,7 @@ export class DatabaseService {
       gasto.observacion ?? null, gasto.tipo_gasto, gasto.recurrente_id ?? null,
       createdAt, gasto.updated_at ?? null, gasto.deleted_at ?? null,
       gasto.store_id ?? null, gasto.created_by ?? null,
-    ]);
+    ], dentroDeTx);
   }
 
   async obtenerGastos(): Promise<Gasto[]> {
@@ -1198,7 +1198,7 @@ export class DatabaseService {
     return (res.values as Gasto[]) ?? [];
   }
 
-  async crearGastoRecurrente(recurrente: GastoRecurrente): Promise<void> {
+  async crearGastoRecurrente(recurrente: GastoRecurrente, dentroDeTx = false): Promise<void> {
     const createdAt = recurrente.created_at ?? Date.now();
 
     if (Capacitor.getPlatform() === 'web') {
@@ -1220,7 +1220,7 @@ export class DatabaseService {
       recurrente.tipo_gasto, recurrente.frecuencia, recurrente.activo ? 1 : 0,
       createdAt, recurrente.updated_at ?? null, recurrente.deleted_at ?? null,
       recurrente.store_id ?? null, recurrente.created_by ?? null,
-    ]);
+    ], dentroDeTx);
   }
 
   async obtenerGastosRecurrentes(): Promise<GastoRecurrente[]> {
