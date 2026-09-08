@@ -218,7 +218,7 @@ export class ConfiguracionesPage {
       await this.restaurarConfig(config);
       await this.alertaSimple(
         "Respaldo importado",
-        "Clientes: " + conteo.clientes + ". Fiados y abonos: " + conteo.transacciones + ". Productos: " + conteo.productos + ". Movimientos: " + conteo.movim_inventario + ". Ventas: " + conteo.ventas + ". Lineas de venta: " + conteo.venta_items + "."
+        "Clientes: " + conteo.clientes + ". Fiados y abonos: " + conteo.transacciones + ". Productos: " + conteo.productos + ". Movimientos: " + conteo.movim_inventario + ". Ventas: " + conteo.ventas + ". Lineas de venta: " + conteo.venta_items + ". Producciones: " + conteo.producciones + ". Gastos: " + conteo.gastos + ". Gastos que se repiten: " + conteo.gastos_recurrentes + "."
       );
     } catch (error) {
       console.error("Fallo la importacion:", error);
