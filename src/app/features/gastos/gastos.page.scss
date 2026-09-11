@@ -107,3 +107,15 @@
   color: var(--ion-color-success, #16a34a);
   white-space: nowrap;
 }
+
+
+// Recorte por la barra de navegacion de Android: el final del contenido
+// quedaba debajo de los botones nativos. Mismo criterio que Decision 042
+// (FAB del Home) y Decision 043 (Configuraciones). La base de 16px deja
+// aire donde env() vale 0 (web, iOS sin indicador). El selector incluye
+// .ion-padding porque esa clase de Ionic tambien define --padding-bottom
+// y le ganaria por especificidad a un selector de elemento solo.
+ion-content.ion-padding,
+ion-content {
+  --padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
