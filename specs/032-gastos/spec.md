@@ -122,15 +122,24 @@ asociada. Eso simplifica esa feature y evita duplicar el concepto.
 gasto fijo de uno variable. Si clasifican mal, el punto de equilibrio da
 un numero erroneo y la feature pierde su valor.
 
-**Decision - la pregunta discriminante es "lo pagas aunque no vendas
-nada?".** Se descarta la formulacion "se repite todos los meses" porque
-es AMBIGUA: la mercancia tambien se compra todos los meses y no es un
-gasto fijo. El texto en pantalla debe ser:
+**Decision - el criterio es "sigue existiendo aunque la tienda no
+abra".** Se descarta "se repite todos los meses" porque es AMBIGUA: la
+mercancia tambien se compra todos los meses y no es un gasto fijo. Y se
+descarta "lo pagas aunque no vendas nada", que fue el texto original de
+este spec, porque fallo en el PRIMER caso real (2026-09-11): ante un
+almuerzo diario el merchant responde "si, igual hay que comer" y lo
+marca FIJO, cuando unos dias lo compra y otros lo lleva cocinado de la
+casa. La pregunta producia la respuesta contraria a la correcta.
 
-- FIJO: "Lo pagas aunque no vendas nada." Ejemplos: arriendo, servicios,
-  internet, vigilancia.
-- VARIABLE: "Solo lo pagas cuando el negocio se mueve." Ejemplos:
-  mercancia, transporte, domicilios, tintos.
+El texto en pantalla debe ser:
+
+- FIJO: chip "Me toca si o si". Explicacion: "Ese llega aunque no abras
+  tu negocio." Ejemplos: arriendo, luz, internet, vigilancia.
+- VARIABLE: chip "Solo a veces". Explicacion: "Unos dias si, otros no."
+  Ejemplos: transporte, domicilios, almuerzos, tintos.
+
+La palabra "cobrar" queda descartada en pantalla: pone al merchant del
+lado del que debe. El gasto LLEGA, nadie se lo reclama.
 
 **Decision - la categoria PRECARGA el tipo, editable.** Al elegir el chip
 de categoria, el tipo se marca solo: Arriendo y Servicios sugieren FIJO;
@@ -258,8 +267,18 @@ deliberado y no oportunista.
 - AC-08: sin ventas registradas, el punto de equilibrio informa que aun
   no es calculable, sin dividir por cero.
 - AC-09: REGRESION - un merchant que nunca registre un gasto no ve
-  ninguna UI nueva en sus flujos actuales, y la suite existente sigue
-  verde sin modificar tests viejos.
+  ninguna UI nueva en sus flujos EXISTENTES (Home, Ventas, Inventario,
+  Clientes), y la suite existente sigue verde sin modificar tests
+  viejos. El acceso desde Reportes es la EXCEPCION explicita: es la
+  unica puerta de entrada a la feature y ocultarla la haria
+  inalcanzable, a diferencia de la Feature 030 donde modo_produccion se
+  activaba desde otra pantalla.
+- AC-11: al guardar un gasto, la confirmacion devuelve una cifra util:
+  si es FIJO, el punto de equilibrio recalculado; si es VARIABLE, el
+  total del mes. Sin ventas cae al total del mes y NUNCA inventa un
+  numero (misma regla que AC-08).
+- AC-12: ninguna pantalla de la feature queda tapada por la barra de
+  navegacion de Android (mismo patron que Decisions 042 y 043).
 - AC-10: las dos tablas nuevas viajan en el respaldo y se restauran
   (Decision 053), y el reinicio de inventario NO las toca: un gasto no es
   inventario.
