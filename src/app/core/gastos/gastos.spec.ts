@@ -1,4 +1,4 @@
-import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO } from './gastos';
+import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, estaPagadoEsteMes } from './gastos';
 import { Gasto } from '../models/gasto.model';
 import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
@@ -122,5 +122,29 @@ describe('sugerirTipoGasto', () => {
   it('NO incluye Mercancia: eso es una COMPRA de inventario, no un gasto', () => {
     expect(CATEGORIAS_GASTO).not.toContain('Mercancia');
     expect(CATEGORIAS_GASTO).not.toContain('Mercancía');
+  });
+});
+
+describe('estaPagadoEsteMes', () => {
+  const gastosDelMes = [
+    { id: 'g1', valor: 900000, recurrente_id: 'r-arriendo' },
+    { id: 'g2', valor: 350000, recurrente_id: null },
+  ] as Gasto[];
+
+  it('detecta el pago de este mes de una plantilla', () => {
+    expect(estaPagadoEsteMes(gastosDelMes, 'r-arriendo')).toBe(true);
+  });
+
+  it('devuelve false si ninguna linea referencia la plantilla', () => {
+    expect(estaPagadoEsteMes(gastosDelMes, 'r-servicios')).toBe(false);
+  });
+
+  it('devuelve false con lista vacia', () => {
+    expect(estaPagadoEsteMes([], 'r-arriendo')).toBe(false);
+  });
+
+  it('un gasto suelto con recurrente_id null nunca marca pagada una plantilla', () => {
+    const sueltos = [{ id: 'g3', valor: 5000, recurrente_id: null }] as Gasto[];
+    expect(estaPagadoEsteMes(sueltos, 'r-arriendo')).toBe(false);
   });
 });

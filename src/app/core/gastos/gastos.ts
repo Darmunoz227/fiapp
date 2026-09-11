@@ -100,3 +100,14 @@ const CATEGORIAS_FIJAS = ['Arriendo', 'Servicios'];
 export function sugerirTipoGasto(categoria: string): TipoGasto {
   return CATEGORIAS_FIJAS.includes(categoria) ? 'FIJO' : 'VARIABLE';
 }
+
+// Un recurrente esta pagado si YA existe un gasto de este mes que lo
+// referencia. El parametro se llama gastosDelMes y no gastos porque el
+// filtrado al mes en curso es responsabilidad de quien llama: la pagina
+// ya lo hace con filtrarPorRangoFecha antes de pintar la lista.
+export function estaPagadoEsteMes(gastosDelMes: Gasto[], recurrenteId: string): boolean {
+  if (!Array.isArray(gastosDelMes) || !recurrenteId) {
+    return false;
+  }
+  return gastosDelMes.some((g) => g.recurrente_id === recurrenteId);
+}

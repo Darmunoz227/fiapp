@@ -6,7 +6,7 @@ import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Gasto, TipoGasto } from '../../core/models/gasto.model';
 import { GastoRecurrente, FrecuenciaGasto } from '../../core/models/gasto-recurrente.model';
-import { calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, PuntoEquilibrio } from '../../core/gastos/gastos';
+import { calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, PuntoEquilibrio, estaPagadoEsteMes } from '../../core/gastos/gastos';
 import { calcularResumenVentas, filtrarPorRangoFecha } from '../reportes/reportes-calculations';
 
 const ETIQUETA_FRECUENCIA: Record<FrecuenciaGasto, string> = {
@@ -69,7 +69,7 @@ export class GastosPage {
   }
 
   yaPagadoEsteMes(r: GastoRecurrente): boolean {
-    return this.gastosMes.some((g) => g.recurrente_id === r.id);
+    return estaPagadoEsteMes(this.gastosMes, r.id);
   }
 
   async abrirNuevoGasto() {
