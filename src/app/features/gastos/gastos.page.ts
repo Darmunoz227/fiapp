@@ -1,7 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, AlertController, ToastController } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, AlertController, ToastController, ModalController } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
+import { RegistrarGastoComponent } from '../../shared/modals/registrar-gasto/registrar-gasto.component';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Gasto, TipoGasto } from '../../core/models/gasto.model';
@@ -37,6 +38,7 @@ export class GastosPage {
     private freemiumService: FreemiumService,
     private alertCtrl: AlertController,
     private toastCtrl: ToastController,
+    private modalCtrl: ModalController,
   ) {}
 
   async ionViewWillEnter() {
@@ -73,71 +75,24 @@ export class GastosPage {
   }
 
   async abrirNuevoGasto() {
-    await this.pedirGasto('Registrar gasto', '', 0, null);
+    await this.abrirModalGasto(null);
   }
 
   // Precarga los datos de la plantilla pero NO guarda nada solo: el
   // merchant confirma. La recurrencia facilita, nunca decide.
   async registrarPagoDe(r: GastoRecurrente) {
-    await this.pedirGasto('Pago de ' + r.categoria, r.categoria, r.valor_estimado, r);
+    await this.abrirModalGasto(r);
   }
 
-  private async pedirGasto(titulo: string, categoria: string, valor: number, origen: GastoRecurrente | null) {
-    const alert = await this.alertCtrl.create({
-      header: titulo,
-      message: origen ? 'Puedes cambiar el valor antes de guardar.' : 'Categorias: ' + CATEGORIAS_GASTO.join(', '),
-      inputs: [
-        { name: 'categoria', type: 'text', placeholder: 'Categoria', value: categoria },
-        { name: 'valor', type: 'number', placeholder: 'Cuanto pagaste', value: valor > 0 ? String(valor) : '' },
-        { name: 'observacion', type: 'text', placeholder: 'Nota (opcional)' },
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Guardar',
-          handler: (data) => {
-            void this.guardarGasto(data, origen);
-          },
-        },
-      ],
+  private async abrirModalGasto(origen: GastoRecurrente | null) {
+    const modal = await this.modalCtrl.create({
+      component: RegistrarGastoComponent,
+      componentProps: { origen },
     });
-    await alert.present();
-  }
-
-  private async guardarGasto(data: any, origen: GastoRecurrente | null) {
-    const categoria = String(data?.categoria ?? '').trim();
-    const valor = Number(data?.valor ?? 0);
-
-    if (categoria === '' || !Number.isFinite(valor) || valor <= 0) {
-      await this.avisar('Escribe una categoria y un valor mayor a cero.');
-      return;
-    }
-
-    const puedeEscribir = await this.freemiumService.puedeEscribir();
-    if (!puedeEscribir) {
-      return;
-    }
-
-    // El tipo se COPIA al registrar: si manana la plantilla cambia, los
-    // gastos ya registrados no deben cambiar (mismo criterio que
-    // Decision 038).
-    const tipo: TipoGasto = origen ? origen.tipo_gasto : sugerirTipoGasto(categoria);
-    const observacion = String(data?.observacion ?? '').trim();
-
-    try {
-      await this.dbService.crearGasto({
-        id: uuidv4(),
-        categoria,
-        valor,
-        fecha: Date.now(),
-        observacion: observacion === '' ? null : observacion,
-        tipo_gasto: tipo,
-        recurrente_id: origen ? origen.id : null,
-      });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    if (data?.guardado) {
       await this.cargar();
-    } catch (error) {
-      console.error('No se pudo guardar el gasto:', error);
-      await this.avisar('No se pudo guardar el gasto. Intenta de nuevo.');
     }
   }
 

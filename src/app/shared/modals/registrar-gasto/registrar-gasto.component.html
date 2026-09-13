@@ -1,0 +1,65 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>{{ titulo }}</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p class="ayuda">Toca una categoría. Puedes cambiar todo antes de guardar.</p>
+
+  <label class="etiqueta-campo">¿En qué gastaste?</label>
+  <div class="chips">
+    <button type="button" class="chip" *ngFor="let c of categorias"
+            [class.activo]="categoria === c" (click)="elegirCategoria(c)">
+      {{ c }}
+    </button>
+  </div>
+
+  <ion-item lines="none" class="campo">
+    <ion-label position="stacked">¿Cuánto pagaste?</ion-label>
+    <ion-input type="number" inputmode="numeric" placeholder="0"
+               [(ngModel)]="valor"></ion-input>
+  </ion-item>
+
+  <label class="etiqueta-campo">¿Cómo es este gasto?</label>
+  <div class="chips">
+    <button type="button" class="chip chip-tipo"
+            [class.activo]="tipo === 'FIJO'" (click)="elegirTipo('FIJO')">
+      Me toca sí o sí
+    </button>
+    <button type="button" class="chip chip-tipo"
+            [class.activo]="tipo === 'VARIABLE'" (click)="elegirTipo('VARIABLE')">
+      Solo a veces
+    </button>
+  </div>
+  <p class="explicacion" *ngIf="tipo === 'FIJO'">
+    <strong>Ese llega aunque no abras tu negocio.</strong>
+    El arriendo, la luz, el internet, la vigilancia.
+  </p>
+  <p class="explicacion" *ngIf="tipo === 'VARIABLE'">
+    <strong>Unos días sí, otros no.</strong>
+    El transporte, los domicilios, los almuerzos, los tintos.
+  </p>
+
+  <ion-item lines="none" class="campo">
+    <ion-label position="stacked">¿Cuándo lo pagaste?</ion-label>
+    <ion-input type="date" [(ngModel)]="fechaTexto"></ion-input>
+  </ion-item>
+
+  <ion-item lines="none" class="campo">
+    <ion-label position="stacked">Nota (opcional)</ion-label>
+    <ion-input type="text" placeholder="Ej. mes de septiembre"
+               [(ngModel)]="observacion"></ion-input>
+  </ion-item>
+
+  <p class="aviso-inventario">
+    ¿Compraste algo para vender? Eso no es un gasto: regístralo en Inventario.
+  </p>
+
+  <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
+
+  <div class="acciones">
+    <ion-button expand="block" fill="outline" (click)="cancelar()">Cancelar</ion-button>
+    <ion-button expand="block" (click)="guardar()">Guardar</ion-button>
+  </div>
+</ion-content>

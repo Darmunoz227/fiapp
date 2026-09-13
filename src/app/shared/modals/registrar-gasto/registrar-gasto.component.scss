@@ -1,0 +1,72 @@
+.ayuda {
+  color: var(--ion-color-medium);
+  font-size: 13px;
+  margin: 0 0 16px;
+}
+
+.etiqueta-campo {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  margin: 18px 0 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 46px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ion-color-step-200, #d5dde6);
+  background: transparent;
+  color: var(--ion-text-color, #1c2430);
+  font-size: 15px;
+  font-family: inherit;
+}
+
+.chip.activo {
+  background: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  color: var(--ion-color-primary-contrast);
+  font-weight: 600;
+}
+
+.chip-tipo {
+  flex: 1 1 46%;
+  min-height: 54px;
+}
+
+.explicacion {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.campo {
+  --padding-start: 0;
+  margin-top: 14px;
+}
+
+.aviso-inventario {
+  margin: 18px 0 0;
+  padding: 12px;
+  border: 1px dashed var(--ion-color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.acciones ion-button {
+  flex: 1;
+}
