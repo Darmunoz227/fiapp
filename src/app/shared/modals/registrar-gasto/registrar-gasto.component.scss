@@ -70,3 +70,11 @@
 .acciones ion-button {
   flex: 1;
 }
+
+.ayuda.origen {
+  color: var(--ion-text-color);
+  background: var(--ion-color-primary-tint, #e8f0fc);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}

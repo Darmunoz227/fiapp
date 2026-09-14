@@ -25,6 +25,7 @@ export class RegistrarGastoComponent implements OnInit {
 
   categorias = CATEGORIAS_GASTO;
   categoria = "";
+  nombreOtro = "";
   valor: number | null = null;
   tipo: TipoGasto = "VARIABLE";
   observacion = "";
@@ -33,7 +34,11 @@ export class RegistrarGastoComponent implements OnInit {
 
   ngOnInit() {
     if (this.origen) {
-      this.categoria = this.origen.categoria;
+      // Una plantilla creada con texto libre puede traer una categoria
+      // que no esta entre los chips (vigilancia, agua). En ese caso se
+      // preselecciona Otro y su nombre viaja en el campo, en vez de
+      // dejar los seis chips en blanco.
+      this.aplicarCategoriaInicial(this.origen.categoria);
       this.valor = this.origen.valor_estimado;
       this.tipo = this.origen.tipo_gasto;
     }
@@ -57,7 +62,32 @@ export class RegistrarGastoComponent implements OnInit {
   // el merchant decide en el momento de registrar.
   elegirCategoria(c: string) {
     this.categoria = c;
+    if (c !== "Otro") {
+      this.nombreOtro = "";
+    }
     this.tipo = sugerirTipoGasto(c);
+  }
+
+  private aplicarCategoriaInicial(c: string) {
+    if (CATEGORIAS_GASTO.indexOf(c) >= 0) {
+      this.categoria = c;
+      this.nombreOtro = "";
+      return;
+    }
+    this.categoria = "Otro";
+    this.nombreOtro = c;
+  }
+
+  // El chip Otro guarda el nombre que escribio el merchant, no la
+  // palabra "Otro": la columna categoria es texto libre y aplanar todo
+  // a "Otro" perderia el detalle (vigilancia, agua, almuerzos). Si lo
+  // deja vacio se guarda "Otro" y no se le exige nada.
+  get categoriaFinal(): string {
+    if (this.categoria !== "Otro") {
+      return this.categoria;
+    }
+    const nombre = this.nombreOtro.trim();
+    return nombre === "" ? "Otro" : nombre;
   }
 
   elegirTipo(t: TipoGasto) {
@@ -86,7 +116,7 @@ export class RegistrarGastoComponent implements OnInit {
   }
 
   async guardar() {
-    const categoria = this.categoria.trim();
+    const categoria = this.categoriaFinal.trim();
     const valor = Number(this.valor ?? 0);
     if (categoria === "" || !Number.isFinite(valor) || valor <= 0) {
       this.error = "Elige una categoría y escribe cuánto pagaste.";

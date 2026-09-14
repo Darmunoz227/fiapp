@@ -5,6 +5,9 @@
 </ion-header>
 
 <ion-content class="ion-padding">
+  <p class="ayuda origen" *ngIf="origen">
+    Estás registrando el pago de este mes de <strong>{{ origen.categoria }}</strong>.
+  </p>
   <p class="ayuda">Toca una categoría. Puedes cambiar todo antes de guardar.</p>
 
   <label class="etiqueta-campo">¿En qué gastaste?</label>
@@ -14,6 +17,12 @@
       {{ c }}
     </button>
   </div>
+
+  <ion-item lines="none" class="campo" *ngIf="categoria === 'Otro'">
+    <ion-label position="stacked">¿Cómo le dices a este gasto?</ion-label>
+    <ion-input type="text" placeholder="Ej. vigilancia, agua"
+               [(ngModel)]="nombreOtro"></ion-input>
+  </ion-item>
 
   <ion-item lines="none" class="campo">
     <ion-label position="stacked">¿Cuánto pagaste?</ion-label>
