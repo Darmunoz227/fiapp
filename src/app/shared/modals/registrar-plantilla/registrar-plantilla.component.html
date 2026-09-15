@@ -1,0 +1,67 @@
+<ion-header class="ion-no-border">
+  <ion-toolbar>
+    <ion-title>Un gasto que se repite</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <p class="ayuda">FiApp no lo registra solo: tú confirmas cada pago.</p>
+
+  <label class="etiqueta-campo">¿Qué pagas siempre?</label>
+  <div class="chips">
+    <button type="button" class="chip" *ngFor="let c of categorias"
+            [class.activo]="categoria === c" (click)="elegirCategoria(c)">
+      {{ c }}
+    </button>
+  </div>
+
+  <ion-item lines="none" class="campo" *ngIf="categoria === 'Otro'">
+    <ion-label position="stacked">¿Cómo le dices a este gasto?</ion-label>
+    <ion-input type="text" placeholder="Ej. vigilancia, agua"
+               [(ngModel)]="nombreOtro"></ion-input>
+  </ion-item>
+
+  <ion-item lines="none" class="campo">
+    <ion-label position="stacked">¿Cuánto pagas?</ion-label>
+    <ion-input type="number" inputmode="numeric" placeholder="0"
+               [(ngModel)]="valor"></ion-input>
+  </ion-item>
+
+  <label class="etiqueta-campo">¿Cada cuánto lo pagas?</label>
+  <div class="chips">
+    <button type="button" class="chip" *ngFor="let f of frecuencias"
+            [class.activo]="frecuencia === f.valor" (click)="elegirFrecuencia(f.valor)">
+      {{ f.texto }}
+    </button>
+  </div>
+
+  <label class="etiqueta-campo">¿Cómo es este gasto?</label>
+  <div class="chips">
+    <button type="button" class="chip chip-tipo"
+            [class.activo]="tipo === 'FIJO'" (click)="elegirTipo('FIJO')">
+      Me toca sí o sí
+    </button>
+    <button type="button" class="chip chip-tipo"
+            [class.activo]="tipo === 'VARIABLE'" (click)="elegirTipo('VARIABLE')">
+      Solo a veces
+    </button>
+  </div>
+  <p class="explicacion" *ngIf="tipo === 'FIJO'">
+    <strong>Ese llega aunque no abras tu negocio.</strong>
+    El arriendo, la luz, el internet, la vigilancia.
+  </p>
+  <p class="explicacion" *ngIf="tipo === 'VARIABLE'">
+    <strong>Unos días sí, otros no.</strong>
+    El transporte, los domicilios, los almuerzos, los tintos.
+  </p>
+  <p class="nota-calculo">
+    Solo los que te llegan aunque no abras dicen cuánto necesitas vender.
+  </p>
+
+  <ion-note color="danger" *ngIf="error">{{ error }}</ion-note>
+
+  <div class="acciones">
+    <ion-button expand="block" fill="outline" (click)="cancelar()">Cancelar</ion-button>
+    <ion-button expand="block" (click)="guardar()">Guardar</ion-button>
+  </div>
+</ion-content>

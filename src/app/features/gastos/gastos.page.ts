@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonButton, AlertController, ToastController, ModalController } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
 import { RegistrarGastoComponent } from '../../shared/modals/registrar-gasto/registrar-gasto.component';
+import { RegistrarPlantillaComponent } from '../../shared/modals/registrar-plantilla/registrar-plantilla.component';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Gasto, TipoGasto } from '../../core/models/gasto.model';
@@ -102,53 +103,13 @@ export class GastosPage {
   }
 
   async abrirNuevaPlantilla() {
-    const alert = await this.alertCtrl.create({
-      header: 'Gasto que se repite',
-      message: 'Lo que pagas siempre. FiApp no lo registra solo: tu confirmas cada pago.',
-      inputs: [
-        { name: 'categoria', type: 'text', placeholder: 'Ej. Arriendo' },
-        { name: 'valor', type: 'number', placeholder: 'Cuanto pagas' },
-      ],
-      buttons: [
-        { text: 'Cancelar', role: 'cancel' },
-        {
-          text: 'Guardar',
-          handler: (data) => {
-            void this.guardarPlantilla(data);
-          },
-        },
-      ],
+    const modal = await this.modalCtrl.create({
+      component: RegistrarPlantillaComponent,
     });
-    await alert.present();
-  }
-
-  private async guardarPlantilla(data: any) {
-    const categoria = String(data?.categoria ?? '').trim();
-    const valor = Number(data?.valor ?? 0);
-
-    if (categoria === '' || !Number.isFinite(valor) || valor <= 0) {
-      await this.avisar('Escribe una categoria y un valor mayor a cero.');
-      return;
-    }
-
-    const puedeEscribir = await this.freemiumService.puedeEscribir();
-    if (!puedeEscribir) {
-      return;
-    }
-
-    try {
-      await this.dbService.crearGastoRecurrente({
-        id: uuidv4(),
-        categoria,
-        valor_estimado: valor,
-        tipo_gasto: sugerirTipoGasto(categoria),
-        frecuencia: 'MENSUAL',
-        activo: true,
-      });
+    await modal.present();
+    const { data } = await modal.onWillDismiss();
+    if (data?.guardado) {
       await this.cargar();
-    } catch (error) {
-      console.error('No se pudo guardar la plantilla:', error);
-      await this.avisar('No se pudo guardar. Intenta de nuevo.');
     }
   }
 }
