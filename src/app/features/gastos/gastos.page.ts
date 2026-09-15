@@ -94,7 +94,29 @@ export class GastosPage {
     const { data } = await modal.onWillDismiss();
     if (data?.guardado) {
       await this.cargar();
+      await this.avisarCifra(data.tipo === 'FIJO');
     }
+  }
+
+  // Devuelve la cifra que el merchant vino a buscar, DESPUES de recargar
+  // para que refleje lo que acaba de registrar. Un gasto VARIABLE no mueve
+  // el punto de equilibrio, asi que repetirlo seria mentir: en ese caso se
+  // devuelve el total del mes, que si cambio. Sin ventas no hay margen y el
+  // punto no es calculable (AC-08): se cae al total, NUNCA a un numero
+  // inventado.
+  private async avisarCifra(esFijo: boolean) {
+    let mensaje: string;
+    if (esFijo && this.punto.calculable) {
+      mensaje = 'Listo. Con esto ya necesitas vender $' +
+        Math.round(this.punto.ventaNecesariaDiaria).toLocaleString('es-CO') + ' al dia.';
+    } else {
+      mensaje = 'Listo. Llevas $' + Math.round(this.totalMes).toLocaleString('es-CO') +
+        ' de gastos este mes.';
+    }
+    const toast = await this.toastCtrl.create({
+      message: mensaje, duration: 4000, position: 'bottom', color: 'success',
+    });
+    await toast.present();
   }
 
   // Borrar un gasto NO pide PIN: no es destructivo en el sentido de la
