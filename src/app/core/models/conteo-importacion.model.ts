@@ -7,4 +7,6 @@ export interface ConteoImportacion {
   venta_items: number;
   producciones: number;
   produccion_items: number;
+  gastos: number;
+  gastos_recurrentes: number;
 }

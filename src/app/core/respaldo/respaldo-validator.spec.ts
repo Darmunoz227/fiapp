@@ -2,7 +2,7 @@ import { validarRespaldo } from './respaldo-validator';
 import { SCHEMA_VERSION } from '../database/schema-version';
 
 describe('validarRespaldo', () => {
-  const tablas = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [] };
+  const tablas = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [], gastos: [], gastos_recurrentes: [] };
   const valido = { schema_version: SCHEMA_VERSION, exported_at: '2026-08-06T00:00:00.000Z', data: tablas };
 
   it('acepta un respaldo bien formado', () => {

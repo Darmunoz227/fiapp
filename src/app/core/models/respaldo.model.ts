@@ -7,6 +7,8 @@ import { VentaItem } from './venta-item.model';
 import { Produccion } from './produccion.model';
 import { ProduccionItem } from './produccion-item.model';
 import { CatalogoItem } from './catalogo-item.model';
+import { Gasto } from './gasto.model';
+import { GastoRecurrente } from './gasto-recurrente.model';
 
 export interface RespaldoData {
   clientes: Cliente[];
@@ -17,6 +19,8 @@ export interface RespaldoData {
   venta_items: VentaItem[];
   producciones: Produccion[];
   produccion_items: ProduccionItem[];
+  gastos: Gasto[];
+  gastos_recurrentes: GastoRecurrente[];
 }
 
 export interface RespaldoConfig {

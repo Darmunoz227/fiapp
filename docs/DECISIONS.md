@@ -1519,3 +1519,122 @@ tarjetas de cliente se ven blancas con sombra y el monto en rojo cuando
 hay deuda y verde cuando esta al dia; el FAB sigue funcionando; el swipe
 de Editar y Eliminar sigue operativo (AC-07); y el modo oscuro quedo
 legible (AC-09). 250 tests green, CERO tests modificados.
+
+
+## Decision 055 - Gastos y punto de equilibrio: la pregunta correcta vale mas que la funcion correcta
+
+**Contexto:** Los dos merchants de ropa coincidieron en campo (n=2) en que
+necesitan saber cuanto deben vender para cubrir el arriendo. Eso no es un
+cierre de caja: es un PUNTO DE EQUILIBRIO, y es lo que el merchant piensa
+al ABRIR. Schema v9 con dos tablas nuevas (gastos_recurrentes, gastos).
+
+**Decision - plantilla y hecho son dos conceptos, en dos tablas.** Un
+gasto recurrente es una INTENCION; un gasto registrado es un HECHO. Con
+una sola tabla no se puede distinguir "debo pagar" de "ya pague", y el
+punto de equilibrio daria cero a principio de mes, justo cuando el
+merchant mas lo necesita. La plantilla NUNCA genera movimientos solos:
+ofrece un boton, el merchant confirma.
+
+**Decision - el tipo se COPIA al registrar.** Si manana la plantilla
+cambia de FIJO a VARIABLE, los gastos ya registrados no cambian. Mismo
+criterio que Decision 038 (editar un precio no reescribe ventas) y que
+AC-07 de la Decision 052 (el costo se declara hacia adelante).
+
+**Dos bugs que la suite no podia ver, confirmando la Decision 052:**
+
+1. crearGasto y crearGastoRecurrente NO propagaban el contexto
+   transaccional. ejecutarRun tiene dentroDeTx=false por defecto, asi que
+   db.run abria su propia transaccion ANIDADA dentro de
+   ejecutarEnTransaccion: es el bug de la Decision 028 reintroducido en
+   dos funciones nuevas. Importar un respaldo CON gastos fallaba el 100%
+   de las veces; sin gastos pasaba, y por eso nadie lo vio. La rama web
+   usa arrays y no anida nada. Se corrigio propagando el flag, espejo de
+   crearTransaccion(t, true).
+
+2. El resumen tras importar enumeraba SEIS conteos cuando
+   ConteoImportacion ya traia DIEZ: producciones, produccion_items,
+   gastos y gastos_recurrentes se restauraban pero la app no los
+   mencionaba. Quinto punto del patron "operacion que enumera tablas a
+   mano" de la Decision 052, y el tasks.md solo auditaba cuatro.
+   reemplazarTodo es REINCIDENTE: ya habia fallado en la Feature 030.
+
+**Divergencia web/nativo, tercera vez.** El mock web guarda activo como
+boolean y SQLite como INTEGER 1/0. filtrarRecurrentesActivos usa
+truthiness (!!r.activo), nunca === true: un === true habria pasado la
+suite y dejado las plantillas desactivadas visibles en Android.
+
+**REGLA NUEVA - un warning NG8103 rompe la pantalla en silencio.** Un
+componente standalone sin CommonModule deja *ngIf y *ngFor sin efecto:
+no es error, el build pasa y el APK se despliega con la pantalla rota.
+Los tests tampoco lo ven porque ninguno renderiza el componente. Regla:
+tras crear un componente standalone, `npm run build | grep -c "NG8103"`
+debe dar 0 ANTES de ir a device. Costo real: un ciclo de emulador.
+
+**El prototipo HTML se actualizo TRES veces durante la feature** y cada
+vuelta nacio de uso real, no de revision de escritorio: el chip "Otro"
+que abre campo de nombre (D-11), el aviso de que el modal viene de una
+plantilla (D-12) y el borrado de gastos (D-13). Cuatro de cuatro
+categorias escritas en pruebas quedaron FUERA de la lista fija de seis,
+y las escribio el autor del spec: con chips solos el detalle se pierde.
+
+**Excepcion a la Decision 054:** el recorte por la barra de navegacion de
+Android NO se prototipa. env(safe-area-inset-bottom) vale 0 en
+navegador; el defecto solo existe en device y el arreglo solo se ve ahi.
+Es correccion fisica, sin decision de producto adentro.
+
+**Borrado y desactivacion son logicos, nunca fisicos.** Un gasto se borra
+marcando deleted_at (columna que existia sin usar); una plantilla se
+desactiva con activo=0 y sus pagos quedan intactos, que es la razon por
+la que recurrente_id no lleva CASCADE. Ninguna de las dos pide PIN: son
+recuperables y no tocan datos de terceros (criterio de Decision 047 con
+duplicar producto). Las lapidas VIAJAN en el respaldo, verificado en
+device: los lectores crudos saltan el filtro (Decision 035).
+
+**Evidencia en Android, POR ARTEFACTO y no por captura:** el respaldo
+exportado en device probo que el reinicio de inventario deja gastos y
+plantillas intactos mientras las otras seis tablas quedan en 0 (AC-10);
+que los gastos nacidos de plantilla llevan recurrente_id y tipo copiado
+(AC-04); que un gasto registrado con fecha del 2 de septiembre el dia 13
+tiene fecha != created_at, y que toda fecha se ancla al MEDIODIA local
+para que ningun gasto se corra de mes por zona horaria; y que los gastos
+borrados siguen en el archivo con deleted_at lleno.
+
+El punto de equilibrio se verifico con los cuatro numeros PREDICHOS de
+antemano: 900.000 de fijos, 40% de margen (4.000/10.000), 2.250.000 al
+mes y 75.000 al dia. Sin ventas informa "aun no calculable" y nunca
+divide por cero (AC-08).
+
+**AC-09 se interpreta como "flujos EXISTENTES".** El acceso desde
+Reportes es la excepcion explicita: es la unica puerta de entrada a la
+feature y ocultarla la haria inalcanzable, a diferencia de la Feature
+030 donde modo_produccion se activaba desde otra pantalla. El bloque es
+estatico: ni un *ngIf ni una cifra de gastos.
+
+**HALLAZGOS ABIERTOS, ninguno resuelto aqui:**
+- "Pagado este mes" es optimista con frecuencias no mensuales: una
+  plantilla SEMANAL se marca pagada con un solo pago del mes. Nacio de
+  D-4; cuando todo era mensual la etiqueta era correcta.
+- No hay validacion de plantillas duplicadas: dos con la misma categoria
+  activas cuentan doble en los fijos.
+- La lista de gastos no agrupa ni virtualiza. Con registro diario serian
+  40-60 tarjetas (mismo riesgo que P7 en Reportes).
+- Un gasto suelto con el nombre de una plantilla NO enciende "Pagado
+  este mes" y la plantilla sigue invitando a pagar.
+- El texto libre de "Otro" permite escribir "pago proveedor", que NO es
+  un gasto: la proteccion actual se diseno contra un chip, no contra
+  texto libre. Y admite typos ("intermnet").
+- sugerirTipoGasto solo conoce Arriendo y Servicios: internet y
+  vigilancia, que el spec nombra como ejemplos de FIJO, caen a VARIABLE
+  y quedan fuera del punto de equilibrio.
+- Locale: el pipe currency sin locale imprime COP1,550,000 y el input
+  de fecha muestra 09/13/2026. La app YA tiene shared/utils/formatters
+  en es-CO y testeado; conviven dos convenciones. Backlog: toca todas
+  las pantallas.
+
+**PENDIENTE DE EVIDENCIA DE CAMPO (visita 2026-09-15):** el spec afirma
+que el gasto suelto "tendra poco uso". El 14 de septiembre los DOS
+merchants de ropa dijeron que si llevan los gastos hormiga, uno de ellos
+en un Excel propio. Si se confirma, esa afirmacion del spec queda
+invalidada y la lista necesita agrupacion. Tambien queda por confirmar
+si el merchant mete el pago a proveedor dentro de gastos: su modelo
+mental viene de un POS con un desplegable que lo incluia.

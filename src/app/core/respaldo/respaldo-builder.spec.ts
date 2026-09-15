@@ -6,7 +6,7 @@ import { Venta } from '../models/venta.model';
 import { VentaItem } from '../models/venta-item.model';
 
 describe('construirRespaldo', () => {
-  const vacio = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [] };
+  const vacio = { clientes: [], transacciones: [], productos: [], movim_inventario: [], ventas: [], venta_items: [], producciones: [], produccion_items: [], gastos: [], gastos_recurrentes: [] };
 
   it('incluye las seis tablas como arrays', () => {
     const r = construirRespaldo(vacio, '2026-08-05T00:00:00.000Z');

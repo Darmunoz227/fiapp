@@ -16,6 +16,7 @@ import {
   IonToolbar,
 } from '@ionic/angular/standalone';
 
+import { Router } from '@angular/router';
 import { DatabaseService } from '../../core/database/database.service';
 import { Share } from '@capacitor/share';
 import { Preferences } from '@capacitor/preferences';
@@ -79,8 +80,12 @@ export class ReportesPage {
   nombrePorProductoId = new Map<string, string>();
   nombrePorClienteId = new Map<string, string>();
 
-  constructor(private dbService: DatabaseService) {
+  constructor(private dbService: DatabaseService, private router: Router) {
     addIcons({ shareSocialOutline });
+  }
+
+  irAGastos() {
+    this.router.navigate(['/gastos']);
   }
 
   ionViewWillEnter() {

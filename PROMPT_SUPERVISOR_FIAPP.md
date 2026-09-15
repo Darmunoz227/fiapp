@@ -23,10 +23,10 @@ todo el código lo hago yo.
 ## Estado actual (verificar SIEMPRE con archivos, no asumir)
 
 - Rama principal: `main`, sincronizada con `origin-privado/main`.
-- **Features #1 a #32 COMPLETAS y mergeadas.**
-- **Schema v8** (dos tablas nuevas de producción + `modo_produccion`, Feature #30).
-- **54 decisiones** documentadas en `docs/DECISIONS.md`.
-- **250 tests** pasando (Karma/ChromeHeadless).
+- **Features #1 a #33 COMPLETAS y mergeadas.**
+- **Schema v9** (dos tablas nuevas de gastos, Feature #32; v8 fue producción, Feature #30).
+- **55 decisiones** documentadas en `docs/DECISIONS.md`.
+- **280 tests** pasando (Karma/ChromeHeadless).
 - Documentación viva: `docs/PROJECT_CONTEXT.md` y `docs/DECISIONS.md`.
 
 ## Metodología OBLIGATORIA: SDD + TDD estricto
@@ -105,6 +105,16 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
+0. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
+   lista de gastos no agrupa ni virtualiza; no hay validacion de
+   plantillas duplicadas; "Pagado este mes" es optimista con
+   frecuencias no mensuales; el texto libre de "Otro" admite typos y
+   permite escribir "pago proveedor", que NO es un gasto;
+   `sugerirTipoGasto` solo conoce Arriendo y Servicios, asi que
+   internet y vigilancia caen a VARIABLE. PENDIENTE DE CAMPO: los DOS
+   merchants de ropa dijeron el 14-sep que SI llevan gastos hormiga
+   (uno en Excel propio), lo que contradice el spec de la #32.
+
 1. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
    merchants de ropa coincidieron: necesitan saber con qué base abren el
    día, cuánto entró por efectivo / billetera virtual (Nequi-Daviplata) /
@@ -113,7 +123,7 @@ Notas de producto:
    arriendo": eso NO es un cierre, es un PUNTO DE EQUILIBRIO, y es la
    parte más valiosa. Aritmética emparentada con la calculadora de
    overhead de la Feature #30. Ojo: toca la Decision 027 (los montos son
-   fuente de verdad, `tipo_pago` es proyección) → sería **schema v9**.
+   fuente de verdad, `tipo_pago` es proyección) → sería **schema v10** (la v9 la ocupo la Feature #32, gastos).
    NO fragmentar en features sueltas: forma de pago sin cierre es un dato
    que nadie usa.
 2. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
@@ -151,6 +161,12 @@ Feature #31, Decision 053).
 **REGLA NUEVA (Decision 054) - prototipar antes de codificar UI.** Todo
 cambio de interfaz se acuerda primero sobre un prototipo HTML. Ese metodo
 ya evito dos errores de producto que ningun test habria detectado.
+
+**REGLA NUEVA (Decision 055) - un warning NG8103 rompe la pantalla en
+silencio.** Un componente standalone sin `CommonModule` deja `*ngIf` y
+`*ngFor` sin efecto: no es error, el build pasa y el APK se despliega
+roto. Ningun test lo ve. Tras crear un componente standalone,
+`npm run build 2>&1 | grep -c "NG8103"` debe dar **0** antes de device.
 
 **REGLA NUEVA - ningun bloque `python3` avanza sin ver su `OK:`.** En una
 sola sesion cinco scripts se perdieron en silencio porque no se confirmo

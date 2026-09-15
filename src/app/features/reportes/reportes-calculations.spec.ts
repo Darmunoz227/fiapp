@@ -218,3 +218,26 @@ describe('reportes-calculations', () => {
     expect(resumen.contadoCount + resumen.fiadoCount + resumen.mixtoCount).toBe(resumen.numeroVentas);
   });
 });
+
+describe('filtrarPorRangoFecha MES', () => {
+  const ahora = new Date(2026, 8, 15, 10, 0, 0).getTime();
+  const registros = [
+    { fecha: new Date(2026, 8, 1, 0, 0, 0).getTime() },
+    { fecha: new Date(2026, 8, 15, 23, 0, 0).getTime() },
+    { fecha: new Date(2026, 8, 30, 23, 59, 0).getTime() },
+    { fecha: new Date(2026, 7, 31, 23, 59, 0).getTime() },
+    { fecha: new Date(2026, 9, 1, 0, 0, 0).getTime() },
+  ];
+
+  it('incluye solo los registros del mes en curso', () => {
+    const r = filtrarPorRangoFecha(registros, 'MES', ahora, (x) => x.fecha);
+    expect(r.length).toBe(3);
+  });
+
+  it('excluye el ultimo dia del mes anterior y el primero del siguiente', () => {
+    const r = filtrarPorRangoFecha(registros, 'MES', ahora, (x) => x.fecha);
+    const fechas = r.map((x) => x.fecha);
+    expect(fechas).not.toContain(new Date(2026, 7, 31, 23, 59, 0).getTime());
+    expect(fechas).not.toContain(new Date(2026, 9, 1, 0, 0, 0).getTime());
+  });
+});

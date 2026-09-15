@@ -28,6 +28,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/registrar-produccion/registrar-produccion.page').then(m => m.RegistrarProduccionPage)
   },
   {
+    path: 'gastos',
+    loadComponent: () => import('./features/gastos/gastos.page').then(m => m.GastosPage)
+  },
+  {
     path: 'inventario',
     loadComponent: () => import('./features/inventario/inventory-list.page').then(m => m.InventoryListPage)
   },

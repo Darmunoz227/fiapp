@@ -9,6 +9,8 @@ import { Transaccion } from '../models/transaccion.model';
 import { VentaConItems } from '../models/venta-con-items.model';
 import { VentaItem } from '../models/venta-item.model';
 import { Produccion } from '../models/produccion.model';
+import { Gasto } from '../models/gasto.model';
+import { GastoRecurrente } from '../models/gasto-recurrente.model';
 import { ProduccionItem } from '../models/produccion-item.model';
 import { ProduccionConItems } from '../models/produccion-con-items.model';
 import { Venta } from '../models/venta.model';
@@ -58,6 +60,8 @@ export class DatabaseService {
   private mockWebVentas: Venta[] = [];
   private mockWebVentaItems: VentaItem[] = [];
   private mockWebProducciones: Produccion[] = [];
+  private mockWebGastos: Gasto[] = [];
+  private mockWebGastosRecurrentes: GastoRecurrente[] = [];
   private mockWebProduccionItems: ProduccionItem[] = [];
 
   async initializePlugin(): Promise<boolean> {
@@ -218,6 +222,7 @@ export class DatabaseService {
     await this.crearIndiceVentasFechaSiFalta();
     await this.crearVentaItemsSiFaltan();
     await this.crearProduccionesSiFaltan();
+    await this.crearGastosSiFaltan();
   }
 
   private async migrarEsquemaSiNecesario(): Promise<void> {
@@ -241,6 +246,7 @@ export class DatabaseService {
     await this.reconstruirVentasParaMultiItem();
     await this.agregarColumnaSiFalta('productos', 'modo_produccion', 'INTEGER DEFAULT 0');
     await this.crearProduccionesSiFaltan();
+    await this.crearGastosSiFaltan();
   }
 
   private async agregarColumnaSiFalta(tabla: string, columna: string, definicion: string): Promise<void> {
@@ -296,6 +302,46 @@ export class DatabaseService {
     await this.db.execute(`
       CREATE INDEX IF NOT EXISTS produccion_items_producto_id_idx
       ON produccion_items(producto_id);
+    `);
+  }
+
+  private async crearGastosSiFaltan(): Promise<void> {
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS gastos_recurrentes (
+        id TEXT PRIMARY KEY NOT NULL,
+        categoria TEXT NOT NULL,
+        valor_estimado REAL NOT NULL,
+        tipo_gasto TEXT NOT NULL,
+        frecuencia TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS gastos (
+        id TEXT PRIMARY KEY NOT NULL,
+        categoria TEXT NOT NULL,
+        valor REAL NOT NULL,
+        fecha INTEGER NOT NULL,
+        observacion TEXT DEFAULT NULL,
+        tipo_gasto TEXT NOT NULL,
+        recurrente_id TEXT DEFAULT NULL,
+        created_at INTEGER DEFAULT NULL,
+        updated_at INTEGER DEFAULT NULL,
+        deleted_at INTEGER DEFAULT NULL,
+        store_id TEXT DEFAULT NULL,
+        created_by TEXT DEFAULT NULL
+      );
+    `);
+
+    await this.db.execute(`
+      CREATE INDEX IF NOT EXISTS gastos_fecha_idx
+      ON gastos(fecha);
     `);
   }
 
@@ -590,6 +636,20 @@ export class DatabaseService {
     return (res.values as Produccion[]) ?? [];
   }
 
+  async leerCrudoGastos(): Promise<Gasto[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebGastos;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM gastos");
+    return (res.values as Gasto[]) ?? [];
+  }
+
+  async leerCrudoGastosRecurrentes(): Promise<GastoRecurrente[]> {
+    if (Capacitor.getPlatform() === "web") return this.mockWebGastosRecurrentes;
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query("SELECT * FROM gastos_recurrentes");
+    return (res.values as GastoRecurrente[]) ?? [];
+  }
+
   async leerCrudoProduccionItems(): Promise<ProduccionItem[]> {
     if (Capacitor.getPlatform() === "web") return this.mockWebProduccionItems;
     if (!this.isInitialized) await this.initializePlugin();
@@ -807,6 +867,8 @@ export class DatabaseService {
       venta_items: data.venta_items.length,
       producciones: data.producciones.length,
       produccion_items: data.produccion_items.length,
+      gastos: data.gastos.length,
+      gastos_recurrentes: data.gastos_recurrentes.length,
     };
 
     return this.ejecutarEnTransaccion(async () => {
@@ -819,6 +881,8 @@ export class DatabaseService {
         this.mockWebClientes = [...data.clientes];
         this.mockWebProducciones = [...data.producciones];
         this.mockWebProduccionItems = [...data.produccion_items];
+        this.mockWebGastos = [...data.gastos];
+        this.mockWebGastosRecurrentes = [...data.gastos_recurrentes];
         return conteo;
       }
 
@@ -875,6 +939,17 @@ export class DatabaseService {
         await this.insertProduccionItem(pi);
       }
 
+      await this.ejecutarRun("DELETE FROM gastos", [], true);
+      await this.ejecutarRun("DELETE FROM gastos_recurrentes", [], true);
+
+      for (const gr of data.gastos_recurrentes) {
+        await this.crearGastoRecurrente(gr, true);
+      }
+
+      for (const g of data.gastos) {
+        await this.crearGasto(g, true);
+      }
+
       return conteo;
     });
   }
@@ -888,6 +963,8 @@ export class DatabaseService {
       const snapTransacciones = [...this.mockWebTransacciones];
       const snapProductos = [...this.mockWebProductos];
       const snapProducciones = [...this.mockWebProducciones];
+      const snapGastos = [...this.mockWebGastos];
+      const snapGastosRec = [...this.mockWebGastosRecurrentes];
       const snapProduccionItems = [...this.mockWebProduccionItems];
 
       try {
@@ -900,6 +977,8 @@ export class DatabaseService {
         this.mockWebTransacciones = snapTransacciones;
         this.mockWebProductos = snapProductos;
         this.mockWebProducciones = snapProducciones;
+        this.mockWebGastos = snapGastos;
+        this.mockWebGastosRecurrentes = snapGastosRec;
         this.mockWebProduccionItems = snapProduccionItems;
         throw error;
       }
@@ -1080,6 +1159,113 @@ export class DatabaseService {
         await this.crearMovimientoInterno(movimiento);
       }
     });
+  }
+
+  async crearGasto(gasto: Gasto, dentroDeTx = false): Promise<void> {
+    const createdAt = gasto.created_at ?? Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastos.push({
+        ...gasto,
+        observacion: gasto.observacion ?? null,
+        recurrente_id: gasto.recurrente_id ?? null,
+        created_at: createdAt,
+        updated_at: gasto.updated_at ?? null,
+        deleted_at: gasto.deleted_at ?? null,
+        store_id: gasto.store_id ?? null,
+        created_by: gasto.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'INSERT INTO gastos (id, categoria, valor, fecha, observacion, tipo_gasto, recurrente_id, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    await this.ejecutarRun(sql, [
+      gasto.id, gasto.categoria, gasto.valor, gasto.fecha,
+      gasto.observacion ?? null, gasto.tipo_gasto, gasto.recurrente_id ?? null,
+      createdAt, gasto.updated_at ?? null, gasto.deleted_at ?? null,
+      gasto.store_id ?? null, gasto.created_by ?? null,
+    ], dentroDeTx);
+  }
+
+  async obtenerGastos(): Promise<Gasto[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebGastos) as Gasto[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query('SELECT * FROM gastos WHERE deleted_at IS NULL ORDER BY fecha DESC');
+    return (res.values as Gasto[]) ?? [];
+  }
+
+  async crearGastoRecurrente(recurrente: GastoRecurrente, dentroDeTx = false): Promise<void> {
+    const createdAt = recurrente.created_at ?? Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastosRecurrentes.push({
+        ...recurrente,
+        created_at: createdAt,
+        updated_at: recurrente.updated_at ?? null,
+        deleted_at: recurrente.deleted_at ?? null,
+        store_id: recurrente.store_id ?? null,
+        created_by: recurrente.created_by ?? null,
+      });
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'INSERT INTO gastos_recurrentes (id, categoria, valor_estimado, tipo_gasto, frecuencia, activo, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    await this.ejecutarRun(sql, [
+      recurrente.id, recurrente.categoria, recurrente.valor_estimado,
+      recurrente.tipo_gasto, recurrente.frecuencia, recurrente.activo ? 1 : 0,
+      createdAt, recurrente.updated_at ?? null, recurrente.deleted_at ?? null,
+      recurrente.store_id ?? null, recurrente.created_by ?? null,
+    ], dentroDeTx);
+  }
+
+  // Borrado LOGICO, nunca fisico: mismo patron que anularMovimiento y
+  // borrarCliente. La lapida deja el gasto fuera de obtenerGastos (que
+  // ya filtra deleted_at IS NULL) pero la fila sobrevive en el respaldo,
+  // porque los lectores crudos saltan el filtro (Decision 035).
+  async borrarGasto(id: string): Promise<void> {
+    const ahora = Date.now();
+    if (Capacitor.getPlatform() === 'web') {
+      const g = this.mockWebGastos.find((x) => x.id === id);
+      if (g) {
+        g.deleted_at = ahora;
+      }
+      return;
+    }
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE gastos SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.ejecutarRun(sql, [ahora, id]);
+  }
+
+  async obtenerGastosRecurrentes(): Promise<GastoRecurrente[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.filtrarActivos(this.mockWebGastosRecurrentes) as GastoRecurrente[];
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const res = await this.db.query('SELECT * FROM gastos_recurrentes WHERE deleted_at IS NULL ORDER BY categoria');
+    return (res.values as GastoRecurrente[]) ?? [];
+  }
+
+  // Desactivar, NUNCA borrar: el historial de gastos ya pagados es
+  // intocable (por eso recurrente_id no lleva FK con CASCADE).
+  async desactivarGastoRecurrente(id: string): Promise<void> {
+    const ahora = Date.now();
+
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebGastosRecurrentes = this.mockWebGastosRecurrentes.map((r) =>
+        r.id === id ? { ...r, activo: false, updated_at: ahora } : r
+      );
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE gastos_recurrentes SET activo = 0, updated_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.ejecutarRun(sql, [ahora, id], false);
   }
 
   async obtenerProducciones(): Promise<ProduccionConItems[]> {

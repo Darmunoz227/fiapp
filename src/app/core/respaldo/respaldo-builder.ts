@@ -14,6 +14,8 @@ export function construirRespaldo(data: RespaldoData, exportadoEn: string, confi
       venta_items: data.venta_items,
       producciones: data.producciones,
       produccion_items: data.produccion_items,
+      gastos: data.gastos,
+      gastos_recurrentes: data.gastos_recurrentes,
     },
     ...(config ? { config } : {}),
   };
