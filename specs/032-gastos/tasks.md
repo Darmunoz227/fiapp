@@ -64,7 +64,7 @@ equilibrio, plantillas, gastos del mes) + captura via AlertController,
 en vez de las 4 pantallas del prototipo.
 
 ## Fase 5-bis: UI acordada sobre prototipo (Decision 055)
-Prototipo: output/prototipo-gastos-captura-fiapp.html, acordado
+Prototipo acordado en sesion de supervision (HTML fuera del repo),
 2026-09-11. Chips Opcion A, explicacion Pareja 1, mensajes T-1 y T-4.
 NOTA: el spec ya pedia "chip de categoria" y "el merchant puede
 cambiarlo"; T040 y T041 corrigen una DESVIACION, no son diseno nuevo.
