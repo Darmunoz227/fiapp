@@ -1223,6 +1223,24 @@ export class DatabaseService {
     ], dentroDeTx);
   }
 
+  // Borrado LOGICO, nunca fisico: mismo patron que anularMovimiento y
+  // borrarCliente. La lapida deja el gasto fuera de obtenerGastos (que
+  // ya filtra deleted_at IS NULL) pero la fila sobrevive en el respaldo,
+  // porque los lectores crudos saltan el filtro (Decision 035).
+  async borrarGasto(id: string): Promise<void> {
+    const ahora = Date.now();
+    if (Capacitor.getPlatform() === 'web') {
+      const g = this.mockWebGastos.find((x) => x.id === id);
+      if (g) {
+        g.deleted_at = ahora;
+      }
+      return;
+    }
+    if (!this.isInitialized) await this.initializePlugin();
+    const sql = 'UPDATE gastos SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL';
+    await this.ejecutarRun(sql, [ahora, id]);
+  }
+
   async obtenerGastosRecurrentes(): Promise<GastoRecurrente[]> {
     if (Capacitor.getPlatform() === 'web') {
       return this.filtrarActivos(this.mockWebGastosRecurrentes) as GastoRecurrente[];

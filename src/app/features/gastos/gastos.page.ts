@@ -97,6 +97,38 @@ export class GastosPage {
     }
   }
 
+  // Borrar un gasto NO pide PIN: no es destructivo en el sentido de la
+  // Decision 049 (no toca inventario ni datos de otros), es recuperable
+  // por ser borrado logico, y exigir PIN mataria la agilidad igual que
+  // habria pasado con duplicar producto (Decision 047).
+  async confirmarBorrado(g: Gasto) {
+    const alert = await this.alertCtrl.create({
+      header: 'Borrar este gasto?',
+      message: g.categoria + ' por ' + g.valor.toLocaleString('es-CO'),
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Borrarlo',
+          role: 'destructive',
+          handler: () => {
+            void this.borrar(g);
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async borrar(g: Gasto) {
+    try {
+      await this.dbService.borrarGasto(g.id);
+      await this.cargar();
+    } catch (error) {
+      console.error('No se pudo borrar el gasto:', error);
+      await this.avisar('No se pudo borrar. Intenta de nuevo.');
+    }
+  }
+
   private async avisar(mensaje: string) {
     const toast = await this.toastCtrl.create({ message: mensaje, duration: 3000, position: 'bottom', color: 'danger' });
     await toast.present();

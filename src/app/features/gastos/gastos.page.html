@@ -96,6 +96,8 @@
       <span class="gasto-detalle">{{ g.fecha | date:'d MMM' }} · {{ g.tipo_gasto === 'FIJO' ? 'Fijo' : 'Variable' }}</span>
     </div>
     <span class="gasto-valor">{{ g.valor | currency:'COP':'symbol':'1.0-0' }}</span>
+    <ion-button fill="clear" size="small" color="medium"
+                (click)="confirmarBorrado(g)">Borrar</ion-button>
   </div>
 
   <p class="aviso-gris" *ngIf="gastosMes.length === 0">
