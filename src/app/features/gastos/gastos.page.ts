@@ -101,6 +101,39 @@ export class GastosPage {
   // Decision 049 (no toca inventario ni datos de otros), es recuperable
   // por ser borrado logico, y exigir PIN mataria la agilidad igual que
   // habria pasado con duplicar producto (Decision 047).
+  // Desactivar NO borra: activo pasa a 0 y la plantilla deja de sumar a
+  // los fijos, pero los pagos ya registrados quedan intactos. Por eso
+  // recurrente_id no lleva CASCADE. El texto pregunta por la APP ("quitar
+  // de tus gastos fijos"), no por la vida del merchant ("ya no pagas?"),
+  // que confundio incluso al autor del spec.
+  async confirmarDesactivar(r: GastoRecurrente) {
+    const alert = await this.alertCtrl.create({
+      header: 'Quitar ' + r.categoria + ' de tus gastos fijos?',
+      message: 'Los pagos que ya registraste se quedan en tu historial.',
+      buttons: [
+        { text: 'Cancelar', role: 'cancel' },
+        {
+          text: 'Quitarlo',
+          role: 'destructive',
+          handler: () => {
+            void this.desactivar(r);
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async desactivar(r: GastoRecurrente) {
+    try {
+      await this.dbService.desactivarGastoRecurrente(r.id);
+      await this.cargar();
+    } catch (error) {
+      console.error('No se pudo quitar la plantilla:', error);
+      await this.avisar('No se pudo quitar. Intenta de nuevo.');
+    }
+  }
+
   async confirmarBorrado(g: Gasto) {
     const alert = await this.alertCtrl.create({
       header: 'Borrar este gasto?',
