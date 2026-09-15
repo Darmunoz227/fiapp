@@ -110,6 +110,12 @@ Notas de producto:
    plantillas duplicadas; "Pagado este mes" es optimista con
    frecuencias no mensuales; el texto libre de "Otro" admite typos y
    permite escribir "pago proveedor", que NO es un gasto;
+   el punto de equilibrio muestra el margen REDONDEADO (78%) pero
+   calcula con el exacto (78,42%), asi que el merchant que rehaga la
+   division obtiene 769.231 en vez de 765.101: la tarjeta "de donde
+   sale este numero" existe justo para que pueda comprobarlo. ACORDADO
+   con Diego el 15-sep: cambiar la linea a "De cada $100 que vendes,
+   te quedan $78,42", con DOS decimales para que la cuenta cuadre;
    `sugerirTipoGasto` solo conoce Arriendo y Servicios, asi que
    internet y vigilancia caen a VARIABLE. PENDIENTE DE CAMPO: los DOS
    merchants de ropa dijeron el 14-sep que SI llevan gastos hormiga
