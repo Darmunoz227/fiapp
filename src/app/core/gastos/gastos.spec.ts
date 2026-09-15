@@ -1,4 +1,4 @@
-import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, estaPagadoEsteMes } from './gastos';
+import { normalizarAMensual, calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, estaPagadoEsteMes, filtrarRecurrentesActivos } from './gastos';
 import { Gasto } from '../models/gasto.model';
 import { GastoRecurrente } from '../models/gasto-recurrente.model';
 
@@ -146,5 +146,22 @@ describe('estaPagadoEsteMes', () => {
   it('un gasto suelto con recurrente_id null nunca marca pagada una plantilla', () => {
     const sueltos = [{ id: 'g3', valor: 5000, recurrente_id: null }] as Gasto[];
     expect(estaPagadoEsteMes(sueltos, 'r-arriendo')).toBe(false);
+  });
+});
+
+describe('filtrarRecurrentesActivos', () => {
+  it('deja fuera las desactivadas en AMBAS representaciones', () => {
+    const lista = [
+      { id: 'a', activo: true },
+      { id: 'b', activo: false },
+      { id: 'c', activo: 1 },
+      { id: 'd', activo: 0 },
+    ] as unknown as GastoRecurrente[];
+    const ids = filtrarRecurrentesActivos(lista).map((r) => r.id);
+    expect(ids).toEqual(['a', 'c']);
+  });
+
+  it('devuelve lista vacia sin reventar', () => {
+    expect(filtrarRecurrentesActivos([])).toEqual([]);
   });
 });

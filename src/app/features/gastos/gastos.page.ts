@@ -8,7 +8,7 @@ import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Gasto, TipoGasto } from '../../core/models/gasto.model';
 import { GastoRecurrente, FrecuenciaGasto } from '../../core/models/gasto-recurrente.model';
-import { calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, PuntoEquilibrio, estaPagadoEsteMes } from '../../core/gastos/gastos';
+import { calcularFijosMensuales, calcularMargenPromedio, calcularPuntoEquilibrio, calcularTotalGastos, sugerirTipoGasto, CATEGORIAS_GASTO, PuntoEquilibrio, estaPagadoEsteMes, filtrarRecurrentesActivos } from '../../core/gastos/gastos';
 import { calcularResumenVentas, filtrarPorRangoFecha } from '../reportes/reportes-calculations';
 
 const ETIQUETA_FRECUENCIA: Record<FrecuenciaGasto, string> = {
@@ -53,7 +53,7 @@ export class GastosPage {
       this.dbService.obtenerVentas(),
     ]);
 
-    this.recurrentes = recurrentes;
+    this.recurrentes = filtrarRecurrentesActivos(recurrentes);
 
     const ahora = Date.now();
     this.gastosMes = filtrarPorRangoFecha(gastos, 'MES', ahora, (g) => g.fecha);

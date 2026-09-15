@@ -119,3 +119,19 @@ ion-content.ion-padding,
 ion-content {
   --padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
+
+// El boton Quitar quedaba desalineado bajo el de pago y el nombre de la
+// plantilla se partia en dos renglones. Se le da ancho al nombre y se
+// alinean las dos acciones a la derecha.
+.plantilla-info {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.plantilla-accion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+}

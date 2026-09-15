@@ -111,3 +111,14 @@ export function estaPagadoEsteMes(gastosDelMes: Gasto[], recurrenteId: string): 
   }
   return gastosDelMes.some((g) => g.recurrente_id === recurrenteId);
 }
+
+// La consulta trae las plantillas desactivadas (solo filtra deleted_at),
+// asi que la pantalla debe filtrar por activo. Se usa TRUTHINESS y nunca
+// === true: el mock web guarda boolean y SQLite guarda INTEGER 1/0, la
+// misma divergencia que la Decision 052 documento para modo_produccion.
+export function filtrarRecurrentesActivos(recurrentes: GastoRecurrente[]): GastoRecurrente[] {
+  if (!Array.isArray(recurrentes)) {
+    return [];
+  }
+  return recurrentes.filter((r) => !!r.activo);
+}
