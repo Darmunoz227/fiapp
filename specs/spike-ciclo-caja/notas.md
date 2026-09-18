@@ -42,3 +42,45 @@ cuadra. Causa mas probable de los descuadres reportados.
   cuanto: preguntar por la plata rompe la confianza antes de tenerla.
 - Cuando la caja no cuadra, que hace hoy? Lo anota, lo ignora, lo busca?
 - Cuenta el efectivo al cerrar, o solo mira cuanto quedo?
+
+## Evidencia de CAMPO (tienda de ropa, 2026-09-17)
+Hablando con la EMPLEADA que hace relevos con la duena. Fue mas
+explicita que la duena en varios puntos.
+
+**C4 - El local maneja DOS cajas.** Entre el 10% y el 20% del
+inventario es del esposo de la duena (socio que NUNCA atiende); el
+resto es de ella. El dinero para gastos se retira de una u otra caja
+SEGUN DE QUIEN ERA EL ARTICULO VENDIDO. El spike asumia UNA sola caja:
+aqui hay dos bolsas alimentadas por el mismo mostrador. DECISION
+PENDIENTE antes del spec: soportarlo o declararlo fuera de alcance.
+
+**C5 - La base: n=2 y DIVERGEN.** La duena SI deja base. Miguel retira
+todo pero RECUERDA con cuanto abrio y la repone al dia siguiente, y
+dice que "puede variar segun la persona". Ninguna practica es
+universal: confirma que la app SUGIERE y el usuario CONFIRMA, nunca
+arrastra automatico.
+
+**C6 - El descuadre SI se busca.** La duena: "se busca el faltante,
+quizas una venta por anotar o un gasto que no se anota". Y cuenta el
+efectivo al cerrar "para hacer el cierre de venta y cuadrar el total de
+lo vendido". El arqueo le sirve porque YA hace ese trabajo a mano.
+
+**C7 - El cuaderno NO es una lista de gastos: es un libro contable.**
+En una misma hoja, sin formato fijo, anotan: cada venta con QUE
+articulo, QUIEN lo vendio (duena o empleada) y el precio; que entro por
+plataforma (Nequi / Daviplata / Bre-B) y que entro en efectivo (el
+datafono aparentemente ya no lo usan); los gastos (ej. cambiar un
+bombillo LED: saca de la caja, compra, anota); los pagos a proveedores;
+y el FONDO de ahorro. Ejemplo textual visto ese dia: "48 S" en una
+esquina = 48 mil pesos, la S es Sandra, la empleada.
+
+Consecuencias:
+- QUIEN VENDIO ya tiene columna: created_by existe desde la Feature 026
+  y sigue vacia. La fase 2 de roles deja de ser hipotesis: hay un caso
+  real de dos personas alternando en el mismo mostrador.
+- FORMA DE PAGO discriminada esta confirmada en campo, no solo en el
+  backlog.
+- El FONDO (meta de ahorro para imprevistos y para el sueldo de la
+  empleada) es un concepto NUEVO que no estaba en ningun backlog.
+- La duena maneja ADEMAS un segundo cuaderno de uso exclusivo con sus
+  compras, deudas y saldos a proveedores.

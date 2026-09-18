@@ -105,6 +105,20 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
+0. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
+   merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
+   producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
+   registraba la COMPRA, y por eso el stock derivado quedaba en 0 y la
+   alerta de stock bajo se quedaba encendida PARA SIEMPRE. Se confundio
+   y PARO de usar la app. No es bug de codigo (el stock derivado del log
+   es correcto, Decision 002): es un hueco de ONBOARDING. Un producto
+   recien creado sin ningun movimiento esta INCOMPLETO y la app no lo
+   dice, lo castiga con una alerta roja. Tampoco es claro que hay que
+   tocar la flecha para registrar la compra. Candidatos (a prototipar):
+   encadenar creacion -> compra, o que un producto sin movimientos diga
+   "Falta registrar cuanto compraste" en vez de la alerta. ES EL ITEM
+   MAS RENTABLE DEL BACKLOG: no es una feature, es retencion.
+
 0. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
    lista de gastos no agrupa ni virtualiza; no hay validacion de
    plantillas duplicadas; "Pagado este mes" es optimista con
@@ -144,6 +158,18 @@ Notas de producto:
    atributos, precio override por variante, schema nuevo). Condicionado:
    solo si tras usar Duplicar (Feature #25) las merchants de ropa siguen
    necesitándolo. Al 2026-09-06 ninguna lo tiene instalado todavía.
+4b. **UI del carrito de ventas (pedido en campo 2026-09-17):** con
+   nombres largos que solo se diferencian por la talla al FINAL, el
+   merchant no distingue cual es cual al armar el carrito. Inventar
+   codigos de referencia se DESCARTA: seria mas friccion. Ademas la
+   duena pidio un BUSCADOR dentro de ese modal, como el que ya existe
+   en clientes.
+
+4c. **El FONDO (concepto nuevo, 2026-09-17):** las merchants apartan
+   un ahorro con meta, para imprevistos y para el sueldo de la
+   empleada, y lo anotan en el mismo cuaderno. No es gasto, no es
+   retiro personal, no es costo. Cuarto concepto. Sin spec ni decision.
+
 5. **Venta rápida sin producto.**
 6. **Reconciliación de fiados manuales que eran ventas.**
 7. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
