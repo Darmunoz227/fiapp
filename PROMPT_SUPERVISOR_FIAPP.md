@@ -108,7 +108,7 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
-0a. **BUG - un error de lectura se muestra como "no tienes nada"
+EN CURSO (Feature #34, rama 034-home-carga-segura). **BUG - un error de lectura se muestra como "no tienes nada"
    (diagnosticado 2026-09-15, PREEXISTENTE, no es de la #32).**
    home.page.ts `cargarClientesYDeudas` hace `this.clientesActivos = []`
    ANTES de leer: si la lectura falla, la pantalla queda vacia para
@@ -125,7 +125,7 @@ Notas de producto:
    boton de Reintentar OBLIGATORIO. La suite es ciega: los mocks web
    nunca fallan al leer.
 
-0. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
+1. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
    merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
    producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
    registraba la COMPRA, y por eso el stock derivado quedaba en 0 y la
@@ -138,8 +138,13 @@ Notas de producto:
    encadenar creacion -> compra, o que un producto sin movimientos diga
    "Falta registrar cuanto compraste" en vez de la alerta. ES EL ITEM
    MAS RENTABLE DEL BACKLOG: no es una feature, es retencion.
+   ACTUALIZACION 2026-09-18: la merchant se recupero con una
+   explicacion verbal y retoma hoy. El arreglo ya no la rescata a
+   ella: protege a los que vienen. Rentable por escala, no por
+   urgencia. Su uso desde hoy es la primera evidencia real del
+   ciclo crear -> comprar -> alerta: conviene esperarla.
 
-0. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
+2. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
    lista de gastos no agrupa ni virtualiza; no hay validacion de
    plantillas duplicadas; "Pagado este mes" es optimista con
    frecuencias no mensuales; el texto libre de "Otro" admite typos y
@@ -155,7 +160,7 @@ Notas de producto:
    merchants de ropa dijeron el 14-sep que SI llevan gastos hormiga
    (uno en Excel propio), lo que contradice el spec de la #32.
 
-1. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
+3. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
    merchants de ropa coincidieron: necesitan saber con qué base abren el
    día, cuánto entró por efectivo / billetera virtual (Nequi-Daviplata) /
    datáfono (Redeban-Credibanco), qué gastos hubo, y con qué cierran.
@@ -166,37 +171,37 @@ Notas de producto:
    fuente de verdad, `tipo_pago` es proyección) → sería **schema v10** (la v9 la ocupo la Feature #32, gastos).
    NO fragmentar en features sueltas: forma de pago sin cierre es un dato
    que nadie usa.
-2. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
+4. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
    compran mercancía a crédito). Simetría útil: ya existen los fiados de
    clientes; esto es el fiado del merchant HACIA el proveedor.
-3. **Fase 2 de roles**: ocultar ganancias/margen al empleado. Requiere un
+5. **Fase 2 de roles**: ocultar ganancias/margen al empleado. Requiere un
    "modo sesión", más complejo que el PIN puntual de Feature #27.
    `created_by` (Feature #26) ya está listo. Revisar de paso si el PIN al
    editar producto tiene sentido para el PRODUCTOR (hoy lo pide por caer
    dentro del alcance de la Decision 049; es efecto colateral, no decisión).
-4. **Fase 2 de variantes formales** (producto base + talla/color como
+6. **Fase 2 de variantes formales** (producto base + talla/color como
    atributos, precio override por variante, schema nuevo). Condicionado:
    solo si tras usar Duplicar (Feature #25) las merchants de ropa siguen
    necesitándolo. Al 2026-09-06 ninguna lo tiene instalado todavía.
-4b. **UI del carrito de ventas (pedido en campo 2026-09-17):** con
+7. **UI del carrito de ventas (pedido en campo 2026-09-17):** con
    nombres largos que solo se diferencian por la talla al FINAL, el
    merchant no distingue cual es cual al armar el carrito. Inventar
    codigos de referencia se DESCARTA: seria mas friccion. Ademas la
    duena pidio un BUSCADOR dentro de ese modal, como el que ya existe
    en clientes.
 
-4c. **El FONDO (concepto nuevo, 2026-09-17):** las merchants apartan
+8. **El FONDO (concepto nuevo, 2026-09-17):** las merchants apartan
    un ahorro con meta, para imprevistos y para el sueldo de la
    empleada, y lo anotan en el mismo cuaderno. No es gasto, no es
    retiro personal, no es costo. Cuarto concepto. Sin spec ni decision.
 
-5. **Venta rápida sin producto.**
-6. **Reconciliación de fiados manuales que eran ventas.**
-7. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
-8. **Sync entre turnos.** HIPÓTESIS sin validar. El respaldo actual es
+9. **Venta rápida sin producto.**
+10. **Reconciliación de fiados manuales que eran ventas.**
+11. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
+12. **Sync entre turnos.** HIPÓTESIS sin validar. El respaldo actual es
    OVERWRITE, no merge. No construir resolución de conflictos sin un caso
    real confirmado.
-9. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza
+13. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza
    el de `fiado-productos`); ícono `create` sin registrar en `addIcons`;
    4 `as any` preexistentes en `core/fiado/fiado-productos.ts`.
 
