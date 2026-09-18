@@ -105,6 +105,23 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
+0a. **BUG - un error de lectura se muestra como "no tienes nada"
+   (diagnosticado 2026-09-15, PREEXISTENTE, no es de la #32).**
+   home.page.ts `cargarClientesYDeudas` hace `this.clientesActivos = []`
+   ANTES de leer: si la lectura falla, la pantalla queda vacia para
+   siempre. `ionViewWillEnter` la llama SIN await y SIN catch, asi que
+   el error se pierde. Y peor: el catch por cliente (linea ~141) deja
+   `transacciones = []`, o sea un cliente que debe 150.000 aparece
+   "Al dia $0" - un dato financiero FALSO. Reproducido en iPhone: la
+   app volvio de segundo plano con el telefono bloqueado, iOS tenia los
+   archivos cifrados, y Diego creyo que habia perdido todo.
+   ACORDADO: opcion A, falla TODA la carga y se muestra
+   "Tus datos estan protegidos. Desbloquea el telefono y toca
+   Reintentar para verlos." Reglas: nunca decir "no tienes clientes",
+   nunca mostrar la lista a medias (el total de cartera mentiria), y
+   boton de Reintentar OBLIGATORIO. La suite es ciega: los mocks web
+   nunca fallan al leer.
+
 0. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
    merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
    producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
