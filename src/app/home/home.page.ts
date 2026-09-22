@@ -38,6 +38,8 @@ export class HomePage {
   
   totalCartera: number = 0;
   clientesActivos: any[] = [];
+  errorCarga: boolean = false;
+  cargando: boolean = false;
   clientesFiltrados: any[] = []; 
   businessName: string | null = null;
   private appStateListener: any = null;
@@ -160,6 +162,10 @@ export class HomePage {
     }
     this.clientesFiltrados = [...this.clientesActivos];
     this.cdr.detectChanges();
+  }
+
+  async reintentarCarga(): Promise<void> {
+    await this.cargarClientesYDeudas();
   }
 
   buscarCliente(event: any) {
