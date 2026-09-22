@@ -47,9 +47,21 @@ commit de código. Ningún bloque `python3` avanza sin ver su `OK:`.
   `errorCarga === false`. El vacío legítimo NO es un error.
 - **T014** — Test camino feliz: 2 clientes con transacciones →
   `errorCarga === false`, lista completa y `totalCartera` correcto.
-- **T015** — **RED verificado con salida real.** Los cinco tests deben fallar
-  por la ASERCIÓN, no por compilación ni por TestBed. Pegar la salida. Si
-  alguno falla por otra razón, NO es un RED válido: corregir el test.
+- **T015** — **RED verificado con salida real.** CORRECCION (2026-09-22): de
+  los cinco tests solo TRES son RED real. T010, T011 y T012 fallan porque el
+  codigo no tiene el comportamiento; T013 y T014 pasan en verde desde el
+  primer momento y son tests de CARACTERIZACION (blindan lo que no debe
+  romperse, mismo criterio que el test de modo_produccion de la Decision
+  052). Esperar 285 de 285 con 3 FAILED, y que los tres fallen por ASERCION,
+  no por compilacion ni por TestBed.
+  EVIDENCIA REAL obtenida: "Expected 150000 to be 0" (AC-07, el total
+  acumulaba la deuda del primer cliente y perdia la del que fallo) y
+  "Expected false to be true" x2 (AC-01 y AC-02, errorCarga nunca se
+  encendia). Cero errores de compilacion.
+  NOTA DE METODO: los tres REDs llaman al metodo con `.catch(() => undefined)`.
+  Sin eso el test fallaria por excepcion no atrapada en vez de por la
+  asercion, y no seria un RED valido. Tras el GREEN el metodo ya no lanza y
+  ese catch queda inerte.
 
 ## Fase 3 — GREEN de lógica
 
