@@ -270,5 +270,61 @@ describe('HomePage', () => {
       expect(component.clientesActivos.length).toBe(2);
       expect(component.totalCartera).toBe(100000);
     });
+
+    it('AC-03: en estado de error NO se renderizan cartera, buscador, lista, fiado ni FAB', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.tarjeta-total')).toBeNull();
+      expect(dom.querySelector('ion-searchbar')).toBeNull();
+      expect(dom.querySelector('.lista-clientes')).toBeNull();
+      expect(dom.querySelector('.boton-fiado-productos')).toBeNull();
+      expect(dom.querySelector('ion-fab')).toBeNull();
+    });
+
+    it('AC-01 template: muestra el texto acordado completo y el boton Reintentar', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      const bloque = dom.querySelector('.bloque-error-carga');
+      expect(bloque?.textContent).toContain('Tus datos están protegidos. Desbloquea el teléfono y toca Reintentar para verlos.');
+      expect(dom.querySelector('.boton-reintentar')).not.toBeNull();
+    });
+
+    it('AC-04: la barra superior y la marca se conservan durante el error', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.home-toolbar')).not.toBeNull();
+      expect(dom.querySelector('.app-title')).not.toBeNull();
+    });
+
+    it('AC-05: Reintentar reejecuta la carga y devuelve la pantalla normal', async () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+
+      const boton = fixture.nativeElement.querySelector('.boton-reintentar') as HTMLElement;
+      boton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.errorCarga).toBe(false);
+      expect(fixture.nativeElement.querySelector('.tarjeta-total')).not.toBeNull();
+    });
+
+    it('AC-06 template: cero clientes sin error NO muestra el bloque de error', () => {
+      component.errorCarga = false;
+      component.clientesActivos = [];
+      component.clientesFiltrados = [];
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.bloque-error-carga')).toBeNull();
+      expect(dom.querySelector('.tarjeta-total')).not.toBeNull();
+    });
   });
 });
