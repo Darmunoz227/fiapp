@@ -78,12 +78,15 @@ PROJECT_CONTEXT sync → 11. Merge con `--no-ff`.
 
 ## Contexto de negocio (pilotos reales)
 
-3 merchants Android en piloto (solo 1 con uso disciplinado; los otros 2 prueban
-cuando pueden):
+5 merchants documentados (roster con nombres en specs/spike-segmento/notas.md).
+Solo 1 con uso sostenido. Los demas estan bloqueados en la ENTRADA de
+inventario, no en el fiado:
 - **Ambulante de comidas** (pareja mayor, frente a un call center): >50% ventas
   fiadas. Trabaja con su esposa. Usa el módulo de fiado por productos (Feature #22).
 - **Tienda de ropa deportiva** (buzos): maneja variantes talla/color. Usa
-  duplicar producto (Feature #25). ES EL ÚNICO CON USO JUICIOSO.
+  duplicar producto (Feature #25). Usa el fiado y le gusta, pero
+  ABANDONO el inventario por Excel: con Duplicar ya entregado dijo que
+  "igual es muy manual" (2026-09-21). Ver spike-segmento.
 - **Tienda de ropa** (no deportiva): mismo dolor de variantes; aún no completó
   su inventario, espera recapacitación.
 
