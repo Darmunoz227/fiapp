@@ -108,7 +108,7 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
-EN CURSO (Feature #34, rama 034-home-carga-segura). **BUG - un error de lectura se muestra como "no tienes nada"
+HECHO (Feature #34, Decision 056, mergeado 2026-09-22). **BUG - un error de lectura se muestra como "no tienes nada"
    (diagnosticado 2026-09-15, PREEXISTENTE, no es de la #32).**
    home.page.ts `cargarClientesYDeudas` hace `this.clientesActivos = []`
    ANTES de leer: si la lectura falla, la pantalla queda vacia para
