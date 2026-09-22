@@ -221,6 +221,70 @@ roto. Ningun test lo ve. Tras crear un componente standalone,
 sola sesion cinco scripts se perdieron en silencio porque no se confirmo
 su salida; uno dejo un INSERT incompleto que solo aparecio en device.
 
+## Estado de iOS (2026-09-18) - BLOQUEADO, no por codigo propio
+
+Tres fricciones en un dia, ninguna del codigo de FiApp:
+
+1. **El certificado gratuito de Apple expira a los 7 dias.** La app deja
+   de abrir y hay que reinstalar, perdiendo los datos. NINGUN piloto de
+   iPhone es viable asi: la cuenta paga (99 USD/ano) dejo de ser
+   "pendiente de evaluar" y es requisito para iOS.
+2. **La verificacion de la app EXIGE internet** y falla con iCloud
+   Private Relay activo. Se resolvio apagando Private Relay y Limit IP
+   Address Tracking, y verificando en WiFi.
+3. **iPhone 17 con iOS 27 RECHAZA el arranque:** "UIScene life cycle is
+   required for apps built with this SDK". El AppDelegate usa el modelo
+   antiguo. No es crash: el sistema se niega a lanzar la app.
+
+ESTADO: rama `035-ios-uiscene` con Capacitor actualizado 8.4.0 -> 8.5.2
+(commit b7f2aea, Android verificado compilando). La migracion manual
+sigue PENDIENTE: SceneDelegate sin crear, Info.plist sin tocar,
+`var window` aun presente en AppDelegate. Probar PRIMERO si 8.5.2 ya
+resuelve el arranque antes de escribir Swift.
+
+**ANDROID NO ESTA AFECTADO** y sigue entregando valor. iOS consumio
+medio dia sin entregar nada. Decision pendiente: posponer iOS hasta
+tener la cuenta paga (y de paso TestFlight), o migrar ya.
+
+## Contexto de negocio actualizado (2026-09-22)
+
+**Lo academico TERMINO.** La materia cerro, la app fue destacada, y el
+objetivo ahora es que sea RENTABLE. Eso cambia el peso de varias cosas:
+
+- **Offline-first deja de ser requisito impuesto y pasa a ser VENTAJA
+  COMPETITIVA decidida.** Los merchants trabajan con senal
+  intermitente; los POS que compiten exigen conexion.
+- **El password del freemium es LEGIBLE en el bundle JS** (ya honesto
+  en Decisions 033/034 como excepcion temporal). Mientras era academico
+  daba igual; si se va a cobrar, el modelo de ingreso se salta copiando
+  un texto del APK descomprimido. Los codigos de activacion POR
+  DISPOSITIVO pasan de "future work" a requisito de negocio. Nota
+  tecnica: en una app offline no hay servidor donde esconderlo; la
+  salida es DERIVAR el codigo de algo del dispositivo, no una constante
+  igual para todos.
+- **Nimbolabs no quiere ser fabrica de software:** productos genericos
+  que resuelven problemas reales. Lo reutilizable NO es el POS, es el
+  MOTOR offline-first ya probado en device (base local, migraciones
+  versionadas, respaldo que sobrevive cambios de version, freemium).
+  Siguiente idea: app para veterinarios moviles o a domicilio, mismo
+  problema de trabajar sin senal.
+- **Version de computador/nube: DESCARTADA por ahora.** La pidio 1 de 4
+  merchants, justamente el unico que tiene PC. Hallazgo tecnico: la
+  rama web NO TIENE PERSISTENCIA (sin jeep-sqlite ni WASM): abrir la
+  app en un PC e importar el JSON lo mostraria y lo perderia al cerrar
+  la pestana, ni siquiera sirve como visor. Salida barata que cubre el
+  80% del deseo: el reporte legible compartible (P10), un HTML que se
+  abre grande en el PC.
+- **RETENCION es el problema mayor: 4 pilotos, 1 activo.** Ninguna
+  feature arregla eso. Plan: 2-3 pilotos nuevos CON seguimiento
+  semanal. Dato: el unico que la usa es el unico con seguimiento.
+- **Prospecto nuevo:** panaderia referida por Jhon Vega (gerente de
+  oficina de Bancamia). Es PRODUCTORA, o sea la Feature #30 le aplica
+  directo. El canal Bancamia puede referir mas si esta funciona.
+- **Deuda menor (2026-09-15):** el titulo de venta en Reportes muestra
+  el UUID crudo ("Venta b8694a86-fb77-..."). Preexistente, no de la
+  #32, pero es lo primero que nota un merchant.
+
 ## Cómo arrancamos esta sesión
 
 1. Primero verifica el estado real del repo: `git status`, `git branch --show-current`,
