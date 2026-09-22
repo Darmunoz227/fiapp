@@ -195,4 +195,136 @@ describe('HomePage', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  describe('carga segura (Feature #34)', () => {
+    beforeEach(() => {
+      (component.cargarClientesYDeudas as jasmine.Spy).and.callThrough();
+    });
+
+    afterEach(() => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.resolveTo([]);
+    });
+
+    function dosClientesElSegundoFalla() {
+      databaseServiceMock.obtenerClientes.and.resolveTo([
+        { id: 'c1', nombre: 'Ana', telefono: '300' },
+        { id: 'c2', nombre: 'Jorge', telefono: '301' },
+      ]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.callFake((id: string) => {
+        if (id === 'c2') {
+          return Promise.reject(new Error('lectura fallida'));
+        }
+        return Promise.resolve([{ tipo: 'fiado', monto: 150000 }]);
+      });
+    }
+
+    it('AC-01: si falla la lectura de clientes, marca errorCarga y no publica lista', async () => {
+      databaseServiceMock.obtenerClientes.and.rejectWith(new Error('lectura fallida'));
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.errorCarga).toBe(true);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('AC-02: si falla UN cliente, falla TODA la carga y nadie queda en deuda cero', async () => {
+      dosClientesElSegundoFalla();
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.errorCarga).toBe(true);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('AC-07: no publica un total parcial cuando la carga falla a mitad', async () => {
+      dosClientesElSegundoFalla();
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.totalCartera).toBe(0);
+      expect(component.clientesFiltrados.length).toBe(0);
+    });
+
+    it('AC-06: cero clientes con lectura exitosa NO es un error', async () => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+
+      await component.cargarClientesYDeudas();
+
+      expect(component.errorCarga).toBe(false);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('camino feliz: dos clientes con deuda cargan completos y sin error', async () => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([
+        { id: 'c1', nombre: 'Ana', telefono: '300' },
+        { id: 'c2', nombre: 'Jorge', telefono: '301' },
+      ]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.resolveTo([
+        { tipo: 'fiado', monto: 50000 },
+      ]);
+
+      await component.cargarClientesYDeudas();
+
+      expect(component.errorCarga).toBe(false);
+      expect(component.clientesActivos.length).toBe(2);
+      expect(component.totalCartera).toBe(100000);
+    });
+
+    it('AC-03: en estado de error NO se renderizan cartera, buscador, lista, fiado ni FAB', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.tarjeta-total')).toBeNull();
+      expect(dom.querySelector('ion-searchbar')).toBeNull();
+      expect(dom.querySelector('.lista-clientes')).toBeNull();
+      expect(dom.querySelector('.boton-fiado-productos')).toBeNull();
+      expect(dom.querySelector('ion-fab')).toBeNull();
+    });
+
+    it('AC-01 template: muestra el texto acordado completo y el boton Reintentar', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      const bloque = dom.querySelector('.bloque-error-carga');
+      expect(bloque?.textContent).toContain('Tus datos están protegidos. Desbloquea el teléfono y toca Reintentar para verlos.');
+      expect(dom.querySelector('.boton-reintentar')).not.toBeNull();
+    });
+
+    it('AC-04: la barra superior y la marca se conservan durante el error', () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.home-toolbar')).not.toBeNull();
+      expect(dom.querySelector('.app-title')).not.toBeNull();
+    });
+
+    it('AC-05: Reintentar reejecuta la carga y devuelve la pantalla normal', async () => {
+      component.errorCarga = true;
+      fixture.detectChanges();
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+
+      const boton = fixture.nativeElement.querySelector('.boton-reintentar') as HTMLElement;
+      boton?.click();
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(component.errorCarga).toBe(false);
+      expect(fixture.nativeElement.querySelector('.tarjeta-total')).not.toBeNull();
+    });
+
+    it('AC-06 template: cero clientes sin error NO muestra el bloque de error', () => {
+      component.errorCarga = false;
+      component.clientesActivos = [];
+      component.clientesFiltrados = [];
+      fixture.detectChanges();
+      const dom = fixture.nativeElement as HTMLElement;
+
+      expect(dom.querySelector('.bloque-error-carga')).toBeNull();
+      expect(dom.querySelector('.tarjeta-total')).not.toBeNull();
+    });
+  });
 });

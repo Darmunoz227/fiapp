@@ -43,6 +43,17 @@
 
 <ion-content [fullscreen]="true" color="light" class="ion-padding">
   
+  <div class="bloque-error-carga" *ngIf="errorCarga">
+    <div class="icono-error-carga">🔒</div>
+    <h2 class="titulo-error-carga">No se pudieron cargar tus datos</h2>
+    <p class="texto-error-carga">Tus datos están protegidos. Desbloquea el teléfono y toca Reintentar para verlos.</p>
+    <ion-button expand="block" color="primary" class="boton-reintentar" [disabled]="cargando" (click)="reintentarCarga()">
+      {{ cargando ? 'Cargando…' : 'Reintentar' }}
+    </ion-button>
+  </div>
+
+  <ng-container *ngIf="!errorCarga">
+
   <ion-card class="tarjeta-total">
     <ion-card-content>
       <ion-text color="medium">
@@ -102,5 +113,7 @@
       <ion-icon name="add"></ion-icon>
     </ion-fab-button>
   </ion-fab>
+
+  </ng-container>
 
 </ion-content>
