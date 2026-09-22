@@ -1638,3 +1638,150 @@ en un Excel propio. Si se confirma, esa afirmacion del spec queda
 invalidada y la lista necesita agrupacion. Tambien queda por confirmar
 si el merchant mete el pago a proveedor dentro de gastos: su modelo
 mental viene de un POS con un desplegable que lo incluia.
+
+---
+
+## Decision 056 - Un error de lectura NO es un hecho de negocio: la carga del Inicio falla completa o no falla
+
+**Contexto:** bug PREEXISTENTE, diagnosticado el 2026-09-15 y anotado en el
+commit 46d0677. No nace de la Feature 032. Reproducido en iPhone: la app
+volvio de segundo plano con el telefono bloqueado, iOS tenia los archivos
+cifrados, y Diego creyo que habia perdido todo. Con RETENCION como problema
+numero uno (contexto de negocio 2026-09-22), una pantalla que miente es una
+fuga directa.
+
+**Dos modos de fallo, no uno.**
+
+1. MODO A - `obtenerClientes()` en `:137` no tenia try/catch, y
+   `ionViewWillEnter` (`:61`) la llamaba sin `await` y sin `catch` (`:63`).
+   Las lineas `:135` y `:136` ya habian puesto `totalCartera = 0` y
+   `clientesActivos = []` ANTES de leer. Resultado: la excepcion se perdia y
+   la pantalla quedaba vacia con $ 0 PARA SIEMPRE, sin ninguna senal.
+2. MODO B - el `catch` por cliente de `:143` dejaba `transacciones = []`, o
+   sea `deudaTotal 0`. El cliente entraba a la lista con cero, el template
+   imprimia "Al dia" (`html:81`) y lo pintaba VERDE (`html:83`). Y `:159`
+   acumulaba ese cero en el total. Un cliente que debia 150.000 aparecia al
+   dia, en verde, y la cartera mostraba una cifra menor a la real.
+
+**Decision - opcion A: falla TODA la carga, nunca una carga parcial.** Tres
+reglas acordadas: nunca decir "no tienes clientes"; nunca mostrar la lista a
+medias (el total de cartera mentiria); boton Reintentar OBLIGATORIO. El
+`catch` por cliente se ELIMINA: convertir un error de lectura en un cero es
+justamente el defecto.
+
+**Decision - construccion en arreglo LOCAL, asignacion atomica al final.** El
+codigo viejo hacia `push` cliente por cliente sobre `this.clientesActivos`
+(`:153`) y publicaba con `[...this.clientesActivos]` (`:161`). Con esa forma
+es IMPOSIBLE cumplir "nunca a medias": una falla a mitad del recorrido ya
+dejo datos publicados. Ahora se construye en `clientesLocal`/`totalLocal` y
+se asigna a `this.*` solo si el recorrido completo tuvo exito.
+
+**Decision - el manejo vive DENTRO de `cargarClientesYDeudas`, no en el
+hook.** Cubre por construccion los CINCO puntos de llamada (`:63`, `:194`,
+`:208`, `:234`, `:259`: entrar, crear, borrar y deshacer) sin tocar ninguno.
+Volver `async` el `ionViewWillEnter` NO habria bastado: Ionic no espera el
+promise de un lifecycle hook, asi que sigue siendo fire-and-forget.
+
+**Decision - durante el error se oculta TODO lo que podria mentir.** Cartera,
+buscador, lista, boton de fiado y FAB. La cartera se oculta en vez de mostrar
+un guion: un guion se lee como cero de reojo, justo en el publico mayor del
+proyecto. El buscador se oculta porque buscar sobre una lista inexistente
+devuelve vacio y repite la mentira. El FAB y el fiado se ocultan porque
+ambos flujos terminan necesitando los clientes que no se pudieron leer.
+
+**Decision - la barra superior SE CONSERVA.** Es chrome de marca fijo
+(Decision 029) y las otras pantallas si pueden leer. Ver el hallazgo de
+campo mas abajo: esto tiene una consecuencia que conviene no olvidar.
+
+**Decision - sin componente standalone nuevo.** El bloque de error es markup
+dentro de `home.page.html` gobernado por un flag `errorCarga`, envuelto en un
+`ng-container` que no genera elemento en el DOM. Evita POR CONSTRUCCION la
+regla NG8103 de la Decision 055 y no puede romper el `slot="fixed"` del FAB.
+
+**Hallazgo de metodo - la cobertura del Home era CERO y nadie lo sabia.**
+`home.page.spec.ts:88` tenia `spyOn(component, 'cargarClientesYDeudas')` como
+ultima sentencia del `beforeEach` GLOBAL: el cuerpo del metodo nunca se
+ejecutaba en la suite. Mismo hallazgo que la Decision 052 documento para
+`editar-producto.component.spec.ts`. Se rodeo con un `describe` anidado cuyo
+`beforeEach` hace `.and.callThrough()`, logrando CERO tests existentes
+modificados (verificado con `git diff`: 132 inserciones, cero eliminaciones).
+
+**Hallazgo de metodo - de 5 tests nuevos solo 3 son RED.** T013 y T014 pasan
+en verde desde el primer momento: son tests de CARACTERIZACION, no REDs.
+Anunciar "los cinco deben fallar" fue un error del tasks.md, corregido en el
+commit b45e216. El RED real dio "Expected 150000 to be 0" (el total
+acumulaba la deuda del primer cliente y perdia la del que fallo) y "Expected
+false to be true" x2.
+
+**Hallazgo de metodo - los REDs necesitan `.catch(() => undefined)`.** Sin
+eso el test falla por excepcion no atrapada en vez de por la asercion, y no
+es un RED valido. Tras el GREEN el metodo ya no lanza y ese catch queda
+inerte.
+
+**Hallazgo NUEVO y caro - un presupuesto de CSS rompe el build y la suite NO
+lo ve.** Los 35 renglones de SCSS nuevos dejaron `home.page.scss` en 4.00 kB
+contra un tope de 4.00 kB: el build fallaba por CINCO BYTES con 290 tests en
+verde. Karma no evalua presupuestos. Peor: el gate escrito como
+`npm run build | grep -c "NG8103"` devolvio 0 y se leyo como "build limpio",
+cuando en realidad significaba "no encontre NG8103" sobre un build ROTO. La
+tuberia se traga el codigo de salida. REGLA NUEVA: todo gate de build debe
+verificar el EXIT CODE explicitamente
+(`npm run build > /tmp/build.log 2>&1; echo "EXIT: $?"`), nunca solo un grep.
+
+**Decision - se sube el presupuesto, no se recorta el CSS.** Se intento dos
+veces comprimir estilos para ganar bytes y el resultado fue codigo peor por
+5 bytes. `anyComponentStyle.maximumError` pasa de 4kb a 6kb; el
+`maximumWarning` se DEJA en 2kb a proposito, porque `home.page.scss` (4.00
+kB) y `fiado-productos.page.scss` (3.84 kB) ya lo exceden y esa senal de
+deuda debe seguir sonando sin bloquear el build.
+
+**HALLAZGO DE CAMPO en el device test - las pastillas navegan a pantallas con
+la MISMA deuda sin arreglar.** Con el error en pantalla, el merchant todavia
+puede entrar a Gastos y registrar. En la prueba artificial es correcto (solo
+`obtenerClientes` lanzaba, las demas pantallas leian bien), pero en el
+escenario REAL de iOS fallarian TODAS las lecturas, y Gastos no mostraria
+aviso: mostraria lista vacia y ceros, en silencio. Es el mismo bug del Home,
+sin arreglar, en nueve pantallas mas.
+
+**Riesgo ACEPTADO, no resuelto (D-4):** el texto acordado nombra una causa
+concreta ("Desbloquea el telefono"). Ante otro fallo (BD corrupta, migracion
+a medias) manda a desbloquear un telefono que ya esta desbloqueado.
+Clasificar la causa exige evidencia que hoy no existe.
+
+**Sin schema, sin migracion:** SCHEMA_VERSION sigue en 9. `git diff` sobre
+`database.service.ts` salio VACIO al cerrar (mismo criterio de la Feature
+023). Cero clases CSS renombradas; `.boton-registrar-produccion` intacta y su
+test de regresion (AC-06 de la Feature 030) verde.
+
+**Como se provoco el fallo en device, y por que asi.** El escenario real
+(archivos cifrados en iOS) no se reproduce a voluntad en el Pixel_8, y iOS
+esta BLOQUEADO por UIScene: el iPhone 17 con iOS 27 se niega a lanzar la app
+(rama 035-ios-uiscene, sin migrar). Se inyecto un `throw` TEMPORAL en
+`obtenerClientes`, revertido y verificado con `git diff` vacio antes de
+cerrar. Efecto colateral esperado mientras estuvo puesto: 2 tests de
+DatabaseService en rojo.
+
+**Evidencia, en Android emulator Pixel_8, BY HAND:** con el throw inyectado,
+el Inicio mostro el bloque de error con el texto acordado completo y el boton
+Reintentar, y desaparecieron los CINCO elementos (cartera, buscador, lista,
+boton de fiado y FAB) mientras la barra superior y el nombre del negocio se
+conservaron. Reintentar reejecuto la carga y volvio al mismo estado sin
+romperse ni quedar en blanco. El modo oscuro quedo legible en ambas
+apariencias (`adb cmd uimode night yes/no`, sin reiniciar la app). Revertido
+el throw, TODO reaparecio sin regresion. Bundle fresco verificado con
+`bloque-error-carga`, cadena que solo existe en el codigo nuevo, dentro de
+`chunk-V3NTD2UZ.js` (el chunk lazy del Home): buscar por "Desbloquea" habria
+dado falso positivo porque esa palabra ya existia en configuraciones-page.
+290 tests green (280 base + 10 nuevos), CERO tests modificados.
+
+**NO verificado:** pantalla angosta de 360px. Ningun test renderiza a esa
+anchura y el media query del Home tiene selectores parcialmente huerfanos
+(Decision 054). Queda anotado como no verificado, no como aprobado.
+
+**Deuda ABIERTA que esta feature NO arregla, con nombre y linea:** las nueve
+pantallas con `ionViewWillEnter` (`ventas:92`, `configuraciones:48`,
+`reportes:91`, `cliente-detalle:61`, `inventory-movement:77`,
+`inventory-list:49`, `fiado-productos:50`, `registrar-produccion:40`,
+`gastos:45`) y el `?? false` sobre `stock_bajo` en `inventory-list.page.ts:60`,
+que ante un resumen ausente responde "todo bien". Ser `async` no protege a
+ninguna: Ionic no espera el promise del hook.
