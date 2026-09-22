@@ -195,4 +195,80 @@ describe('HomePage', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  describe('carga segura (Feature #34)', () => {
+    beforeEach(() => {
+      (component.cargarClientesYDeudas as jasmine.Spy).and.callThrough();
+    });
+
+    afterEach(() => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.resolveTo([]);
+    });
+
+    function dosClientesElSegundoFalla() {
+      databaseServiceMock.obtenerClientes.and.resolveTo([
+        { id: 'c1', nombre: 'Ana', telefono: '300' },
+        { id: 'c2', nombre: 'Jorge', telefono: '301' },
+      ]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.callFake((id: string) => {
+        if (id === 'c2') {
+          return Promise.reject(new Error('lectura fallida'));
+        }
+        return Promise.resolve([{ tipo: 'fiado', monto: 150000 }]);
+      });
+    }
+
+    it('AC-01: si falla la lectura de clientes, marca errorCarga y no publica lista', async () => {
+      databaseServiceMock.obtenerClientes.and.rejectWith(new Error('lectura fallida'));
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.errorCarga).toBe(true);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('AC-02: si falla UN cliente, falla TODA la carga y nadie queda en deuda cero', async () => {
+      dosClientesElSegundoFalla();
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.errorCarga).toBe(true);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('AC-07: no publica un total parcial cuando la carga falla a mitad', async () => {
+      dosClientesElSegundoFalla();
+
+      await component.cargarClientesYDeudas().catch(() => undefined);
+
+      expect(component.totalCartera).toBe(0);
+      expect(component.clientesFiltrados.length).toBe(0);
+    });
+
+    it('AC-06: cero clientes con lectura exitosa NO es un error', async () => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([]);
+
+      await component.cargarClientesYDeudas();
+
+      expect(component.errorCarga).toBe(false);
+      expect(component.clientesActivos.length).toBe(0);
+    });
+
+    it('camino feliz: dos clientes con deuda cargan completos y sin error', async () => {
+      databaseServiceMock.obtenerClientes.and.resolveTo([
+        { id: 'c1', nombre: 'Ana', telefono: '300' },
+        { id: 'c2', nombre: 'Jorge', telefono: '301' },
+      ]);
+      databaseServiceMock.obtenerTransaccionesPorCliente.and.resolveTo([
+        { tipo: 'fiado', monto: 50000 },
+      ]);
+
+      await component.cargarClientesYDeudas();
+
+      expect(component.errorCarga).toBe(false);
+      expect(component.clientesActivos.length).toBe(2);
+      expect(component.totalCartera).toBe(100000);
+    });
+  });
 });

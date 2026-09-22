@@ -134,34 +134,43 @@ export class HomePage {
   }
 
   async cargarClientesYDeudas() {
-    this.totalCartera = 0;
-    this.clientesActivos = [];
-    const clientesDb = await this.dbService.obtenerClientes();
-    
-    for (const cliente of clientesDb) {
-      let transacciones: Transaccion[] = [];
-      try {
-        transacciones = await this.dbService.obtenerTransaccionesPorCliente(cliente.id);
-      } catch (error) {
-        console.error('Error cargando transacciones del cliente', cliente.id, error);
-        transacciones = [];
+    this.cargando = true;
+    try {
+      const clientesLocal: any[] = [];
+      let totalLocal = 0;
+      const clientesDb = await this.dbService.obtenerClientes();
+
+      for (const cliente of clientesDb) {
+        const transacciones: Transaccion[] = await this.dbService.obtenerTransaccionesPorCliente(cliente.id);
+
+        let deudaCliente = 0;
+        for (const t of transacciones) {
+          if (t.tipo === 'fiado') deudaCliente += t.monto;
+          else if (t.tipo === 'abono') deudaCliente -= t.monto;
+        }
+        clientesLocal.push({
+          id: cliente.id,
+          nombre: cliente.nombre,
+          telefono: cliente.telefono,
+          deudaTotal: deudaCliente
+        });
+        totalLocal += deudaCliente;
       }
 
-      let deudaCliente = 0;
-      for (const t of transacciones) {
-        if (t.tipo === 'fiado') deudaCliente += t.monto;
-        else if (t.tipo === 'abono') deudaCliente -= t.monto;
-      }
-      this.clientesActivos.push({
-        id: cliente.id,
-        nombre: cliente.nombre,
-        telefono: cliente.telefono,
-        deudaTotal: deudaCliente
-      });
-      this.totalCartera += deudaCliente;
+      this.clientesActivos = clientesLocal;
+      this.clientesFiltrados = [...clientesLocal];
+      this.totalCartera = totalLocal;
+      this.errorCarga = false;
+    } catch (error) {
+      console.error('Error cargando los datos del Inicio', error);
+      this.errorCarga = true;
+      this.clientesActivos = [];
+      this.clientesFiltrados = [];
+      this.totalCartera = 0;
+    } finally {
+      this.cargando = false;
+      this.cdr.detectChanges();
     }
-    this.clientesFiltrados = [...this.clientesActivos];
-    this.cdr.detectChanges();
   }
 
   async reintentarCarga(): Promise<void> {
