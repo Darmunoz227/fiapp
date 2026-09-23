@@ -6,8 +6,9 @@ import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
+import { esStockBajo } from './inventory-calculations';
 
-const databaseServiceMock = jasmine.createSpyObj('DatabaseService', ['crearProducto', 'obtenerProductos', 'obtenerResumenInventario']);
+const databaseServiceMock = jasmine.createSpyObj('DatabaseService', ['crearProducto', 'crearProductoConStockInicial', 'obtenerProductos', 'obtenerResumenInventario']);
 const freemiumServiceMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
 const toastControllerMock = jasmine.createSpyObj('ToastController', ['create']);
 const modalControllerMock = jasmine.createSpyObj('ModalController', ['create']);
@@ -18,10 +19,12 @@ describe('InventoryListPage', () => {
 
   beforeEach(waitForAsync(() => {
     databaseServiceMock.crearProducto.and.resolveTo(undefined);
+    databaseServiceMock.crearProductoConStockInicial.and.resolveTo(undefined);
     databaseServiceMock.obtenerProductos.and.resolveTo([]);
     databaseServiceMock.obtenerResumenInventario.and.resolveTo([]);
     freemiumServiceMock.puedeEscribir.and.resolveTo(true);
     databaseServiceMock.crearProducto.calls.reset();
+    databaseServiceMock.crearProductoConStockInicial.calls.reset();
     databaseServiceMock.obtenerProductos.calls.reset();
     databaseServiceMock.obtenerResumenInventario.calls.reset();
     freemiumServiceMock.puedeEscribir.calls.reset();
@@ -49,6 +52,7 @@ describe('InventoryListPage', () => {
   }));
 
   it('creates a valid product and sends the expected persisted fields', async () => {
+    component.cantidad_inicial = 10;
     component.nombre = 'Carne molida';
     component.precio_venta = '12.500';
     component.tipo_venta = 'UNIDAD';
@@ -56,13 +60,19 @@ describe('InventoryListPage', () => {
 
     await component.crearProducto();
 
-    expect(databaseServiceMock.crearProducto).toHaveBeenCalledTimes(1);
-    expect(databaseServiceMock.crearProducto).toHaveBeenCalledWith(jasmine.objectContaining({
+    expect(databaseServiceMock.crearProductoConStockInicial).toHaveBeenCalledTimes(1);
+    expect(databaseServiceMock.crearProductoConStockInicial).toHaveBeenCalledWith(jasmine.objectContaining({
       nombre: 'Carne molida',
       precio_venta: 12500,
       tipo_venta: 'UNIDAD',
       minimo_stock: 3,
       costo_promedio: 0,
+    }), jasmine.objectContaining({
+      tipo: 'AJUSTE',
+      cantidad_fisica: 10,
+      diferencia_calculada: 10,
+      stock_calculado_anterior: 0,
+      motivo: 'Inventario inicial',
     }));
   });
 
@@ -77,7 +87,7 @@ describe('InventoryListPage', () => {
     await component.crearProducto();
 
     expect(freemiumServiceMock.puedeEscribir).toHaveBeenCalledTimes(1);
-    expect(databaseServiceMock.crearProducto).not.toHaveBeenCalled();
+    expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
   });
 
   it('does not create a product when the name is empty', async () => {
@@ -88,7 +98,7 @@ describe('InventoryListPage', () => {
 
     await component.crearProducto();
 
-    expect(databaseServiceMock.crearProducto).not.toHaveBeenCalled();
+    expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
   });
 
   it('does not create a product when the sale price is invalid', async () => {
@@ -99,7 +109,7 @@ describe('InventoryListPage', () => {
 
     await component.crearProducto();
 
-    expect(databaseServiceMock.crearProducto).not.toHaveBeenCalled();
+    expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
   });
 
   it('does not create a product when the minimum stock is negative', async () => {
@@ -110,7 +120,7 @@ describe('InventoryListPage', () => {
 
     await component.crearProducto();
 
-    expect(databaseServiceMock.crearProducto).not.toHaveBeenCalled();
+    expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
   });
 
   it('loads products into the component list', async () => {
@@ -298,4 +308,83 @@ it('valorInventarioTexto returns zero when stock is zero', () => {
 
   expect(component.valorInventarioTexto(producto)).toContain('0');
 });
+
+  describe('stock inicial en el alta (Feature #36)', () => {
+    function llenarFormularioValido(): void {
+      component.nombre = 'Buzo Nike Azul M';
+      component.precio_venta = '85.000';
+      component.tipo_venta = 'UNIDAD';
+    }
+
+    it('AC-01: sin cantidad inicial NO crea el producto y avisa', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = null;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
+      expect(toastControllerMock.create).toHaveBeenCalled();
+    });
+
+    it('AC-01: cantidad inicial 0 SI crea el producto', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = 0;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      expect(databaseServiceMock.crearProductoConStockInicial).toHaveBeenCalledTimes(1);
+    });
+
+    it('AC-01: cantidad inicial negativa NO crea el producto', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = -5;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      expect(databaseServiceMock.crearProductoConStockInicial).not.toHaveBeenCalled();
+    });
+
+    it('AC-04: minimo_stock vacio guarda el producto con minimo 0', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = 20;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      const args = databaseServiceMock.crearProductoConStockInicial.calls.mostRecent()?.args ?? [{}, {}];
+      expect(args[0].minimo_stock).toBe(0);
+    });
+
+    it('AC-02 y AC-03: el movimiento es un AJUSTE con el conteo y el motivo correctos', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = 20;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      const args = databaseServiceMock.crearProductoConStockInicial.calls.mostRecent()?.args ?? [{}, {}];
+      expect(args[1].tipo).toBe('AJUSTE');
+      expect(args[1].stock_calculado_anterior).toBe(0);
+      expect(args[1].cantidad_fisica).toBe(20);
+      expect(args[1].diferencia_calculada).toBe(20);
+      expect(args[1].motivo).toBe('Inventario inicial');
+      expect(args[1].producto_id).toBe(args[0].id);
+    });
+
+    it('AC-05: el producto de Yudith (20 unidades, sin minimo) NO queda en stock bajo', async () => {
+      llenarFormularioValido();
+      component.cantidad_inicial = 20;
+      component.minimo_stock = null;
+
+      await component.crearProducto();
+
+      const args = databaseServiceMock.crearProductoConStockInicial.calls.mostRecent()?.args ?? [{}, {}];
+      expect(args[0].minimo_stock).toBe(0);
+      expect(args[1].cantidad_fisica).toBe(20);
+      expect(esStockBajo(args[1].cantidad_fisica, args[0].minimo_stock)).toBe(false);
+    });
+  });
 });

@@ -31,8 +31,12 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Stock mínimo</ion-label>
-        <ion-input type="number" inputmode="numeric" [(ngModel)]="minimo_stock"></ion-input>
+        <ion-label position="stacked">¿Cuántos tienes hoy?</ion-label>
+        <ion-input type="number" inputmode="numeric" placeholder="Cuenta lo que hay en el local ahora" [(ngModel)]="cantidad_inicial"></ion-input>
+      </ion-item>
+      <ion-item>
+        <ion-label position="stacked">Stock mínimo (opcional)</ion-label>
+        <ion-input type="number" inputmode="numeric" placeholder="Si lo dejas vacío, no te avisamos" [(ngModel)]="minimo_stock"></ion-input>
       </ion-item>
     </ion-list>
 
