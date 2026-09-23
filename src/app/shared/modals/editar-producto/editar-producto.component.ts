@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild, Input } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
@@ -18,6 +19,7 @@ import { v4 as uuidv4 } from "uuid";
   templateUrl: "./editar-producto.component.html",
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
     IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
