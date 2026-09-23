@@ -1532,6 +1532,72 @@ describe('DatabaseService', () => {
     expect(obtenerMockMovimientos().filter((movimiento) => movimiento.tipo === 'VENTA').length).toBe(0);
     expect(obtenerMockTransacciones().length).toBe(0);
   });
+
+  describe('crearProductoConStockInicial (Feature #36)', () => {
+    function ajusteInicial(productoId: string, cantidad: number): MovimInventario {
+      return {
+        id: 'mov-' + productoId,
+        producto_id: productoId,
+        tipo: 'AJUSTE',
+        cantidad: 0,
+        costo_unitario: 0,
+        motivo: 'Inventario inicial',
+        fecha: 1700000000000,
+        actor_id: null,
+        stock_calculado_anterior: 0,
+        cantidad_fisica: cantidad,
+        diferencia_calculada: cantidad,
+        created_at: null,
+        updated_at: null,
+        deleted_at: null,
+        store_id: null,
+        created_by: null,
+      } as MovimInventario;
+    }
+
+    it('AC-02: crea el producto y UN movimiento AJUSTE', async () => {
+      const producto = crearProductoParcial({ id: 'p-36', minimo_stock: 0 });
+
+      await service.crearProductoConStockInicial(producto, ajusteInicial('p-36', 20));
+
+      const productos = await service.obtenerProductos();
+      expect(productos.some((prod) => prod.id === 'p-36')).toBe(true);
+
+      const movimientos = await obtenerMovimientosPorProducto('p-36');
+      expect(movimientos.length).toBe(1);
+      expect(movimientos[0]?.tipo).toBe('AJUSTE');
+    });
+
+    it('AC-02: el movimiento lleva el conteo fisico y la diferencia correctos', async () => {
+      const producto = crearProductoParcial({ id: 'p-36b', minimo_stock: 0 });
+
+      await service.crearProductoConStockInicial(producto, ajusteInicial('p-36b', 20));
+
+      const movimientos = await obtenerMovimientosPorProducto('p-36b');
+      expect(movimientos[0]?.stock_calculado_anterior).toBe(0);
+      expect(movimientos[0]?.cantidad_fisica).toBe(20);
+      expect(movimientos[0]?.diferencia_calculada).toBe(20);
+    });
+
+    it('AC-03: el movimiento lleva motivo Inventario inicial', async () => {
+      const producto = crearProductoParcial({ id: 'p-36c', minimo_stock: 0 });
+
+      await service.crearProductoConStockInicial(producto, ajusteInicial('p-36c', 5));
+
+      const movimientos = await obtenerMovimientosPorProducto('p-36c');
+      expect(movimientos[0]?.motivo).toBe('Inventario inicial');
+    });
+
+    it('AC-02: el stock derivado del producto nuevo refleja la cantidad declarada', async () => {
+      const producto = crearProductoParcial({ id: 'p-36d', minimo_stock: 0 });
+
+      await service.crearProductoConStockInicial(producto, ajusteInicial('p-36d', 20));
+
+      const movimientos = await obtenerMovimientosPorProducto('p-36d');
+      expect(calcularStockDerivado(movimientos)).toBe(20);
+    });
+  });
+
 });
 
 type LegacyVentaRow = {

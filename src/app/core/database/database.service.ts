@@ -746,6 +746,7 @@ export class DatabaseService {
   async crearProductoConStockInicial(producto: Producto, movimiento: MovimInventario): Promise<void> {
     return this.ejecutarEnTransaccion(async () => {
       await this.crearProducto(producto, true);
+      await this.crearMovimientoInterno(movimiento);
     });
   }
 
