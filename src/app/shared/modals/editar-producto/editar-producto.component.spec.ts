@@ -27,9 +27,9 @@ describe('EditarProductoComponent', () => {
   };
 
   beforeEach(async () => {
-    dbMock = jasmine.createSpyObj('DatabaseService', ['actualizarProducto', 'crearProducto']);
+    dbMock = jasmine.createSpyObj('DatabaseService', ['actualizarProducto', 'crearProducto', 'crearProductoConStockInicial']);
     dbMock.actualizarProducto.and.resolveTo();
-    dbMock.crearProducto.and.resolveTo();
+    dbMock.crearProductoConStockInicial.and.resolveTo();
     freemiumMock = jasmine.createSpyObj('FreemiumService', ['puedeEscribir']);
     freemiumMock.puedeEscribir.and.resolveTo(true);
     modalMock = jasmine.createSpyObj('ModalController', ['dismiss']);
@@ -87,23 +87,25 @@ describe('EditarProductoComponent', () => {
     expect(dbMock.actualizarProducto).not.toHaveBeenCalled();
   });
 
-  it('modo duplicar: guarda con crearProducto, no actualizarProducto', async () => {
+  it('modo duplicar: guarda con crearProductoConStockInicial, no actualizarProducto', async () => {
     component.modo = 'duplicar';
+    component.cantidad_inicial = 10;
     component.nombre = 'Arroz Diana';
     component.precio_venta = '4.200';
     component.minimo_stock = 8;
     await component.guardar();
-    expect(dbMock.crearProducto).toHaveBeenCalled();
+    expect(dbMock.crearProductoConStockInicial).toHaveBeenCalled();
     expect(dbMock.actualizarProducto).not.toHaveBeenCalled();
   });
 
   it('modo duplicar: el producto creado tiene costo_promedio 0 e id distinto del original', async () => {
     component.modo = 'duplicar';
+    component.cantidad_inicial = 10;
     component.nombre = 'Arroz Diana';
     component.precio_venta = '4.200';
     component.minimo_stock = 8;
     await component.guardar();
-    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    const arg = dbMock.crearProductoConStockInicial.calls.mostRecent()?.args[0] ?? ({} as any);
     expect(arg.costo_promedio).toBe(0);
     expect(arg.id).not.toBe('p1');
     expect(arg.nombre).toBe('Arroz Diana');
@@ -113,9 +115,10 @@ describe('EditarProductoComponent', () => {
 
   it('modo duplicar: copia tipo_venta del original', async () => {
     component.modo = 'duplicar';
+    component.cantidad_inicial = 10;
     component.nombre = 'Arroz Diana';
     await component.guardar();
-    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    const arg = dbMock.crearProductoConStockInicial.calls.mostRecent()?.args[0] ?? ({} as any);
     expect(arg.tipo_venta).toBe('UNIDAD');
   });
 
@@ -129,9 +132,10 @@ describe('EditarProductoComponent', () => {
     component.producto = { ...producto, modo_produccion: true };
     component.ngOnInit();
     component.modo = 'duplicar';
+    component.cantidad_inicial = 10;
     component.nombre = 'Arroz Diana';
     await component.guardar();
-    const arg = dbMock.crearProducto.calls.mostRecent().args[0];
+    const arg = dbMock.crearProductoConStockInicial.calls.mostRecent()?.args[0] ?? ({} as any);
     expect(arg.modo_produccion).toBeUndefined();
   });
 
@@ -140,6 +144,6 @@ describe('EditarProductoComponent', () => {
     component.modo = 'duplicar';
     component.nombre = 'Arroz Diana';
     await component.guardar();
-    expect(dbMock.crearProducto).not.toHaveBeenCalled();
+    expect(dbMock.crearProductoConStockInicial).not.toHaveBeenCalled();
   });
 });
