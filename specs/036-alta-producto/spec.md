@@ -140,7 +140,20 @@ merchant no sabe apagar.
   El costo del duplicado sigue iniciando en 0 (Decision 047, intacta).
 - **AC-09** — Cero cambio de schema y cero migración. SCHEMA_VERSION sigue
   en 9.
-- **AC-10** — Suite completa verde con CERO tests existentes modificados.
+- **AC-10 (ENMENDADO 2026-09-23)** — Suite completa verde y **ningun test
+  existente se DEBILITA**. La version original decia "cero tests existentes
+  modificados" y es INALCANZABLE aqui: `inventory-list.page.spec.ts` tiene
+  SEIS tests que asertan sobre `crearProducto` (`:59`, `:60`, `:80`, `:91`,
+  `:102`, `:113`). Al pasar la pagina a `crearProductoConStockInicial`, los
+  cuatro de validacion (`not.toHaveBeenCalled()`) seguirian en VERDE pero
+  VACUOS: se cumplirian trivialmente porque ese metodo ya no se llama nunca.
+  Eso es exactamente el falso verde que la Decision 022 prohibe. Por eso los
+  seis se ACTUALIZAN para asertar sobre el metodo nuevo, cada uno listado en
+  el tasks.md con su linea y su razon. No se borra ni se relaja NINGUNA
+  asercion: el conteo de expects por test se mantiene o sube.
+  Diferencia con la Feature #34, donde "cero modificados" SI era realista:
+  alla solo se agrego comportamiento nuevo; aca cambia COMO se guarda un
+  producto, asi que los tests que describen ese guardado cambian con el.
 
 ## 6. Riesgos
 

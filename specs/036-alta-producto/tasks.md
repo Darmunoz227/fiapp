@@ -56,7 +56,29 @@ verifica el EXIT CODE, nunca solo un grep (Decision 056).
 
 ## Fase 4 — RED de UI
 
-- **T018** — `describe` anidado nuevo en `inventory-list.page.spec.ts`.
+- **T018a** — **Preparar el mock (obligatorio o el RED es invalido).** Agregar
+  `crearProductoConStockInicial` al `createSpyObj` de `:10`, y su
+  `.and.resolveTo(undefined)` + `.calls.reset()` en el `beforeEach` de `:19`.
+  Sin esto los tests nuevos fallarian con "is not a function", que NO es un
+  RED valido.
+- **T018b** — **Actualizar los SEIS tests existentes (AC-10 enmendado).** Cada
+  uno cambia `crearProducto` por `crearProductoConStockInicial`, conservando
+  su asercion:
+  - `:59` `toHaveBeenCalledTimes(1)` — sigue siendo 1 llamada
+  - `:60` `toHaveBeenCalledWith(jasmine.objectContaining({...}))` — el objeto
+    producto pasa a ser el PRIMER argumento del metodo nuevo
+  - `:80`, `:91`, `:102`, `:113` `not.toHaveBeenCalled()` — los cuatro casos
+    de validacion (nombre vacio, tipo invalido, precio <= 0, stock negativo)
+    deben seguir bloqueando el guardado
+  RAZON: sin este cambio los cuatro ultimos quedarian VACUOS (pasarian por no
+  llamarse nunca el metodo viejo). Verificar que tras T018b la suite sigue
+  VERDE antes de escribir un solo test nuevo: si alguno se pone rojo aqui, la
+  actualizacion esta mal hecha y no es culpa del codigo nuevo.
+- **T018c** — `describe` anidado nuevo al final del PRIMER describe de
+  `inventory-list.page.spec.ts`. **Verificar primero cuantos `describe` de
+  nivel superior tiene el archivo** (`grep -n "^describe(" `): en
+  `database.service.spec.ts` habia DOS y el bloque cayo en el equivocado,
+  provocando un RED invalido por compilacion.
 - **T019** — Test AC-01: sin cantidad (campo vacío) NO se crea el producto y
   se muestra el toast de validación. Con `0` SÍ se crea (D-3).
 - **T020** — Test AC-04: `minimo_stock` vacío guarda el producto con
