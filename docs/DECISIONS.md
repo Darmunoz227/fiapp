@@ -1913,3 +1913,88 @@ iOS, sobre la rama equivocada. Un AppDelegate vacio deja la app iOS sin punto
 de entrada. Se revirtio con `git checkout`. **Regla:** los experimentos en
 Xcode escriben en el mismo repo; van en la rama de iOS, nunca sobre la rama
 de la feature en curso, y `git status` se lee antes de todo merge.
+
+---
+
+## Decision 058 - iOS adopta el ciclo de vida UIScene: la ventana ya no es del AppDelegate
+
+**El sintoma era pantalla negra; la causa era de plataforma.** El SDK actual
+rechaza arrancar apps que no adoptan escenas. Artefacto exacto en iPhone 17
+Pro Max: "Application failed to launch: UIScene life cycle is required for
+apps built with this SDK". La app compilaba, firmaba e instalaba bien. Fallaba
+en runtime, y por eso se leia como un bug de la app y no de configuracion.
+
+**Lo barato se probo primero y se descarto con evidencia.** La hipotesis era
+que el bump de Capacitor 8.4.0 a 8.5.2 (commit b7f2aea) bastara. NO basto, y
+se predijo por escrito antes de correrlo: `cap sync` copia `www/`, actualiza
+plugins y reescribe `Package.swift`, pero NO toca `AppDelegate.swift` ni
+`Info.plist`. Se confirmo con un grep de UIScene y SceneDelegate sobre ambos
+archivos: vacio. Diez minutos de prueba, respuesta binaria, cero codigo
+escrito de mas.
+
+**Decision: tres cambios, todos nativos, ninguno de negocio.**
+(1) Una clase `SceneDelegate: UIResponder, UIWindowSceneDelegate`.
+(2) La clave `UIApplicationSceneManifest` en `Info.plist`, con
+`UISceneStoryboardFile: Main`, porque el root de Capacitor sale del
+storyboard (`CAPBridgeViewController`) y asi UIKit construye la ventana solo,
+sin codigo de armado manual.
+(3) Retirar `var window: UIWindow?` del `AppDelegate`: con escenas la ventana
+PERTENECE a la escena. Dejarla en ambos lados es tener dos duenos.
+
+**El SceneDelegate vive DENTRO de AppDelegate.swift, y es deliberado.** Lo
+convencional es un archivo propio, pero un `.swift` nuevo no entra solo al
+target de Xcode: hay que agregarlo a mano, y si se olvida el sintoma es
+EXACTAMENTE la pantalla negra que este cambio arregla. Un paso administrativo
+invisible que se disfraza del bug original es una trampa de diagnostico.
+`AppDelegate.swift` ya esta en el target. Separarla despues es cosmetico.
+
+**Los metodos de URL y userActivity se reenvian, no se borran.** Con escenas,
+`application(_:open:options:)` y `continue userActivity` del AppDelegate dejan
+de llamarse; los equivalentes viven en el SceneDelegate. Ambos reenvian a
+`ApplicationDelegateProxy.shared`, que es lo que mantiene vivos los plugins
+que dependen de esa ruta (Share, deep links).
+
+**El `Info.plist` se edito con `plistlib`, no a mano.** Un plist es XML con
+estructura anidada y estricta; editarlo por reemplazo de texto es como parsear
+HTML con regex. La evidencia de que fue la decision correcta: el diff mostro
+19 inserciones, no una reescritura completa del archivo.
+
+## Verificacion
+
+**Los siete AC en device, porque la suite es CIEGA al Swift.** Ningun test de
+Karma toca codigo nativo; esta feature no tenia RED posible y se dijo antes de
+escribirla, no despues.
+
+AC-01/02/03 verificados a mano en el iPhone 17 Pro Max: arranca al Inicio, sin
+runtime issue en consola, y conserva estado al volver de segundo plano.
+
+**AC-04, el de mayor riesgo, verificado por artefacto:** se creo el cliente
+"Arnulfo Castro", se mato la app desde el multitarea, se reabrio y se exporto
+respaldo. El JSON trae `created_at` 2026-09-25T16:47:09Z contra un
+`exported_at` de 16:50:10Z: tres minutos y un cierre completo de por medio.
+SQLite escribio en DISCO en iOS y sobrevivio. **Es la primera verificacion
+real del camino nativo de iOS**, el mismo que estuvo roto de la Feature #4 a
+la #8 en Android (Decision 028) y que en iOS nunca se habia podido probar con
+la app arrancando.
+
+El mismo respaldo valida AC-05 y de paso el estado del esquema: schema_version
+9, las DIEZ tablas presentes (el hueco de la Decision 052 sigue cerrado por la
+053), y la clave `config` con catalogo_fiado y nombre_negocio SIN el PIN ni la
+licencia, que es la regla de la Decision 053 cumpliendose en otra plataforma.
+
+AC-06 y AC-07: 300 tests green, build EXIT 0, NG8103 en 0, APK desplegado en
+Pixel_8, y `git diff main -- src/` VACIO. Cero riesgo para Android por
+construccion, no por confianza.
+
+**Lo que esto NO desbloquea, y hay que decirlo.** El certificado gratuito
+caduca a los 7 dias y solo corre en dispositivos registrados: sirve para que
+Diego muestre la app en SU telefono y haga el walkthrough, y no para que un
+interesado la instale en el suyo. La via de entrega a terceros sigue siendo el
+APK de Android. Pilotos reales en iOS exigen la cuenta paga (99 USD/ano) con
+TestFlight; es decision de negocio, no tecnica, y queda abierta.
+
+**Dos hallazgos menores del respaldo, al backlog, no tocados aqui:**
+`fecha_creacion` y `created_at` guardan el MISMO valor (columna duplicada, la
+vieja y la de auditoria de la Decision 048), y el nombre del cliente se guardo
+como "Arnulfo Castro " con espacio final: falta `trim()` al guardar, que
+ensucia busqueda y orden.
