@@ -5,7 +5,8 @@ import { RouterLink } from '@angular/router';
 import {
   IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
   IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption,
-  ToastController, ModalController, IonItemSliding, IonItemOptions, IonItemOption
+  ToastController, ModalController, IonItemSliding, IonItemOptions, IonItemOption,
+  IonNote
 } from '@ionic/angular/standalone';
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
@@ -25,6 +26,7 @@ import { calcularValorTotalInventario, LineaValorInventario } from './inventory-
   styleUrls: ['./inventory-list.page.scss'],
   standalone: true,
   imports: [
+    IonNote,
     CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
     IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink,
     IonItemSliding, IonItemOptions, IonItemOption
