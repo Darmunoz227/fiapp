@@ -1,4 +1,5 @@
 import { Component, OnInit, ViewChild, Input } from "@angular/core";
+import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
@@ -7,6 +8,7 @@ import {
 
 import { DatabaseService } from "../../../core/database/database.service";
 import { FreemiumService } from "../../../core/freemium/freemium.service";
+import { MovimInventario } from '../../../core/models/movim-inventario.model';
 import { Producto } from "../../../core/models/producto.model";
 import { formatCurrencyCOP, parseCurrencyInput } from "../../utils/formatters";
 import { calcularPosicionCursor } from "../../utils/caret-position";
@@ -17,6 +19,7 @@ import { v4 as uuidv4 } from "uuid";
   templateUrl: "./editar-producto.component.html",
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
     IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
@@ -29,6 +32,7 @@ export class EditarProductoComponent implements OnInit {
   nombre = "";
   precio_venta = "";
   minimo_stock: number | null = null;
+  cantidad_inicial: number | null = null;
   modoProduccion = false;
 
   @ViewChild("precioInput") precioInput?: IonInput;
@@ -89,10 +93,21 @@ export class EditarProductoComponent implements OnInit {
 
     const nombre = this.nombre.trim();
     const precioVenta = parseCurrencyInput(this.precio_venta);
-    const minimoStock = Number(this.minimo_stock);
+    const minimoStock = this.minimo_stock === null || String(this.minimo_stock).trim() === '' ? 0 : Number(this.minimo_stock);
 
     if (!nombre || precioVenta <= 0 || Number.isNaN(minimoStock) || minimoStock < 0) {
       return;
+    }
+
+    const cantidadInicial = Number(this.cantidad_inicial);
+
+    if (this.modo === 'duplicar') {
+      if (this.cantidad_inicial === null || String(this.cantidad_inicial).trim() === '') {
+        return;
+      }
+      if (Number.isNaN(cantidadInicial) || cantidadInicial < 0) {
+        return;
+      }
     }
 
     try {
@@ -105,7 +120,26 @@ export class EditarProductoComponent implements OnInit {
           minimo_stock: minimoStock,
           costo_promedio: 0,
         };
-        await this.dbService.crearProducto(nuevo);
+        const movimientoInicial: MovimInventario = {
+          id: uuidv4(),
+          producto_id: nuevo.id,
+          tipo: 'AJUSTE',
+          cantidad: 0,
+          costo_unitario: 0,
+          motivo: 'Inventario inicial',
+          fecha: Date.now(),
+          actor_id: null,
+          stock_calculado_anterior: 0,
+          cantidad_fisica: cantidadInicial,
+          diferencia_calculada: cantidadInicial,
+          created_at: null,
+          updated_at: null,
+          deleted_at: null,
+          store_id: null,
+          created_by: null,
+        };
+
+        await this.dbService.crearProductoConStockInicial(nuevo, movimientoInicial);
       } else {
         await this.dbService.actualizarProducto(this.producto.id, nombre, precioVenta, minimoStock, this.modoProduccion);
       }
