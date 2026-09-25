@@ -125,7 +125,7 @@ HECHO (Feature #34, Decision 056, mergeado 2026-09-22). **BUG - un error de lect
    boton de Reintentar OBLIGATORIO. La suite es ciega: los mocks web
    nunca fallan al leer.
 
-1. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
+HECHO (Feature #36, Decision 057, mergeado 2026-09-25). **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
    merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
    producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
    registraba la COMPRA, y por eso el stock derivado quedaba en 0 y la
@@ -143,6 +143,18 @@ HECHO (Feature #34, Decision 056, mergeado 2026-09-22). **BUG - un error de lect
    ella: protege a los que vienen. Rentable por escala, no por
    urgencia. Su uso desde hoy es la primera evidencia real del
    ciclo crear -> comprar -> alerta: conviene esperarla.
+   CERRADO POR LA FEATURE #36 (Decision 057): el alta ahora pregunta
+   "Cuantos tienes hoy?" y escribe el AJUSTE de Inventario inicial JUNTO
+   con el producto en una sola transaccion, asi que el stock derivado ya
+   no nace en 0; y el stock minimo paso a OPCIONAL (vacio = 0), que era
+   la otra mitad del defecto, porque obligarlo hacia que ella escribiera
+   ahi su existencia fisica y el producto naciera en alerta.
+   HALLAZGO ABIERTO, no cerrado: se reporto que un producto creado con
+   cantidad 0 NO enciende la alerta cuando `0 <= 0` deberia encenderla.
+   Puede ser la lista que no recarga el resumen, o el `?? false` sobre
+   `stock_bajo` en inventory-list. Ese hallazgo es la entrada real al
+   trabajo pendiente de la alerta de stock bajo, y hay que verificarlo
+   contra la merchant que retomo el uso.
 
 2. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
    lista de gastos no agrupa ni virtualiza; no hay validacion de

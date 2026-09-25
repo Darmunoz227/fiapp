@@ -1785,3 +1785,131 @@ pantallas con `ionViewWillEnter` (`ventas:92`, `configuraciones:48`,
 `gastos:45`) y el `?? false` sobre `stock_bajo` en `inventory-list.page.ts:60`,
 que ante un resumen ausente responde "todo bien". Ser `async` no protege a
 ninguna: Ionic no espera el promise del hook.
+
+---
+
+## Decision 057 - Dar de alta un producto no puede exigir un segundo viaje: la cantidad se pregunta donde ya esta el comerciante
+
+**El problema no era una funcion faltante, era un hueco de onboarding.** El
+formulario de alta preguntaba nombre, precio y stock minimo. Nunca pregunto
+lo unico que el comerciante si sabe de memoria: cuantas unidades tiene hoy.
+El producto nacia en cero y para cargarlo habia que salir a Movimientos y
+registrar un ajuste. Ese segundo viaje es el punto donde tres de los cinco
+pilotos se detuvieron. La app no fallaba: pedia un paso que nadie adivina.
+
+**Decision.** El campo "Cuantos tienes hoy?" entra al formulario de alta y al
+modal de duplicar. Acepta 0 explicito (hay productos que se dan de alta sin
+existencia), rechaza vacio y rechaza negativo. Al guardar, el producto y su
+movimiento de AJUSTE con motivo "Inventario inicial" se escriben juntos.
+
+**El stock minimo pasa a opcional, y eso NO fue cosmetica.** Era la mitad del
+arreglo. El campo era obligatorio, asi que el comerciante escribia el mismo
+numero que tenia en existencia. Con `stock_bajo` evaluado como
+`existencia <= minimo`, un producto recien creado con 20 y minimo 20 nacia
+en alerta. La alerta de stock bajo -es decir, el item 0 del backlog, el que
+existe por retencion- estaba siendo envenenada desde el alta. Vaciar el campo
+lo resuelve: vacio significa 0, y 0 no enciende nada hasta que la existencia
+llega a cero de verdad.
+
+**Tercera aparicion del patron de transaccion anidada.** `ejecutarRun` recibe
+`dentroDeTx = false` y con el default abre su propia transaccion. Ya se habia
+corregido en `crearTransaccion`, en `crearGasto` y en `crearGastoRecurrente`.
+`crearProducto` era el que faltaba: escribir producto y movimiento como dos
+llamadas independientes habria reintroducido por tercera vez el bug que la
+Decision 028 corrigio y que la Decision 055 volvio a documentar. Se resolvio
+con `crearProducto(producto, dentroDeTx = false)` propagando el flag, y un
+metodo nuevo `crearProductoConStockInicial` que envuelve ambas escrituras en
+UN solo `ejecutarEnTransaccion`. Si el movimiento falla, el producto no queda.
+
+**Regla que sale de aqui:** antes de componer dos escrituras existentes en una
+operacion nueva, revisar si AMBAS son conscientes de transaccion. El default
+de `ejecutarRun` es el que muerde, y muerde en silencio.
+
+## Lo que el metodo atrapo, y lo que casi se le escapa
+
+**Dos falsos verdes, ambos reales.**
+
+1. El AC-10 original afirmaba, con `not.toHaveBeenCalled()`, que ya no se
+   llamaba el metodo viejo. Esa asercion pasa vacua: un metodo que dejo de
+   existir en el flujo nunca se llama, haya o no feature. Se enmendo el AC
+   para anclar contra el metodo nuevo con sus argumentos reales.
+2. Un guard defensivo `?? [{}, {}]` sobre un spy hizo que la evaluacion
+   corriera con `undefined, undefined` y devolviera `false`, que era
+   exactamente lo esperado. Test verde sin probar nada.
+
+**Regla:** un RED que pasa a verde sin que nadie toque produccion no es un
+RED. Anclar primero contra valores reales; los guards defensivos van despues.
+
+**El RED se invalido tres veces antes de ser valido.** Por insertar el
+`describe` dentro del segundo `describe` de nivel superior (`Cannot find
+name`), por `calls.mostRecent()` sobre un spy no llamado (`TypeError`), y por
+invocar un metodo que lanza sin `.catch(() => undefined)`. Ninguno de los tres
+es un fallo por asercion. Verificar SIEMPRE con `grep -n "^describe("` antes
+de insertar, y exigir que el fallo diga "Expected X to be Y".
+
+**El bundle viejo invalido dos intentos del device test.** `npx cap run` copia
+`www/` pero NO lo regenera. Los dos primeros intentos del test de rollback
+corrieron contra codigo anterior y dieron un falso "paso". El orden correcto
+es `npm run build` -> `npx cap sync` -> `npx cap run`, y la verificacion no es
+la confianza sino el grep: buscar un string literal nuevo dentro de
+`android/app/src/main/assets/public/*.js` ANTES de tocar el emulador.
+
+**Inyectar un throw al inicio de un metodo rompe el narrowing de TypeScript.**
+El `throw` incondicional al principio de `crearMovimientoInterno` hizo que el
+compilador marcara el resto como inalcanzable y emitiera TS18047 sobre una
+variable que si estaba validada. La solucion fue un throw CONDICIONAL
+(`if (movimiento.motivo === 'Inventario inicial')`), que ademas es mas preciso:
+falla solo el caso bajo prueba, no todos los movimientos de la app.
+
+**NG8001 es error, NG8103 es warning, y el peligroso es el segundo.** Usar
+`ion-note` sin importarlo revienta el build (NG8001) y se nota. Usar `*ngIf`
+sin `CommonModule` solo emite NG8103, el build pasa, y el APK sale con la
+plantilla rota. La regla de la Decision 055 -`npm run build` y contar NG8103
+en 0 tras crear un componente standalone- fue la que lo atrapo.
+
+**Y el gate se verifica por codigo de salida, no por grep.** `npm run build |
+grep -c "NG8103"` devolvio 0 sobre un build ROTO: la tuberia se traga el exit
+code. La forma correcta, ya fijada en la Decision 056, es
+`npm run build > /tmp/build.log 2>&1; echo "EXIT: $?"` y despues contar.
+
+**`ion-note slot="helper"` no renderiza** sobre la sintaxis vieja de
+`ion-item` + `ion-label position="stacked"` que usa `inventory-list.page.html`.
+Se escribio, compilo limpio, y en device simplemente no aparecio. Se retiro.
+No se migro la pantalla entera a la sintaxis nueva dentro de esta feature.
+
+**Los placeholders largos se truncan en pantalla real.** El patron del
+proyecto es corto -"Ej. Carne molida", "Ej. 12.000"- y hay que respetarlo:
+un placeholder que se corta a la mitad comunica menos que ninguno.
+
+**El fallo al guardar era silencioso, igual que en la Decision 056.** Si la
+escritura fallaba, la pantalla no decia nada y el comerciante quedaba mirando
+un formulario que parecia haber funcionado. Se descubrio solo porque el test
+de rollback se hizo de verdad, forzando el fallo. Mismo patron que el Inicio:
+el error existia, el usuario no se enteraba.
+
+## Verificacion
+
+**Por artefacto, no por narrativa.** El device test se valido contra el JSON
+de respaldo exportado desde el telefono: ahi se leyo el producto creado, su
+movimiento de AJUSTE con motivo "Inventario inicial", la cantidad correcta y
+el minimo en 0. Eso cubre la creacion con cantidad, el 0 explicito, el minimo
+vacio y el duplicar. El rollback se verifico aparte, forzando el fallo con un
+throw condicional y confirmando que ni producto ni movimiento quedaron.
+
+300 tests green (290 base + 10 nuevos). Schema v9 sin tocar: esta feature no
+agrega tablas ni columnas, solo compone escrituras existentes.
+
+**NO verificado:** el comportamiento de la alerta de stock bajo en la lista
+inmediatamente despues de crear un producto en 0. Se reporto que no aparece
+la alerta cuando `0 <= 0` deberia encenderla. Puede ser la lista que no
+recarga el resumen, o el `?? false` sobre `stock_bajo` que ante un resumen
+ausente responde "todo bien". Queda como hallazgo abierto, no como aprobado,
+y es entrada directa al item 0 del backlog.
+
+**Higiene de rama: `git status` antes del merge atrapo un archivo destruido.**
+`ios/App/App/AppDelegate.swift` aparecia modificado con 49 lineas eliminadas:
+el archivo estaba vacio. Fue una edicion manual en Xcode intentando destrabar
+iOS, sobre la rama equivocada. Un AppDelegate vacio deja la app iOS sin punto
+de entrada. Se revirtio con `git checkout`. **Regla:** los experimentos en
+Xcode escriben en el mismo repo; van en la rama de iOS, nunca sobre la rama
+de la feature en curso, y `git status` se lee antes de todo merge.

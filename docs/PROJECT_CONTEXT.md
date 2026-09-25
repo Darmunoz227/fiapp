@@ -296,7 +296,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #34 are COMPLETE (290 tests passing, build green, working tree clean). Schema v9. 56 decisions. Feature #34 (carga segura del Inicio, Decision 056) is the latest merge: the Home no longer shows a read error as "you have nothing" - it fails WHOLE with a Reintentar button, never partially, and never prints a false "Al dia $0" on a client who owes. The SAME defect stays OPEN in nine other screens and in inventory-list.page.ts:60 (see Decision 056). SYNC WARNING: this file was stale from 2026-09-15; the field evidence of 2026-09-17 (two cash boxes, the notebook as a ledger, the FONDO, suppliers) lives in specs/spike-ciclo-caja/notas.md and specs/spike-proveedores/notas.md, and the real roster of the 5 pilots with names lives in specs/spike-segmento/notas.md. Feature #32 (gastos y punto de equilibrio, Decision 055) closes the set: two new tables (gastos_recurrentes as INTENTION, gastos as FACT), a break-even point that answers "cuanto necesito vender para cubrir mis gastos", recurring templates that never create movements on their own, logical delete for both gastos and templates, and an anti double-counting rule that keeps merchandise out of expenses. Verified on Android Pixel_8 by exported backup, with the four break-even figures PREDICTED before running. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
+Features #1 through #34 and #36 are COMPLETE (300 tests passing, build green, working tree clean). Feature #35 (iOS UIScene) is IN PROGRESS and BLOCKED on branch 035-ios-uiscene - do NOT assume iOS works. Schema v9. 57 decisions. Feature #36 (alta de producto sin bloquear, Decision 057) was the merge before it: creating a product now asks how many units you have TODAY in the same form and writes the product plus its Inventario inicial AJUSTE in ONE transaction, so nobody needs a second trip to Movimientos; stock minimo became OPTIONAL (empty means 0) because forcing it made a brand-new product be born inside a low-stock alert. Feature #34 (carga segura del Inicio, Decision 056) was the merge before it: the Home no longer shows a read error as "you have nothing" - it fails WHOLE with a Reintentar button, never partially, and never prints a false "Al dia $0" on a client who owes. The SAME defect stays OPEN in nine other screens and in inventory-list.page.ts:60 (see Decision 056). SYNC WARNING: this file was stale from 2026-09-15; the field evidence of 2026-09-17 (two cash boxes, the notebook as a ledger, the FONDO, suppliers) lives in specs/spike-ciclo-caja/notas.md and specs/spike-proveedores/notas.md, and the real roster of the 5 pilots with names lives in specs/spike-segmento/notas.md. Feature #32 (gastos y punto de equilibrio, Decision 055) closes the set: two new tables (gastos_recurrentes as INTENTION, gastos as FACT), a break-even point that answers "cuanto necesito vender para cubrir mis gastos", recurring templates that never create movements on their own, logical delete for both gastos and templates, and an anti double-counting rule that keeps merchandise out of expenses. Verified on Android Pixel_8 by exported backup, with the four break-even figures PREDICTED before running. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
 
 NEXT (Diego chooses):
 - DONE (Feature #9, Decision 029): UX pass. Colors now resolve through Ionic variables so dark mode is readable; the Home toolbar keeps a FIXED brand color and does not invert. mixtoCount is finally rendered and the summary separates counts from pesos. Business name has its own header row, header narrowed, subtitle is now Mi Negocio en el Bolsillo. Verified by hand on the iOS simulator in BOTH appearances.
@@ -368,3 +368,33 @@ The android platform exists, builds and runs. AVD used: Pixel_8.
   CODE explicitamente. Verificado en Pixel_8 inyectando un throw temporal
   (revertido con git diff vacio), porque iOS esta bloqueado por UIScene.
   290 tests green.
+- DONE (Feature #36, Decision 057): alta de producto sin bloquear. Tres de los
+  cinco pilotos se detuvieron en la misma pantalla: la entrada de inventario.
+  El formulario preguntaba nombre, precio y stock minimo, pero nunca cuantas
+  unidades hay HOY, asi que el producto nacia en 0 y cargarlo exigia un segundo
+  viaje a Movimientos que nadie adivina. Ahora el alta y el modal de duplicar
+  preguntan "Cuantos tienes hoy?" (acepta 0 explicito, rechaza vacio y negativo)
+  y escriben el producto junto con su movimiento de AJUSTE motivo "Inventario
+  inicial" en UNA sola transaccion, via el metodo nuevo
+  crearProductoConStockInicial; crearProducto gano el flag dentroDeTx, TERCERA
+  aparicion del patron de transaccion anidada tras crearTransaccion, crearGasto
+  y crearGastoRecurrente (Decisions 028 y 055). El stock minimo paso a OPCIONAL
+  (vacio = 0) y eso NO fue cosmetica: era la otra mitad del defecto, porque
+  obligarlo hacia que el merchant escribiera ahi su existencia fisica y un
+  producto con 20 y minimo 20 naciera en alerta de stock bajo. Sin cambio de
+  schema. Aprendizajes de metodo en la Decision 057: dos falsos verdes REALES
+  (un not.toHaveBeenCalled() vacuo que obligo a enmendar el AC-10, y un guard
+  defensivo que hizo pasar el test sin probar nada), el bundle viejo que
+  invalido dos intentos del device test (el orden es build -> cap sync -> cap
+  run, y se verifica por grep de una cadena NUEVA dentro del bundle ANTES de
+  tocar el emulador), el throw incondicional que rompe el narrowing de
+  TypeScript (TS18047; se usa throw CONDICIONAL), NG8001 es error de build y
+  NG8103 solo warning -el peligroso es el segundo, porque el APK sale roto en
+  verde- e ion-note con slot helper NO renderiza sobre la sintaxis vieja de
+  ion-item mas ion-label position stacked. Ademas se destapo un fallo
+  SILENCIOSO al guardar, mismo patron que la Decision 056, encontrado solo por
+  hacer el test de rollback de verdad. Verificado en Pixel_8 por respaldo JSON
+  exportado (producto, AJUSTE Inventario inicial, cantidad correcta y minimo en
+  0) y el rollback forzando el fallo. HALLAZGO ABIERTO, no aprobado: un
+  producto creado en 0 no enciende la alerta de stock bajo cuando deberia;
+  entrada directa al item de retencion. 300 tests green.
