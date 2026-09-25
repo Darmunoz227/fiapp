@@ -4,8 +4,6 @@ import Capacitor
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
 
-    var window: UIWindow?
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
         return true
@@ -46,4 +44,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
 
+}
+
+
+// Ciclo de vida UIScene (Feature 035). Vive aqui y no en un archivo
+// propio porque AppDelegate.swift ya esta en el target de Xcode: un
+// .swift nuevo hay que agregarlo a mano y olvidarlo produce EXACTAMENTE
+// el mismo sintoma que este cambio arregla (pantalla negra al arrancar).
+// La ventana la crea UIKit desde Main.storyboard, declarado en la clave
+// UISceneStoryboardFile del Info.plist.
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
+    var window: UIWindow?
+
+    func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        guard let url = URLContexts.first?.url else { return }
+        _ = ApplicationDelegateProxy.shared.application(
+            UIApplication.shared, open: url, options: [:])
+    }
+
+    func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+        _ = ApplicationDelegateProxy.shared.application(
+            UIApplication.shared, continue: userActivity,
+            restorationHandler: { _ in })
+    }
 }
