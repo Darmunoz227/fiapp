@@ -1638,3 +1638,278 @@ en un Excel propio. Si se confirma, esa afirmacion del spec queda
 invalidada y la lista necesita agrupacion. Tambien queda por confirmar
 si el merchant mete el pago a proveedor dentro de gastos: su modelo
 mental viene de un POS con un desplegable que lo incluia.
+
+---
+
+## Decision 056 - Un error de lectura NO es un hecho de negocio: la carga del Inicio falla completa o no falla
+
+**Contexto:** bug PREEXISTENTE, diagnosticado el 2026-09-15 y anotado en el
+commit 46d0677. No nace de la Feature 032. Reproducido en iPhone: la app
+volvio de segundo plano con el telefono bloqueado, iOS tenia los archivos
+cifrados, y Diego creyo que habia perdido todo. Con RETENCION como problema
+numero uno (contexto de negocio 2026-09-22), una pantalla que miente es una
+fuga directa.
+
+**Dos modos de fallo, no uno.**
+
+1. MODO A - `obtenerClientes()` en `:137` no tenia try/catch, y
+   `ionViewWillEnter` (`:61`) la llamaba sin `await` y sin `catch` (`:63`).
+   Las lineas `:135` y `:136` ya habian puesto `totalCartera = 0` y
+   `clientesActivos = []` ANTES de leer. Resultado: la excepcion se perdia y
+   la pantalla quedaba vacia con $ 0 PARA SIEMPRE, sin ninguna senal.
+2. MODO B - el `catch` por cliente de `:143` dejaba `transacciones = []`, o
+   sea `deudaTotal 0`. El cliente entraba a la lista con cero, el template
+   imprimia "Al dia" (`html:81`) y lo pintaba VERDE (`html:83`). Y `:159`
+   acumulaba ese cero en el total. Un cliente que debia 150.000 aparecia al
+   dia, en verde, y la cartera mostraba una cifra menor a la real.
+
+**Decision - opcion A: falla TODA la carga, nunca una carga parcial.** Tres
+reglas acordadas: nunca decir "no tienes clientes"; nunca mostrar la lista a
+medias (el total de cartera mentiria); boton Reintentar OBLIGATORIO. El
+`catch` por cliente se ELIMINA: convertir un error de lectura en un cero es
+justamente el defecto.
+
+**Decision - construccion en arreglo LOCAL, asignacion atomica al final.** El
+codigo viejo hacia `push` cliente por cliente sobre `this.clientesActivos`
+(`:153`) y publicaba con `[...this.clientesActivos]` (`:161`). Con esa forma
+es IMPOSIBLE cumplir "nunca a medias": una falla a mitad del recorrido ya
+dejo datos publicados. Ahora se construye en `clientesLocal`/`totalLocal` y
+se asigna a `this.*` solo si el recorrido completo tuvo exito.
+
+**Decision - el manejo vive DENTRO de `cargarClientesYDeudas`, no en el
+hook.** Cubre por construccion los CINCO puntos de llamada (`:63`, `:194`,
+`:208`, `:234`, `:259`: entrar, crear, borrar y deshacer) sin tocar ninguno.
+Volver `async` el `ionViewWillEnter` NO habria bastado: Ionic no espera el
+promise de un lifecycle hook, asi que sigue siendo fire-and-forget.
+
+**Decision - durante el error se oculta TODO lo que podria mentir.** Cartera,
+buscador, lista, boton de fiado y FAB. La cartera se oculta en vez de mostrar
+un guion: un guion se lee como cero de reojo, justo en el publico mayor del
+proyecto. El buscador se oculta porque buscar sobre una lista inexistente
+devuelve vacio y repite la mentira. El FAB y el fiado se ocultan porque
+ambos flujos terminan necesitando los clientes que no se pudieron leer.
+
+**Decision - la barra superior SE CONSERVA.** Es chrome de marca fijo
+(Decision 029) y las otras pantallas si pueden leer. Ver el hallazgo de
+campo mas abajo: esto tiene una consecuencia que conviene no olvidar.
+
+**Decision - sin componente standalone nuevo.** El bloque de error es markup
+dentro de `home.page.html` gobernado por un flag `errorCarga`, envuelto en un
+`ng-container` que no genera elemento en el DOM. Evita POR CONSTRUCCION la
+regla NG8103 de la Decision 055 y no puede romper el `slot="fixed"` del FAB.
+
+**Hallazgo de metodo - la cobertura del Home era CERO y nadie lo sabia.**
+`home.page.spec.ts:88` tenia `spyOn(component, 'cargarClientesYDeudas')` como
+ultima sentencia del `beforeEach` GLOBAL: el cuerpo del metodo nunca se
+ejecutaba en la suite. Mismo hallazgo que la Decision 052 documento para
+`editar-producto.component.spec.ts`. Se rodeo con un `describe` anidado cuyo
+`beforeEach` hace `.and.callThrough()`, logrando CERO tests existentes
+modificados (verificado con `git diff`: 132 inserciones, cero eliminaciones).
+
+**Hallazgo de metodo - de 5 tests nuevos solo 3 son RED.** T013 y T014 pasan
+en verde desde el primer momento: son tests de CARACTERIZACION, no REDs.
+Anunciar "los cinco deben fallar" fue un error del tasks.md, corregido en el
+commit b45e216. El RED real dio "Expected 150000 to be 0" (el total
+acumulaba la deuda del primer cliente y perdia la del que fallo) y "Expected
+false to be true" x2.
+
+**Hallazgo de metodo - los REDs necesitan `.catch(() => undefined)`.** Sin
+eso el test falla por excepcion no atrapada en vez de por la asercion, y no
+es un RED valido. Tras el GREEN el metodo ya no lanza y ese catch queda
+inerte.
+
+**Hallazgo NUEVO y caro - un presupuesto de CSS rompe el build y la suite NO
+lo ve.** Los 35 renglones de SCSS nuevos dejaron `home.page.scss` en 4.00 kB
+contra un tope de 4.00 kB: el build fallaba por CINCO BYTES con 290 tests en
+verde. Karma no evalua presupuestos. Peor: el gate escrito como
+`npm run build | grep -c "NG8103"` devolvio 0 y se leyo como "build limpio",
+cuando en realidad significaba "no encontre NG8103" sobre un build ROTO. La
+tuberia se traga el codigo de salida. REGLA NUEVA: todo gate de build debe
+verificar el EXIT CODE explicitamente
+(`npm run build > /tmp/build.log 2>&1; echo "EXIT: $?"`), nunca solo un grep.
+
+**Decision - se sube el presupuesto, no se recorta el CSS.** Se intento dos
+veces comprimir estilos para ganar bytes y el resultado fue codigo peor por
+5 bytes. `anyComponentStyle.maximumError` pasa de 4kb a 6kb; el
+`maximumWarning` se DEJA en 2kb a proposito, porque `home.page.scss` (4.00
+kB) y `fiado-productos.page.scss` (3.84 kB) ya lo exceden y esa senal de
+deuda debe seguir sonando sin bloquear el build.
+
+**HALLAZGO DE CAMPO en el device test - las pastillas navegan a pantallas con
+la MISMA deuda sin arreglar.** Con el error en pantalla, el merchant todavia
+puede entrar a Gastos y registrar. En la prueba artificial es correcto (solo
+`obtenerClientes` lanzaba, las demas pantallas leian bien), pero en el
+escenario REAL de iOS fallarian TODAS las lecturas, y Gastos no mostraria
+aviso: mostraria lista vacia y ceros, en silencio. Es el mismo bug del Home,
+sin arreglar, en nueve pantallas mas.
+
+**Riesgo ACEPTADO, no resuelto (D-4):** el texto acordado nombra una causa
+concreta ("Desbloquea el telefono"). Ante otro fallo (BD corrupta, migracion
+a medias) manda a desbloquear un telefono que ya esta desbloqueado.
+Clasificar la causa exige evidencia que hoy no existe.
+
+**Sin schema, sin migracion:** SCHEMA_VERSION sigue en 9. `git diff` sobre
+`database.service.ts` salio VACIO al cerrar (mismo criterio de la Feature
+023). Cero clases CSS renombradas; `.boton-registrar-produccion` intacta y su
+test de regresion (AC-06 de la Feature 030) verde.
+
+**Como se provoco el fallo en device, y por que asi.** El escenario real
+(archivos cifrados en iOS) no se reproduce a voluntad en el Pixel_8, y iOS
+esta BLOQUEADO por UIScene: el iPhone 17 con iOS 27 se niega a lanzar la app
+(rama 035-ios-uiscene, sin migrar). Se inyecto un `throw` TEMPORAL en
+`obtenerClientes`, revertido y verificado con `git diff` vacio antes de
+cerrar. Efecto colateral esperado mientras estuvo puesto: 2 tests de
+DatabaseService en rojo.
+
+**Evidencia, en Android emulator Pixel_8, BY HAND:** con el throw inyectado,
+el Inicio mostro el bloque de error con el texto acordado completo y el boton
+Reintentar, y desaparecieron los CINCO elementos (cartera, buscador, lista,
+boton de fiado y FAB) mientras la barra superior y el nombre del negocio se
+conservaron. Reintentar reejecuto la carga y volvio al mismo estado sin
+romperse ni quedar en blanco. El modo oscuro quedo legible en ambas
+apariencias (`adb cmd uimode night yes/no`, sin reiniciar la app). Revertido
+el throw, TODO reaparecio sin regresion. Bundle fresco verificado con
+`bloque-error-carga`, cadena que solo existe en el codigo nuevo, dentro de
+`chunk-V3NTD2UZ.js` (el chunk lazy del Home): buscar por "Desbloquea" habria
+dado falso positivo porque esa palabra ya existia en configuraciones-page.
+290 tests green (280 base + 10 nuevos), CERO tests modificados.
+
+**NO verificado:** pantalla angosta de 360px. Ningun test renderiza a esa
+anchura y el media query del Home tiene selectores parcialmente huerfanos
+(Decision 054). Queda anotado como no verificado, no como aprobado.
+
+**Deuda ABIERTA que esta feature NO arregla, con nombre y linea:** las nueve
+pantallas con `ionViewWillEnter` (`ventas:92`, `configuraciones:48`,
+`reportes:91`, `cliente-detalle:61`, `inventory-movement:77`,
+`inventory-list:49`, `fiado-productos:50`, `registrar-produccion:40`,
+`gastos:45`) y el `?? false` sobre `stock_bajo` en `inventory-list.page.ts:60`,
+que ante un resumen ausente responde "todo bien". Ser `async` no protege a
+ninguna: Ionic no espera el promise del hook.
+
+---
+
+## Decision 057 - Dar de alta un producto no puede exigir un segundo viaje: la cantidad se pregunta donde ya esta el comerciante
+
+**El problema no era una funcion faltante, era un hueco de onboarding.** El
+formulario de alta preguntaba nombre, precio y stock minimo. Nunca pregunto
+lo unico que el comerciante si sabe de memoria: cuantas unidades tiene hoy.
+El producto nacia en cero y para cargarlo habia que salir a Movimientos y
+registrar un ajuste. Ese segundo viaje es el punto donde tres de los cinco
+pilotos se detuvieron. La app no fallaba: pedia un paso que nadie adivina.
+
+**Decision.** El campo "Cuantos tienes hoy?" entra al formulario de alta y al
+modal de duplicar. Acepta 0 explicito (hay productos que se dan de alta sin
+existencia), rechaza vacio y rechaza negativo. Al guardar, el producto y su
+movimiento de AJUSTE con motivo "Inventario inicial" se escriben juntos.
+
+**El stock minimo pasa a opcional, y eso NO fue cosmetica.** Era la mitad del
+arreglo. El campo era obligatorio, asi que el comerciante escribia el mismo
+numero que tenia en existencia. Con `stock_bajo` evaluado como
+`existencia <= minimo`, un producto recien creado con 20 y minimo 20 nacia
+en alerta. La alerta de stock bajo -es decir, el item 0 del backlog, el que
+existe por retencion- estaba siendo envenenada desde el alta. Vaciar el campo
+lo resuelve: vacio significa 0, y 0 no enciende nada hasta que la existencia
+llega a cero de verdad.
+
+**Tercera aparicion del patron de transaccion anidada.** `ejecutarRun` recibe
+`dentroDeTx = false` y con el default abre su propia transaccion. Ya se habia
+corregido en `crearTransaccion`, en `crearGasto` y en `crearGastoRecurrente`.
+`crearProducto` era el que faltaba: escribir producto y movimiento como dos
+llamadas independientes habria reintroducido por tercera vez el bug que la
+Decision 028 corrigio y que la Decision 055 volvio a documentar. Se resolvio
+con `crearProducto(producto, dentroDeTx = false)` propagando el flag, y un
+metodo nuevo `crearProductoConStockInicial` que envuelve ambas escrituras en
+UN solo `ejecutarEnTransaccion`. Si el movimiento falla, el producto no queda.
+
+**Regla que sale de aqui:** antes de componer dos escrituras existentes en una
+operacion nueva, revisar si AMBAS son conscientes de transaccion. El default
+de `ejecutarRun` es el que muerde, y muerde en silencio.
+
+## Lo que el metodo atrapo, y lo que casi se le escapa
+
+**Dos falsos verdes, ambos reales.**
+
+1. El AC-10 original afirmaba, con `not.toHaveBeenCalled()`, que ya no se
+   llamaba el metodo viejo. Esa asercion pasa vacua: un metodo que dejo de
+   existir en el flujo nunca se llama, haya o no feature. Se enmendo el AC
+   para anclar contra el metodo nuevo con sus argumentos reales.
+2. Un guard defensivo `?? [{}, {}]` sobre un spy hizo que la evaluacion
+   corriera con `undefined, undefined` y devolviera `false`, que era
+   exactamente lo esperado. Test verde sin probar nada.
+
+**Regla:** un RED que pasa a verde sin que nadie toque produccion no es un
+RED. Anclar primero contra valores reales; los guards defensivos van despues.
+
+**El RED se invalido tres veces antes de ser valido.** Por insertar el
+`describe` dentro del segundo `describe` de nivel superior (`Cannot find
+name`), por `calls.mostRecent()` sobre un spy no llamado (`TypeError`), y por
+invocar un metodo que lanza sin `.catch(() => undefined)`. Ninguno de los tres
+es un fallo por asercion. Verificar SIEMPRE con `grep -n "^describe("` antes
+de insertar, y exigir que el fallo diga "Expected X to be Y".
+
+**El bundle viejo invalido dos intentos del device test.** `npx cap run` copia
+`www/` pero NO lo regenera. Los dos primeros intentos del test de rollback
+corrieron contra codigo anterior y dieron un falso "paso". El orden correcto
+es `npm run build` -> `npx cap sync` -> `npx cap run`, y la verificacion no es
+la confianza sino el grep: buscar un string literal nuevo dentro de
+`android/app/src/main/assets/public/*.js` ANTES de tocar el emulador.
+
+**Inyectar un throw al inicio de un metodo rompe el narrowing de TypeScript.**
+El `throw` incondicional al principio de `crearMovimientoInterno` hizo que el
+compilador marcara el resto como inalcanzable y emitiera TS18047 sobre una
+variable que si estaba validada. La solucion fue un throw CONDICIONAL
+(`if (movimiento.motivo === 'Inventario inicial')`), que ademas es mas preciso:
+falla solo el caso bajo prueba, no todos los movimientos de la app.
+
+**NG8001 es error, NG8103 es warning, y el peligroso es el segundo.** Usar
+`ion-note` sin importarlo revienta el build (NG8001) y se nota. Usar `*ngIf`
+sin `CommonModule` solo emite NG8103, el build pasa, y el APK sale con la
+plantilla rota. La regla de la Decision 055 -`npm run build` y contar NG8103
+en 0 tras crear un componente standalone- fue la que lo atrapo.
+
+**Y el gate se verifica por codigo de salida, no por grep.** `npm run build |
+grep -c "NG8103"` devolvio 0 sobre un build ROTO: la tuberia se traga el exit
+code. La forma correcta, ya fijada en la Decision 056, es
+`npm run build > /tmp/build.log 2>&1; echo "EXIT: $?"` y despues contar.
+
+**`ion-note slot="helper"` no renderiza** sobre la sintaxis vieja de
+`ion-item` + `ion-label position="stacked"` que usa `inventory-list.page.html`.
+Se escribio, compilo limpio, y en device simplemente no aparecio. Se retiro.
+No se migro la pantalla entera a la sintaxis nueva dentro de esta feature.
+
+**Los placeholders largos se truncan en pantalla real.** El patron del
+proyecto es corto -"Ej. Carne molida", "Ej. 12.000"- y hay que respetarlo:
+un placeholder que se corta a la mitad comunica menos que ninguno.
+
+**El fallo al guardar era silencioso, igual que en la Decision 056.** Si la
+escritura fallaba, la pantalla no decia nada y el comerciante quedaba mirando
+un formulario que parecia haber funcionado. Se descubrio solo porque el test
+de rollback se hizo de verdad, forzando el fallo. Mismo patron que el Inicio:
+el error existia, el usuario no se enteraba.
+
+## Verificacion
+
+**Por artefacto, no por narrativa.** El device test se valido contra el JSON
+de respaldo exportado desde el telefono: ahi se leyo el producto creado, su
+movimiento de AJUSTE con motivo "Inventario inicial", la cantidad correcta y
+el minimo en 0. Eso cubre la creacion con cantidad, el 0 explicito, el minimo
+vacio y el duplicar. El rollback se verifico aparte, forzando el fallo con un
+throw condicional y confirmando que ni producto ni movimiento quedaron.
+
+300 tests green (290 base + 10 nuevos). Schema v9 sin tocar: esta feature no
+agrega tablas ni columnas, solo compone escrituras existentes.
+
+**NO verificado:** el comportamiento de la alerta de stock bajo en la lista
+inmediatamente despues de crear un producto en 0. Se reporto que no aparece
+la alerta cuando `0 <= 0` deberia encenderla. Puede ser la lista que no
+recarga el resumen, o el `?? false` sobre `stock_bajo` que ante un resumen
+ausente responde "todo bien". Queda como hallazgo abierto, no como aprobado,
+y es entrada directa al item 0 del backlog.
+
+**Higiene de rama: `git status` antes del merge atrapo un archivo destruido.**
+`ios/App/App/AppDelegate.swift` aparecia modificado con 49 lineas eliminadas:
+el archivo estaba vacio. Fue una edicion manual en Xcode intentando destrabar
+iOS, sobre la rama equivocada. Un AppDelegate vacio deja la app iOS sin punto
+de entrada. Se revirtio con `git checkout`. **Regla:** los experimentos en
+Xcode escriben en el mismo repo; van en la rama de iOS, nunca sobre la rama
+de la feature en curso, y `git status` se lee antes de todo merge.

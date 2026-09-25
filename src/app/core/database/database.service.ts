@@ -709,7 +709,7 @@ export class DatabaseService {
     await this.ejecutarRun(sql, values, dentroDeTx);
   }
 
-  async crearProducto(producto: Producto): Promise<void> {
+  async crearProducto(producto: Producto, dentroDeTx = false): Promise<void> {
     const createdAt = producto.created_at ?? Date.now();
 
     if (Capacitor.getPlatform() === 'web') {
@@ -740,7 +740,14 @@ export class DatabaseService {
       producto.store_id ?? null,
       producto.created_by ?? null,
     ];
-    await this.ejecutarRun(sql, values);
+    await this.ejecutarRun(sql, values, dentroDeTx);
+  }
+
+  async crearProductoConStockInicial(producto: Producto, movimiento: MovimInventario): Promise<void> {
+    return this.ejecutarEnTransaccion(async () => {
+      await this.crearProducto(producto, true);
+      await this.crearMovimientoInterno(movimiento);
+    });
   }
 
   async crearMovimiento(movimiento: MovimInventario): Promise<void> {

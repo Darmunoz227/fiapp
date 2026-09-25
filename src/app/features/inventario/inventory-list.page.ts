@@ -12,6 +12,7 @@ import { FreemiumService } from '../../core/freemium/freemium.service';
 import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { ResumenInventario } from '../../core/models/resumen-inventario.model';
 import { Producto } from '../../core/models/producto.model';
+import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
 import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
@@ -36,6 +37,7 @@ export class InventoryListPage {
   precio_venta = '';
   tipo_venta: 'UNIDAD' | 'PESO' = 'UNIDAD';
   minimo_stock: number | null = null;
+  cantidad_inicial: number | null = null;
   @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
@@ -91,7 +93,7 @@ export class InventoryListPage {
 
     const nombre = this.nombre.trim();
     const precioVenta = parseCurrencyInput(this.precio_venta);
-    const minimoStock = Number(this.minimo_stock);
+    const minimoStock = this.minimo_stock === null || String(this.minimo_stock).trim() === '' ? 0 : Number(this.minimo_stock);
 
     if (!nombre) {
       await this.mostrarToastValidacion('Ingresa un nombre válido');
@@ -108,8 +110,20 @@ export class InventoryListPage {
       return;
     }
 
-    if (Number.isNaN(minimoStock) || minimoStock < 0) {
+    if (minimoStock < 0) {
       await this.mostrarToastValidacion('El stock mínimo no puede ser negativo');
+      return;
+    }
+
+    if (this.cantidad_inicial === null || String(this.cantidad_inicial).trim() === '') {
+      await this.mostrarToastValidacion('Dinos cuántos tienes hoy');
+      return;
+    }
+
+    const cantidadInicial = Number(this.cantidad_inicial);
+
+    if (Number.isNaN(cantidadInicial) || cantidadInicial < 0) {
+      await this.mostrarToastValidacion('La cantidad no puede ser negativa');
       return;
     }
 
@@ -127,7 +141,32 @@ export class InventoryListPage {
       created_by: null,
     };
 
-    await this.dbService.crearProducto(producto);
+    const movimientoInicial: MovimInventario = {
+      id: uuidv4(),
+      producto_id: producto.id,
+      tipo: 'AJUSTE',
+      cantidad: 0,
+      costo_unitario: 0,
+      motivo: 'Inventario inicial',
+      fecha: Date.now(),
+      actor_id: null,
+      stock_calculado_anterior: 0,
+      cantidad_fisica: cantidadInicial,
+      diferencia_calculada: cantidadInicial,
+      created_at: null,
+      updated_at: null,
+      deleted_at: null,
+      store_id: null,
+      created_by: null,
+    };
+
+    try {
+      await this.dbService.crearProductoConStockInicial(producto, movimientoInicial);
+    } catch (error) {
+      console.error('No se pudo guardar el producto', error);
+      await this.mostrarToastValidacion('No se pudo guardar el producto. Intenta de nuevo.');
+      return;
+    }
     await this.cargarProductos();
     this.limpiarFormulario();
     void this.mostrarToastProductoCreado();
@@ -202,6 +241,7 @@ export class InventoryListPage {
     this.nombre = '';
     this.precio_venta = '';
     this.tipo_venta = 'UNIDAD';
+    this.cantidad_inicial = null;
     this.minimo_stock = null;
   }
 

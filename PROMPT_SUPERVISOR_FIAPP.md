@@ -78,12 +78,15 @@ PROJECT_CONTEXT sync → 11. Merge con `--no-ff`.
 
 ## Contexto de negocio (pilotos reales)
 
-3 merchants Android en piloto (solo 1 con uso disciplinado; los otros 2 prueban
-cuando pueden):
+5 merchants documentados (roster con nombres en specs/spike-segmento/notas.md).
+Solo 1 con uso sostenido. Los demas estan bloqueados en la ENTRADA de
+inventario, no en el fiado:
 - **Ambulante de comidas** (pareja mayor, frente a un call center): >50% ventas
   fiadas. Trabaja con su esposa. Usa el módulo de fiado por productos (Feature #22).
 - **Tienda de ropa deportiva** (buzos): maneja variantes talla/color. Usa
-  duplicar producto (Feature #25). ES EL ÚNICO CON USO JUICIOSO.
+  duplicar producto (Feature #25). Usa el fiado y le gusta, pero
+  ABANDONO el inventario por Excel: con Duplicar ya entregado dijo que
+  "igual es muy manual" (2026-09-21). Ver spike-segmento.
 - **Tienda de ropa** (no deportiva): mismo dolor de variantes; aún no completó
   su inventario, espera recapacitación.
 
@@ -105,7 +108,7 @@ Notas de producto:
 
 ## BACKLOG priorizado (leer `docs/PROJECT_CONTEXT.md` línea ~50 y ~299 para el detalle)
 
-0a. **BUG - un error de lectura se muestra como "no tienes nada"
+HECHO (Feature #34, Decision 056, mergeado 2026-09-22). **BUG - un error de lectura se muestra como "no tienes nada"
    (diagnosticado 2026-09-15, PREEXISTENTE, no es de la #32).**
    home.page.ts `cargarClientesYDeudas` hace `this.clientesActivos = []`
    ANTES de leer: si la lectura falla, la pantalla queda vacia para
@@ -122,7 +125,7 @@ Notas de producto:
    boton de Reintentar OBLIGATORIO. La suite es ciega: los mocks web
    nunca fallan al leer.
 
-0. **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
+HECHO (Feature #36, Decision 057, mergeado 2026-09-25). **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
    merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
    producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
    registraba la COMPRA, y por eso el stock derivado quedaba en 0 y la
@@ -135,8 +138,25 @@ Notas de producto:
    encadenar creacion -> compra, o que un producto sin movimientos diga
    "Falta registrar cuanto compraste" en vez de la alerta. ES EL ITEM
    MAS RENTABLE DEL BACKLOG: no es una feature, es retencion.
+   ACTUALIZACION 2026-09-18: la merchant se recupero con una
+   explicacion verbal y retoma hoy. El arreglo ya no la rescata a
+   ella: protege a los que vienen. Rentable por escala, no por
+   urgencia. Su uso desde hoy es la primera evidencia real del
+   ciclo crear -> comprar -> alerta: conviene esperarla.
+   CERRADO POR LA FEATURE #36 (Decision 057): el alta ahora pregunta
+   "Cuantos tienes hoy?" y escribe el AJUSTE de Inventario inicial JUNTO
+   con el producto en una sola transaccion, asi que el stock derivado ya
+   no nace en 0; y el stock minimo paso a OPCIONAL (vacio = 0), que era
+   la otra mitad del defecto, porque obligarlo hacia que ella escribiera
+   ahi su existencia fisica y el producto naciera en alerta.
+   HALLAZGO ABIERTO, no cerrado: se reporto que un producto creado con
+   cantidad 0 NO enciende la alerta cuando `0 <= 0` deberia encenderla.
+   Puede ser la lista que no recarga el resumen, o el `?? false` sobre
+   `stock_bajo` en inventory-list. Ese hallazgo es la entrada real al
+   trabajo pendiente de la alerta de stock bajo, y hay que verificarlo
+   contra la merchant que retomo el uso.
 
-0. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
+2. **DEUDA ABIERTA DE LA FEATURE #32** (detalle en Decision 055): la
    lista de gastos no agrupa ni virtualiza; no hay validacion de
    plantillas duplicadas; "Pagado este mes" es optimista con
    frecuencias no mensuales; el texto libre de "Otro" admite typos y
@@ -152,7 +172,7 @@ Notas de producto:
    merchants de ropa dijeron el 14-sep que SI llevan gastos hormiga
    (uno en Excel propio), lo que contradice el spec de la #32.
 
-1. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
+3. **CICLO DE CAJA (apertura, forma de pago, gastos, cierre).** Los DOS
    merchants de ropa coincidieron: necesitan saber con qué base abren el
    día, cuánto entró por efectivo / billetera virtual (Nequi-Daviplata) /
    datáfono (Redeban-Credibanco), qué gastos hubo, y con qué cierran.
@@ -163,37 +183,37 @@ Notas de producto:
    fuente de verdad, `tipo_pago` es proyección) → sería **schema v10** (la v9 la ocupo la Feature #32, gastos).
    NO fragmentar en features sueltas: forma de pago sin cierre es un dato
    que nadie usa.
-2. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
+4. **Proveedores con compras a crédito** (n=2, ambos merchants de ropa
    compran mercancía a crédito). Simetría útil: ya existen los fiados de
    clientes; esto es el fiado del merchant HACIA el proveedor.
-3. **Fase 2 de roles**: ocultar ganancias/margen al empleado. Requiere un
+5. **Fase 2 de roles**: ocultar ganancias/margen al empleado. Requiere un
    "modo sesión", más complejo que el PIN puntual de Feature #27.
    `created_by` (Feature #26) ya está listo. Revisar de paso si el PIN al
    editar producto tiene sentido para el PRODUCTOR (hoy lo pide por caer
    dentro del alcance de la Decision 049; es efecto colateral, no decisión).
-4. **Fase 2 de variantes formales** (producto base + talla/color como
+6. **Fase 2 de variantes formales** (producto base + talla/color como
    atributos, precio override por variante, schema nuevo). Condicionado:
    solo si tras usar Duplicar (Feature #25) las merchants de ropa siguen
    necesitándolo. Al 2026-09-06 ninguna lo tiene instalado todavía.
-4b. **UI del carrito de ventas (pedido en campo 2026-09-17):** con
+7. **UI del carrito de ventas (pedido en campo 2026-09-17):** con
    nombres largos que solo se diferencian por la talla al FINAL, el
    merchant no distingue cual es cual al armar el carrito. Inventar
    codigos de referencia se DESCARTA: seria mas friccion. Ademas la
    duena pidio un BUSCADOR dentro de ese modal, como el que ya existe
    en clientes.
 
-4c. **El FONDO (concepto nuevo, 2026-09-17):** las merchants apartan
+8. **El FONDO (concepto nuevo, 2026-09-17):** las merchants apartan
    un ahorro con meta, para imprevistos y para el sueldo de la
    empleada, y lo anotan en el mismo cuaderno. No es gasto, no es
    retiro personal, no es costo. Cuarto concepto. Sin spec ni decision.
 
-5. **Venta rápida sin producto.**
-6. **Reconciliación de fiados manuales que eran ventas.**
-7. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
-8. **Sync entre turnos.** HIPÓTESIS sin validar. El respaldo actual es
+9. **Venta rápida sin producto.**
+10. **Reconciliación de fiados manuales que eran ventas.**
+11. **Dashboard financiero con evolución temporal.** Nadie lo pidió.
+12. **Sync entre turnos.** HIPÓTESIS sin validar. El respaldo actual es
    OVERWRITE, no merge. No construir resolución de conflictos sin un caso
    real confirmado.
-9. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza
+13. Deuda menor: `.scss` propio para `registrar-produccion` (hoy reutiliza
    el de `fiado-productos`); ícono `create` sin registrar en `addIcons`;
    4 `as any` preexistentes en `core/fiado/fiado-productos.ts`.
 
@@ -220,6 +240,70 @@ roto. Ningun test lo ve. Tras crear un componente standalone,
 **REGLA NUEVA - ningun bloque `python3` avanza sin ver su `OK:`.** En una
 sola sesion cinco scripts se perdieron en silencio porque no se confirmo
 su salida; uno dejo un INSERT incompleto que solo aparecio en device.
+
+## Estado de iOS (2026-09-18) - BLOQUEADO, no por codigo propio
+
+Tres fricciones en un dia, ninguna del codigo de FiApp:
+
+1. **El certificado gratuito de Apple expira a los 7 dias.** La app deja
+   de abrir y hay que reinstalar, perdiendo los datos. NINGUN piloto de
+   iPhone es viable asi: la cuenta paga (99 USD/ano) dejo de ser
+   "pendiente de evaluar" y es requisito para iOS.
+2. **La verificacion de la app EXIGE internet** y falla con iCloud
+   Private Relay activo. Se resolvio apagando Private Relay y Limit IP
+   Address Tracking, y verificando en WiFi.
+3. **iPhone 17 con iOS 27 RECHAZA el arranque:** "UIScene life cycle is
+   required for apps built with this SDK". El AppDelegate usa el modelo
+   antiguo. No es crash: el sistema se niega a lanzar la app.
+
+ESTADO: rama `035-ios-uiscene` con Capacitor actualizado 8.4.0 -> 8.5.2
+(commit b7f2aea, Android verificado compilando). La migracion manual
+sigue PENDIENTE: SceneDelegate sin crear, Info.plist sin tocar,
+`var window` aun presente en AppDelegate. Probar PRIMERO si 8.5.2 ya
+resuelve el arranque antes de escribir Swift.
+
+**ANDROID NO ESTA AFECTADO** y sigue entregando valor. iOS consumio
+medio dia sin entregar nada. Decision pendiente: posponer iOS hasta
+tener la cuenta paga (y de paso TestFlight), o migrar ya.
+
+## Contexto de negocio actualizado (2026-09-22)
+
+**Lo academico TERMINO.** La materia cerro, la app fue destacada, y el
+objetivo ahora es que sea RENTABLE. Eso cambia el peso de varias cosas:
+
+- **Offline-first deja de ser requisito impuesto y pasa a ser VENTAJA
+  COMPETITIVA decidida.** Los merchants trabajan con senal
+  intermitente; los POS que compiten exigen conexion.
+- **El password del freemium es LEGIBLE en el bundle JS** (ya honesto
+  en Decisions 033/034 como excepcion temporal). Mientras era academico
+  daba igual; si se va a cobrar, el modelo de ingreso se salta copiando
+  un texto del APK descomprimido. Los codigos de activacion POR
+  DISPOSITIVO pasan de "future work" a requisito de negocio. Nota
+  tecnica: en una app offline no hay servidor donde esconderlo; la
+  salida es DERIVAR el codigo de algo del dispositivo, no una constante
+  igual para todos.
+- **Nimbolabs no quiere ser fabrica de software:** productos genericos
+  que resuelven problemas reales. Lo reutilizable NO es el POS, es el
+  MOTOR offline-first ya probado en device (base local, migraciones
+  versionadas, respaldo que sobrevive cambios de version, freemium).
+  Siguiente idea: app para veterinarios moviles o a domicilio, mismo
+  problema de trabajar sin senal.
+- **Version de computador/nube: DESCARTADA por ahora.** La pidio 1 de 4
+  merchants, justamente el unico que tiene PC. Hallazgo tecnico: la
+  rama web NO TIENE PERSISTENCIA (sin jeep-sqlite ni WASM): abrir la
+  app en un PC e importar el JSON lo mostraria y lo perderia al cerrar
+  la pestana, ni siquiera sirve como visor. Salida barata que cubre el
+  80% del deseo: el reporte legible compartible (P10), un HTML que se
+  abre grande en el PC.
+- **RETENCION es el problema mayor: 4 pilotos, 1 activo.** Ninguna
+  feature arregla eso. Plan: 2-3 pilotos nuevos CON seguimiento
+  semanal. Dato: el unico que la usa es el unico con seguimiento.
+- **Prospecto nuevo:** panaderia referida por Jhon Vega (gerente de
+  oficina de Bancamia). Es PRODUCTORA, o sea la Feature #30 le aplica
+  directo. El canal Bancamia puede referir mas si esta funciona.
+- **Deuda menor (2026-09-15):** el titulo de venta en Reportes muestra
+  el UUID crudo ("Venta b8694a86-fb77-..."). Preexistente, no de la
+  #32, pero es lo primero que nota un merchant.
 
 ## Cómo arrancamos esta sesión
 

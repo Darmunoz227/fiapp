@@ -257,3 +257,38 @@ ion-fab[vertical="bottom"] {
   font-weight: 700;
   height: 50px;
 }
+
+/* Feature #34 - estado de error de carga.
+   Azul de acento y neutros; el rojo esta reservado para deuda (Decision 054).
+   Variables Ionic con fallback explicito (Decision 030). */
+.bloque-error-carga {
+  text-align: center;
+  padding: 32px 20px;
+  margin-top: 24px;
+  background: var(--ion-item-background, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.09);
+}
+
+.bloque-error-carga .icono-error-carga {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.bloque-error-carga .titulo-error-carga {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 12px 0 6px;
+  color: var(--ion-text-color, #12161f);
+}
+
+.bloque-error-carga .texto-error-carga {
+  font-size: 14px;
+  margin: 0 0 20px;
+  color: var(--ion-color-medium, #6b7280);
+}
+
+.bloque-error-carga .boton-reintentar {
+  margin: 0 auto;
+  max-width: 260px;
+}

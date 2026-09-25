@@ -296,7 +296,7 @@ No code should be written before that.
 
 ## 10. Recommended next action
 
-Features #1 through #33 are COMPLETE (280 tests passing, build green, working tree clean). Schema v9. 55 decisions. Feature #32 (gastos y punto de equilibrio, Decision 055) closes the set: two new tables (gastos_recurrentes as INTENTION, gastos as FACT), a break-even point that answers "cuanto necesito vender para cubrir mis gastos", recurring templates that never create movements on their own, logical delete for both gastos and templates, and an anti double-counting rule that keeps merchandise out of expenses. Verified on Android Pixel_8 by exported backup, with the four break-even figures PREDICTED before running. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
+Features #1 through #34 and #36 are COMPLETE (300 tests passing, build green, working tree clean). Feature #35 (iOS UIScene) is IN PROGRESS and BLOCKED on branch 035-ios-uiscene - do NOT assume iOS works. Schema v9. 57 decisions. Feature #36 (alta de producto sin bloquear, Decision 057) was the merge before it: creating a product now asks how many units you have TODAY in the same form and writes the product plus its Inventario inicial AJUSTE in ONE transaction, so nobody needs a second trip to Movimientos; stock minimo became OPTIONAL (empty means 0) because forcing it made a brand-new product be born inside a low-stock alert. Feature #34 (carga segura del Inicio, Decision 056) was the merge before it: the Home no longer shows a read error as "you have nothing" - it fails WHOLE with a Reintentar button, never partially, and never prints a false "Al dia $0" on a client who owes. The SAME defect stays OPEN in nine other screens and in inventory-list.page.ts:60 (see Decision 056). SYNC WARNING: this file was stale from 2026-09-15; the field evidence of 2026-09-17 (two cash boxes, the notebook as a ledger, the FONDO, suppliers) lives in specs/spike-ciclo-caja/notas.md and specs/spike-proveedores/notas.md, and the real roster of the 5 pilots with names lives in specs/spike-segmento/notas.md. Feature #32 (gastos y punto de equilibrio, Decision 055) closes the set: two new tables (gastos_recurrentes as INTENTION, gastos as FACT), a break-even point that answers "cuanto necesito vender para cubrir mis gastos", recurring templates that never create movements on their own, logical delete for both gastos and templates, and an anti double-counting rule that keeps merchandise out of expenses. Verified on Android Pixel_8 by exported backup, with the four break-even figures PREDICTED before running. FiApp is a working offline-first MiniPOS: clients & fiados, inventory (movements + weighted-average cost + low-stock alerts), soft-delete of movements, single-item sales CONTADO/FIADO/MIXTO (abono) with an atomic transaction primitive and frozen ganancia, and a read-only Reportes/Ganancias dashboard (Hoy/Todo). Movement creation is transactional (Feature #6, Decision 026). Sale amounts are the source of truth and tipo_pago is a projection (Feature #7, Decision 027). Every db.run declares its transaction context explicitly; the native write path was broken from Feature #4 until Feature #8 and is now verified on device (Decision 028). Colors resolve through Ionic variables so dark mode is readable, with the Home toolbar kept as fixed brand chrome (Decision 029).
 
 NEXT (Diego chooses):
 - DONE (Feature #9, Decision 029): UX pass. Colors now resolve through Ionic variables so dark mode is readable; the Home toolbar keeps a FIXED brand color and does not invert. mixtoCount is finally rendered and the summary separates counts from pesos. Business name has its own header row, header narrowed, subtitle is now Mi Negocio en el Bolsillo. Verified by hand on the iOS simulator in BOTH appearances.
@@ -348,3 +348,53 @@ The android platform exists, builds and runs. AVD used: Pixel_8.
 - DONE (Feature #31, Decision 053): respaldo completo y restaurable. Cierra los dos huecos que la Decision 052 dejo anotados. (A) validarRespaldo acepta ahora un RANGO de versiones (piso 7, techo SCHEMA_VERSION) en vez de igualdad exacta, y rellena vacias las tablas ausentes en lugar de rechazar: un respaldo v7 real del 5 de agosto se importo correctamente en device, cuando hasta entonces la app lo rechazaba con VERSION_INCOMPATIBLE. Una version mayor a la actual sigue rechazandose (verificado con un archivo schema_version 99). El piso es explicito y no universal porque se puede garantizar que una TABLA ausente se rellene, pero no que las COLUMNAS de una version vieja calcen. (B) El respaldo gana una clave `config` hermana de `data`, OPCIONAL, con la configuracion de negocio guardada en Preferences: solo catalogo_fiado y nombreNegocio. La regla es "viaja la configuracion del NEGOCIO; nunca el estado del dispositivo, la licencia ni la seguridad": el PIN queda fuera porque iria en texto plano en un JSON que se comparte por WhatsApp, y la licencia porque convertiria el respaldo en una llave de activacion transferible. Restaurar NUNCA borra con vacio: un respaldo sin config o con catalogo vacio deja intacto el catalogo actual (verificado en device). Bug de UX corregido: tras importar, Configuraciones seguia mostrando el catalogo viejo y el merchant podia creer que fallo. Sin cambio de schema. Aprendizajes de metodo en la Decision 053: cap sync NO instala (hace falta cap run con --target y sin tuberia, porque el selector de dispositivo es interactivo) y verificar el bundle con una cadena que ya existia en el codigo viejo da falso positivo.
 
 - DONE (Feature #33, Decision 054): Inicio legible. Rediseno SOLO visual del Home, sin mover ningun elemento de sitio: el merchant ya tiene la pantalla memorizada. Cinco defectos corregidos: (1) los cuatro iconos del header eran AZULES sobre AZUL MARINO sin etiqueta, un problema de contraste y no de gusto; ahora son blancos de 24px en pastillas individuales con etiqueta y toque de 54px; (2) se elimino la marca de agua "FIAPP" que competia con el buscador; (3) de seis colores simultaneos se paso a un azul de acento mas neutros, con rojo SOLO para deuda y verde SOLO para saldado; (4) el boton de produccion pasa de tertiary solido a outline para no competir; (5) las filas de cliente son ahora tarjetas de 64px con avatar, nombre, linea de estado y monto semantico. El nombre del negocio del merchant pasa a ser mas prominente que la marca FiApp. Los emoji de reconocimiento se mantienen (ancla visual para la pareja mayor); la regla es emoji para ETIQUETAR y SVG para lo que se TOCA. El FAB se CONSERVO revirtiendo la propuesta inicial: evidencia de campo confirmo que el merchant lo usa. Metodologia nueva: se prototipa en HTML ANTES de escribir codigo; ese metodo evito dos errores de producto en la Feature #32 (gastos) y permitio acordar el diseno del Home sin costo de implementacion. Tres bugs preexistentes destapados: .avatar-placeholder y .deuda-texto se usaban sin tener estilos, el media query de 360px pisaba la jerarquia con selectores parcialmente huerfanos, y las tarjetas consumian --ion-item-background sin fallback (patron Decision 030). CERO clases CSS renombradas y CERO tests modificados, para no romper el test de regresion de AC-06 de la Feature #30. Hallazgo abierto al backlog: la accion principal del Inicio deberia depender del tipo de merchant (el de ropa casi no usa fiado y valora el comprobante por WhatsApp; el ambulante vive del fiado), hoy esta fija para todos.
+
+- DONE (Feature #34, Decision 056): carga segura del Inicio. Bug PREEXISTENTE
+  (commit 46d0677), reproducido en iPhone con los archivos cifrados por iOS.
+  Dos modos: (A) obtenerClientes sin try/catch y llamada sin await dejaba la
+  pantalla vacia con $ 0 para siempre; (B) el catch por cliente convertia un
+  error de lectura en deudaTotal 0, imprimiendo "Al dia" en VERDE para quien
+  debia 150.000, y ese cero se acumulaba en el total de cartera. Ahora la
+  carga se construye en un arreglo LOCAL y se asigna de forma atomica solo si
+  el recorrido completo tuvo exito; el manejo vive DENTRO de
+  cargarClientesYDeudas, cubriendo los cinco puntos de llamada sin tocarlos.
+  Durante el error se ocultan cartera, buscador, lista, boton de fiado y FAB;
+  la barra superior se conserva (Decision 029). Sin schema, sin componente
+  standalone nuevo (evita NG8103 por construccion), cero clases CSS
+  renombradas y CERO tests modificados. Hallazgo caro: un presupuesto de CSS
+  rompio el build por CINCO BYTES con la suite en verde, y el gate escrito
+  como `npm run build | grep -c NG8103` devolvio 0 sobre un build ROTO porque
+  la tuberia se traga el exit code. Todo gate de build debe verificar el EXIT
+  CODE explicitamente. Verificado en Pixel_8 inyectando un throw temporal
+  (revertido con git diff vacio), porque iOS esta bloqueado por UIScene.
+  290 tests green.
+- DONE (Feature #36, Decision 057): alta de producto sin bloquear. Tres de los
+  cinco pilotos se detuvieron en la misma pantalla: la entrada de inventario.
+  El formulario preguntaba nombre, precio y stock minimo, pero nunca cuantas
+  unidades hay HOY, asi que el producto nacia en 0 y cargarlo exigia un segundo
+  viaje a Movimientos que nadie adivina. Ahora el alta y el modal de duplicar
+  preguntan "Cuantos tienes hoy?" (acepta 0 explicito, rechaza vacio y negativo)
+  y escriben el producto junto con su movimiento de AJUSTE motivo "Inventario
+  inicial" en UNA sola transaccion, via el metodo nuevo
+  crearProductoConStockInicial; crearProducto gano el flag dentroDeTx, TERCERA
+  aparicion del patron de transaccion anidada tras crearTransaccion, crearGasto
+  y crearGastoRecurrente (Decisions 028 y 055). El stock minimo paso a OPCIONAL
+  (vacio = 0) y eso NO fue cosmetica: era la otra mitad del defecto, porque
+  obligarlo hacia que el merchant escribiera ahi su existencia fisica y un
+  producto con 20 y minimo 20 naciera en alerta de stock bajo. Sin cambio de
+  schema. Aprendizajes de metodo en la Decision 057: dos falsos verdes REALES
+  (un not.toHaveBeenCalled() vacuo que obligo a enmendar el AC-10, y un guard
+  defensivo que hizo pasar el test sin probar nada), el bundle viejo que
+  invalido dos intentos del device test (el orden es build -> cap sync -> cap
+  run, y se verifica por grep de una cadena NUEVA dentro del bundle ANTES de
+  tocar el emulador), el throw incondicional que rompe el narrowing de
+  TypeScript (TS18047; se usa throw CONDICIONAL), NG8001 es error de build y
+  NG8103 solo warning -el peligroso es el segundo, porque el APK sale roto en
+  verde- e ion-note con slot helper NO renderiza sobre la sintaxis vieja de
+  ion-item mas ion-label position stacked. Ademas se destapo un fallo
+  SILENCIOSO al guardar, mismo patron que la Decision 056, encontrado solo por
+  hacer el test de rollback de verdad. Verificado en Pixel_8 por respaldo JSON
+  exportado (producto, AJUSTE Inventario inicial, cantidad correcta y minimo en
+  0) y el rollback forzando el fallo. HALLAZGO ABIERTO, no aprobado: un
+  producto creado en 0 no enciende la alerta de stock bajo cuando deberia;
+  entrada directa al item de retencion. 300 tests green.
