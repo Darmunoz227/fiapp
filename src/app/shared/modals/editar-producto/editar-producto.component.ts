@@ -93,7 +93,7 @@ export class EditarProductoComponent implements OnInit {
 
     const nombre = this.nombre.trim();
     const precioVenta = parseCurrencyInput(this.precio_venta);
-    const minimoStock = Number(this.minimo_stock);
+    const minimoStock = this.minimo_stock === null || String(this.minimo_stock).trim() === '' ? 0 : Number(this.minimo_stock);
 
     if (!nombre || precioVenta <= 0 || Number.isNaN(minimoStock) || minimoStock < 0) {
       return;
