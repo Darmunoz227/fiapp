@@ -241,7 +241,30 @@ roto. Ningun test lo ve. Tras crear un componente standalone,
 sola sesion cinco scripts se perdieron en silencio porque no se confirmo
 su salida; uno dejo un INSERT incompleto que solo aparecio en device.
 
-## Estado de iOS (2026-09-18) - BLOQUEADO, no por codigo propio
+## Estado de iOS (2026-09-25) - DESBLOQUEADO para demo propia
+
+RESUELTO (Feature #35, Decision 058): la app ARRANCA en el iPhone 17 Pro Max
+con iOS 27. Se adopto el ciclo de vida UIScene: clase SceneDelegate dentro de
+AppDelegate.swift, clave UIApplicationSceneManifest en Info.plist apuntando a
+Main.storyboard, y `var window` retirado del AppDelegate. El bump de Capacitor
+a 8.5.2 por si solo NO bastaba, y eso se probo antes de escribir Swift.
+
+Verificado en device: arranque, segundo plano, SQLite persistiendo tras matar
+la app desde el multitarea (por respaldo exportado) y compartir por WhatsApp.
+
+LO QUE SIGUE SIN RESOLVERSE, y no es tecnico: el certificado gratuito caduca
+a los 7 dias y solo corre en dispositivos registrados. Sirve para que Diego
+muestre la app en SU telefono y haga el walkthrough; NO sirve para que un
+interesado la instale en el suyo. La entrega a terceros sigue siendo el APK
+de Android. Pilotos reales en iOS exigen la cuenta paga (99 USD/ano) con
+TestFlight. Decision de negocio ABIERTA.
+
+Deuda nueva detectada en el respaldo de iOS: `fecha_creacion` y `created_at`
+guardan el MISMO valor (columna vieja + columna de auditoria de la Decision
+048), y falta `trim()` al guardar el nombre del cliente, que ensucia busqueda
+y orden.
+
+## Estado de iOS (2026-09-18) - HISTORICO, ya superado por la Decision 058
 
 Tres fricciones en un dia, ninguna del codigo de FiApp:
 
