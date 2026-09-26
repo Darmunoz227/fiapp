@@ -1,4 +1,4 @@
-import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado } from './inventory-calculations';
+import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado , resolverCostoPromedio} from './inventory-calculations';
 
 describe('inventory-calculations', () => {
   describe('esStockBajo', () => {
@@ -77,5 +77,28 @@ describe('calcularStockDerivado - PRODUCCION', () => {
     const compra: any = { ...movProduccion(10), tipo: 'COMPRA' };
     const produccion = movProduccion(20);
     expect(calcularStockDerivado([compra, produccion])).toBe(30);
+  });
+});
+
+
+describe('resolverCostoPromedio - Feature 037', () => {
+  it('AC-04: un AJUSTE con costo REEMPLAZA el costo promedio, no lo pondera', () => {
+    const resultado = resolverCostoPromedio('AJUSTE', 3500, 10, 10, 4000);
+    expect(resultado).toBe(4000);
+  });
+
+  it('AC-03: un AJUSTE sin costo (null) NO toca el costo promedio', () => {
+    const resultado = resolverCostoPromedio('AJUSTE', 3500, 10, 10, null);
+    expect(resultado).toBe(3500);
+  });
+
+  it('AC-03: un AJUSTE con costo 0 se trata como vacio y NO toca el costo', () => {
+    const resultado = resolverCostoPromedio('AJUSTE', 3500, 10, 10, 0);
+    expect(resultado).toBe(3500);
+  });
+
+  it('AC-05 REGRESION: una COMPRA sigue ponderando igual que hoy', () => {
+    const resultado = resolverCostoPromedio('COMPRA', 3500, 10, 20, 3700);
+    expect(resultado).toBeCloseTo(3633.33, 2);
   });
 });

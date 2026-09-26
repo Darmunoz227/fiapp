@@ -67,3 +67,29 @@ export interface LineaValorInventario {
 export function calcularValorTotalInventario(lineas: LineaValorInventario[]): number {
   return lineas.reduce((total, linea) => total + linea.stock_derivado * linea.costo_promedio, 0);
 }
+
+export function resolverCostoPromedio(
+  tipo: MovimInventario['tipo'],
+  costoPromedioActual: number,
+  stockDerivado: number,
+  cantidad: number,
+  costoUnitario: number | null,
+): number {
+  if (tipo === 'AJUSTE') {
+    if (costoUnitario != null && costoUnitario > 0) {
+      return costoUnitario;
+    }
+    return costoPromedioActual;
+  }
+
+  if (tipo === 'COMPRA' || tipo === 'PRODUCCION') {
+    return calcularCostoPromedioPonderado(
+      stockDerivado,
+      costoPromedioActual,
+      cantidad,
+      costoUnitario ?? 0,
+    );
+  }
+
+  return costoPromedioActual;
+}
