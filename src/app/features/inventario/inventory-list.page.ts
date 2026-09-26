@@ -38,6 +38,7 @@ export class InventoryListPage {
   tipo_venta: 'UNIDAD' | 'PESO' = 'UNIDAD';
   minimo_stock: number | null = null;
   cantidad_inicial: number | null = null;
+  costo_inicial: string | number | null = null;
   @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
@@ -94,6 +95,7 @@ export class InventoryListPage {
     const nombre = this.nombre.trim();
     const precioVenta = parseCurrencyInput(this.precio_venta);
     const minimoStock = this.minimo_stock === null || String(this.minimo_stock).trim() === '' ? 0 : Number(this.minimo_stock);
+    const costoInicial = this.costo_inicial === null || String(this.costo_inicial).trim() === '' ? 0 : parseCurrencyInput(String(this.costo_inicial));
 
     if (!nombre) {
       await this.mostrarToastValidacion('Ingresa un nombre válido');
@@ -127,6 +129,11 @@ export class InventoryListPage {
       return;
     }
 
+    if (Number.isNaN(costoInicial) || costoInicial < 0) {
+      await this.mostrarToastValidacion('El costo no puede ser negativo');
+      return;
+    }
+
     const producto: Producto = {
       id: uuidv4(),
       nombre,
@@ -146,7 +153,7 @@ export class InventoryListPage {
       producto_id: producto.id,
       tipo: 'AJUSTE',
       cantidad: 0,
-      costo_unitario: 0,
+      costo_unitario: costoInicial,
       motivo: 'Inventario inicial',
       fecha: Date.now(),
       actor_id: null,
@@ -242,6 +249,7 @@ export class InventoryListPage {
     this.precio_venta = '';
     this.tipo_venta = 'UNIDAD';
     this.cantidad_inicial = null;
+    this.costo_inicial = null;
     this.minimo_stock = null;
   }
 
