@@ -16,7 +16,7 @@ import { ProduccionConItems } from '../models/produccion-con-items.model';
 import { Venta } from '../models/venta.model';
 import { RespaldoData } from '../models/respaldo.model';
 import { ConteoImportacion } from '../models/conteo-importacion.model';
-import { calcularCostoPromedioPonderado, calcularStockDerivado, esStockBajo } from '../../features/inventario/inventory-calculations';
+import { calcularStockDerivado, esStockBajo, resolverCostoPromedio } from '../../features/inventario/inventory-calculations';
 import { calcularTotalVenta } from '../../features/ventas/ventas-calculations';
 import { SCHEMA_VERSION } from './schema-version';
 
@@ -762,20 +762,27 @@ export class DatabaseService {
       throw new Error('Stock insuficiente para registrar el movimiento');
     }
 
-    if (movimiento.tipo === 'COMPRA' || movimiento.tipo === 'PRODUCCION') {
+    const tocaCosto = movimiento.tipo === 'COMPRA'
+      || movimiento.tipo === 'PRODUCCION'
+      || (movimiento.tipo === 'AJUSTE' && movimiento.costo_unitario > 0);
+
+    if (tocaCosto) {
       const producto = await this.obtenerProductoPorIdInterno(movimiento.producto_id);
       if (producto == null) {
         throw new Error('Producto no encontrado');
       }
 
-      const costoPromedio = calcularCostoPromedioPonderado(
-        stockDerivado,
+      const costoPromedio = resolverCostoPromedio(
+        movimiento.tipo,
         producto.costo_promedio,
+        stockDerivado,
         movimiento.cantidad,
         movimiento.costo_unitario,
       );
 
-      await this.actualizarCostoPromedioProducto(movimiento.producto_id, costoPromedio);
+      if (costoPromedio !== producto.costo_promedio) {
+        await this.actualizarCostoPromedioProducto(movimiento.producto_id, costoPromedio);
+      }
     }
 
     if (Capacitor.getPlatform() === 'web') {
