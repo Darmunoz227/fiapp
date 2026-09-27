@@ -24,7 +24,7 @@ import { FreemiumService } from '../../core/freemium/freemium.service';
 import { SeguridadService } from '../../core/seguridad/seguridad.service';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
 import { Producto } from '../../core/models/producto.model';
-import { calcularStockDerivado } from './inventory-calculations';
+import { calcularStockDerivado, etiquetaCantidadPorTipo, describirStockResultante } from './inventory-calculations';
 import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/formatters';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 
@@ -61,6 +61,19 @@ export class InventoryMovementPage {
   cantidad: number | null = null;
   costo_unitario = '';
   conteo_fisico: number | null = null;
+  costo_ajuste = '';
+
+  get etiquetaCantidad(): string {
+    return etiquetaCantidadPorTipo(this.tipo);
+  }
+
+  get notaStockResultante(): string {
+    return describirStockResultante(this.tipo, this.stockDerivado, this.cantidad);
+  }
+
+  get costoPrevio(): number {
+    return this.producto?.costo_promedio ?? 0;
+  }
   @ViewChild("costoInput") costoInput?: IonInput;
   motivo = '';
 
@@ -136,7 +149,7 @@ export class InventoryMovementPage {
         producto_id: this.productoId,
         tipo: 'AJUSTE',
         cantidad: 0,
-        costo_unitario: 0,
+        costo_unitario: parseCurrencyInput(this.costo_ajuste) || 0,
         motivo: motivo || null,
         fecha: Date.now(),
         actor_id: null,
