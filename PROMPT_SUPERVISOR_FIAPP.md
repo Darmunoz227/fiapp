@@ -125,7 +125,7 @@ HECHO (Feature #34, Decision 056, mergeado 2026-09-22). **BUG - un error de lect
    boton de Reintentar OBLIGATORIO. La suite es ciega: los mocks web
    nunca fallan al leer.
 
-HECHO (Feature #36, Decision 057, mergeado 2026-09-25). **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
+HECHO (Features #36 y #38, Decisions 057 y 060, mergeado 2026-09-27). **BUG DE RETENCION - la alerta de stock bajo expulso a la unica
    merchant que lo intento (evidencia 2026-09-17).** Ella creaba el
    producto poniendo en STOCK MINIMO lo que tenia fisicamente, nunca
    registraba la COMPRA, y por eso el stock derivado quedaba en 0 y la
@@ -143,6 +143,13 @@ HECHO (Feature #36, Decision 057, mergeado 2026-09-25). **BUG DE RETENCION - la 
    ella: protege a los que vienen. Rentable por escala, no por
    urgencia. Su uso desde hoy es la primera evidencia real del
    ciclo crear -> comprar -> alerta: conviene esperarla.
+   CERRADO DEL TODO POR LA FEATURE #38 (Decision 060): la alerta ahora
+   AVISA en vez de informar un hecho consumado. Tres estados: Agotado
+   (stock 0), "Quedan N - repon pronto" (el aviso que no existia) y "Sin
+   aviso configurado". El minimo se SUGIERE prellenado y nunca se exige, y
+   la etiqueta pasa a "Avisame cuando queden", porque el campo llamado
+   "stock minimo" fue lo que ella no supo llenar.
+
    CERRADO TAMBIEN POR LA FEATURE #37 (Decision 059): el producto ya no
    nace sin COSTO. El AJUSTE acepta costo opcional que REEMPLAZA el costo
    promedio, y el alta lo manda en su AJUSTE inicial. Con costo 0 la app
