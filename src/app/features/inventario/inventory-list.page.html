@@ -68,7 +68,7 @@
 <p>Valor a costo: {{ valorInventarioTexto(producto) }}</p>
 <p *ngIf="estadoStock(producto) === 'AGOTADO'" class="pill-agotado">Agotado</p>
 <p *ngIf="estadoStock(producto) === 'POR_AGOTARSE'" class="pill-pocos">Quedan {{ stockActual(producto.id) }} · repón pronto</p>
-<p *ngIf="estadoStock(producto) === 'SIN_MINIMO'" class="pill-configurar" (click)="definirMinimo(producto); $event.stopPropagation()">Avísame cuando queden pocos</p>
+<p *ngIf="estadoStock(producto) === 'SIN_MINIMO'" class="pill-configurar">Sin aviso configurado</p>
           </ion-label>
           <ion-label slot="end" class="price-label">
             {{ producto.precio_venta | currency:'COP':'symbol':'1.0-0' }}

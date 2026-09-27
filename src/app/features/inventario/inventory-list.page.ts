@@ -231,20 +231,6 @@ export class InventoryListPage {
     this.precio_venta = numeric > 0 ? formatCurrencyCOP(numeric) : "";
   }
 
-  async definirMinimo(producto: Producto) {
-    const modal = await this.modalCtrl.create({
-      component: EditarProductoComponent,
-      componentProps: { producto },
-    });
-
-    await modal.present();
-
-    const { data } = await modal.onWillDismiss();
-    if (data?.guardado) {
-      await this.cargarProductos();
-    }
-  }
-
   async abrirEdicion(producto: Producto) {
     await this.seguridadService.ejecutarConPin(async () => {
       const modal = await this.modalCtrl.create({
