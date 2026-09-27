@@ -387,4 +387,36 @@ it('valorInventarioTexto returns zero when stock is zero', () => {
       expect(esStockBajo(args[1].cantidad_fisica, args[0].minimo_stock)).toBe(false);
     });
   });
+
+  describe('Feature 037 - costo declarado en el alta', () => {
+    it('AC-01: el costo escrito viaja en el AJUSTE de Inventario inicial', async () => {
+      component.nombre = 'Arroz Diana 500g';
+      component.precio_venta = '4.200';
+      component.tipo_venta = 'UNIDAD';
+      component.cantidad_inicial = 10;
+      component.costo_inicial = '3.500';
+
+      await component.crearProducto();
+
+      const args = databaseServiceMock.crearProductoConStockInicial.calls.mostRecent()?.args ?? [null, null];
+      expect(args[1]).not.toBeNull();
+      expect(args[1].motivo).toBe('Inventario inicial');
+      expect(args[1].costo_unitario).toBe(3500);
+    });
+
+    it('AC-02: sin costo el AJUSTE va en 0 y la Feature 036 no se rompe', async () => {
+      component.nombre = 'Panela';
+      component.precio_venta = '2.000';
+      component.tipo_venta = 'UNIDAD';
+      component.cantidad_inicial = 7;
+      component.costo_inicial = null;
+
+      await component.crearProducto();
+
+      const args = databaseServiceMock.crearProductoConStockInicial.calls.mostRecent()?.args ?? [null, null];
+      expect(args[1]).not.toBeNull();
+      expect(args[1].costo_unitario).toBe(0);
+      expect(args[1].cantidad_fisica).toBe(7);
+    });
+  });
 });

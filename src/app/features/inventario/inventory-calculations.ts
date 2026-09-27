@@ -67,3 +67,62 @@ export interface LineaValorInventario {
 export function calcularValorTotalInventario(lineas: LineaValorInventario[]): number {
   return lineas.reduce((total, linea) => total + linea.stock_derivado * linea.costo_promedio, 0);
 }
+
+export function resolverCostoPromedio(
+  tipo: MovimInventario['tipo'],
+  costoPromedioActual: number,
+  stockDerivado: number,
+  cantidad: number,
+  costoUnitario: number | null,
+): number {
+  if (tipo === 'AJUSTE') {
+    if (costoUnitario != null && costoUnitario > 0) {
+      return costoUnitario;
+    }
+    return costoPromedioActual;
+  }
+
+  if (tipo === 'COMPRA' || tipo === 'PRODUCCION') {
+    return calcularCostoPromedioPonderado(
+      stockDerivado,
+      costoPromedioActual,
+      cantidad,
+      costoUnitario ?? 0,
+    );
+  }
+
+  return costoPromedioActual;
+}
+
+export function etiquetaCantidadPorTipo(tipo: MovimInventario['tipo']): string {
+  if (tipo === 'COMPRA') {
+    return '¿Cuántas unidades entraron?';
+  }
+  if (tipo === 'MERMA') {
+    return '¿Cuántas unidades se perdieron?';
+  }
+  if (tipo === 'VENTA') {
+    return '¿Cuántas unidades vendiste?';
+  }
+  return 'Cantidad';
+}
+
+export function describirStockResultante(
+  tipo: MovimInventario['tipo'],
+  stockActual: number,
+  cantidad: number | null,
+): string {
+  if (cantidad == null || Number.isNaN(cantidad) || cantidad <= 0) {
+    return '';
+  }
+
+  if (tipo === 'COMPRA' || tipo === 'PRODUCCION') {
+    return `Se suman a las ${stockActual} que ya tienes → quedarán ${stockActual + cantidad}`;
+  }
+
+  if (tipo === 'MERMA' || tipo === 'VENTA') {
+    return `Se restan de las ${stockActual} que ya tienes → quedarán ${stockActual - cantidad}`;
+  }
+
+  return '';
+}

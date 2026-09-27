@@ -36,13 +36,20 @@
           <ion-label position="stacked">Conteo físico</ion-label>
           <ion-input type="number" inputmode="numeric" [(ngModel)]="conteo_fisico"></ion-input>
         </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">¿A cuánto te costó cada uno? (opcional)</ion-label>
+          <ion-input type="text" inputmode="numeric" placeholder="Ej. 3.500" [(ngModel)]="costo_ajuste"></ion-input>
+        </ion-item>
+        <p class="ayuda-campo" *ngIf="costoPrevio > 0 && costo_ajuste">Este producto ya tiene un costo de {{ costoPrevio | currency:'COP':'symbol':'1.0-0' }}. Si escribes uno nuevo, lo reemplaza.</p>
       </ng-container>
 
       <ng-template #movimientoNormalFields>
         <ion-item>
-          <ion-label position="stacked">Cantidad</ion-label>
+          <ion-label position="stacked">{{ etiquetaCantidad }}</ion-label>
           <ion-input type="number" inputmode="numeric" [(ngModel)]="cantidad"></ion-input>
         </ion-item>
+        <p class="ayuda-campo" *ngIf="notaStockResultante">{{ notaStockResultante }}</p>
 
         <ion-item>
           <ion-label position="stacked">Costo unitario</ion-label>
@@ -87,6 +94,9 @@
               Cantidad: <strong>{{ movimiento.cantidad }}</strong>
             </p>
 
+            <p *ngIf="movimiento.tipo === 'AJUSTE' && movimiento.costo_unitario > 0">
+              Costo declarado: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
+            </p>
             <p *ngIf="movimiento.tipo === 'COMPRA'">
               Costo unitario: <strong>{{ movimiento.costo_unitario | currency:'COP':'symbol':'1.0-0' }}</strong>
             </p>

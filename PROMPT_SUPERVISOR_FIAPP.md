@@ -143,6 +143,11 @@ HECHO (Feature #36, Decision 057, mergeado 2026-09-25). **BUG DE RETENCION - la 
    ella: protege a los que vienen. Rentable por escala, no por
    urgencia. Su uso desde hoy es la primera evidencia real del
    ciclo crear -> comprar -> alerta: conviene esperarla.
+   CERRADO TAMBIEN POR LA FEATURE #37 (Decision 059): el producto ya no
+   nace sin COSTO. El AJUSTE acepta costo opcional que REEMPLAZA el costo
+   promedio, y el alta lo manda en su AJUSTE inicial. Con costo 0 la app
+   imprimia numeros falsos. El modal gano etiqueta por tipo y nota viva.
+
    CERRADO POR LA FEATURE #36 (Decision 057): el alta ahora pregunta
    "Cuantos tienes hoy?" y escribe el AJUSTE de Inventario inicial JUNTO
    con el producto en una sola transaccion, asi que el stock derivado ya
