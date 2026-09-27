@@ -17,7 +17,7 @@ import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/format
 import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
-import { calcularValorTotalInventario, LineaValorInventario } from './inventory-calculations';
+import { calcularValorTotalInventario, LineaValorInventario, EstadoStock, resolverEstadoStock } from './inventory-calculations';
 
 @Component({
   selector: 'app-inventory-list',
@@ -57,6 +57,11 @@ export class InventoryListPage {
     this.productos = await this.dbService.obtenerProductos();
     const resumenes = await this.dbService.obtenerResumenInventario();
     this.resumenPorProducto = new Map(resumenes.map((resumen) => [resumen.producto_id, resumen]));
+  }
+
+  estadoStock(producto: Producto): EstadoStock {
+    const stock = this.resumenPorProducto.get(producto.id)?.stock_derivado ?? 0;
+    return resolverEstadoStock(stock, producto.minimo_stock);
   }
 
   esStockBajo(productoId: string): boolean {
@@ -212,6 +217,20 @@ export class InventoryListPage {
   async onPrecioVentaBlur() {
     const numeric = parseCurrencyInput(this.precio_venta);
     this.precio_venta = numeric > 0 ? formatCurrencyCOP(numeric) : "";
+  }
+
+  async definirMinimo(producto: Producto) {
+    const modal = await this.modalCtrl.create({
+      component: EditarProductoComponent,
+      componentProps: { producto },
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if (data?.guardado) {
+      await this.cargarProductos();
+    }
   }
 
   async abrirEdicion(producto: Producto) {

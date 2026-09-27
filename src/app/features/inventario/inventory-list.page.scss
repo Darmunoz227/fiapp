@@ -92,3 +92,31 @@
     color: var(--ion-text-color);
   }
 }
+
+.pill-agotado, .pill-pocos, .pill-configurar {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pill-agotado {
+  background: rgba(192, 57, 43, 0.1);
+  border: 1px solid rgba(192, 57, 43, 0.2);
+  color: var(--ion-color-danger);
+}
+
+.pill-pocos {
+  background: rgba(224, 134, 0, 0.12);
+  border: 1px solid rgba(224, 134, 0, 0.3);
+  color: var(--ion-color-warning-shade, #b36b00);
+}
+
+.pill-configurar {
+  background: var(--ion-color-light, #f4f5f8);
+  border: 1px solid var(--ion-color-medium-tint, #d7d8da);
+  color: var(--ion-color-medium, #6b7280);
+  font-weight: 600;
+}
