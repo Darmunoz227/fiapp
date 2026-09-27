@@ -25,6 +25,31 @@ describe('DatabaseService', () => {
     spyOn(Capacitor, 'getPlatform').and.returnValue('web');
   });
 
+  describe("importarProductosCSV", () => {
+    it("debe insertar N productos y N ajustes en una sola transaccion", async () => {
+      spyOn<any>(service, "crearProducto").and.returnValue(Promise.resolve());
+      spyOn<any>(service, "crearMovimientoInterno").and.returnValue(Promise.resolve());
+      
+      const productosCSV = [
+        { nombre: "P1", precio: 100, cantidad_actual: 10, costo_unitario: 50, stock_minimo: 2 },
+        { nombre: "P2", precio: 200, cantidad_actual: 5, costo_unitario: 0, stock_minimo: 0 }
+      ];
+
+      await service.importarProductosCSV(productosCSV);
+
+      expect((service as any).crearProducto).toHaveBeenCalledTimes(2);
+      expect((service as any).crearMovimientoInterno).toHaveBeenCalledTimes(2);
+
+      const argsMovimientoP2 = (service as any).crearMovimientoInterno.calls.mostRecent().args[0];
+      expect(argsMovimientoP2.tipo).toBe("AJUSTE");
+      expect(argsMovimientoP2.costo_unitario).toBeNull();
+      
+      const argsProdP1 = (service as any).crearProducto.calls.first().args;
+      expect(argsProdP1[1]).toBeTrue();
+    });
+  });
+
+
   function crearConexionInicializacion(): { sqlite: any; db: any } {
     const db = {
       isDBOpen: jasmine.createSpy('isDBOpen').and.resolveTo({ result: true }),

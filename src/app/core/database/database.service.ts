@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from "uuid";
 import { Injectable } from '@angular/core';
 import { CapacitorSQLite, SQLiteConnection, SQLiteDBConnection } from '@capacitor-community/sqlite';
 import { Capacitor } from '@capacitor/core';
@@ -1566,5 +1567,43 @@ export class DatabaseService {
    */
   private async ejecutarRun(sql: string, values: any[], dentroDeTx = false) {
     return this.db.run(sql, values, !dentroDeTx);
+  }
+
+  async importarProductosCSV(productos: any[]): Promise<void> {
+    return this.ejecutarEnTransaccion(async () => {
+      const ahora = Date.now();
+      for (const prodCSV of productos) {
+        const idProducto = uuidv4();
+        const productoNuevo: import("../models/producto.model").Producto = {
+          id: idProducto,
+          nombre: prodCSV.nombre,
+          precio_venta: prodCSV.precio,
+          tipo_venta: "UNIDAD",
+          minimo_stock: prodCSV.stock_minimo,
+          modo_produccion: false,
+          costo_promedio: 0,
+          created_at: ahora,
+          updated_at: null,
+          deleted_at: null,
+          store_id: null,
+          created_by: null
+        };
+        
+        await this.crearProducto(productoNuevo, true);
+
+        const movimInicial: import("../models/movim-inventario.model").MovimInventario = {
+          id: uuidv4(),
+          producto_id: idProducto,
+          tipo: "AJUSTE",
+          cantidad: prodCSV.cantidad_actual,
+          costo_unitario: prodCSV.costo_unitario > 0 ? prodCSV.costo_unitario : null,
+          motivo: "Inventario inicial (CSV)",
+          fecha: ahora,
+          deleted_at: null
+        };
+        
+        await this.crearMovimientoInterno(movimInicial);
+      }
+    });
   }
 }
