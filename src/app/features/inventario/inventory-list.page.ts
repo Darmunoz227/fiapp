@@ -17,7 +17,7 @@ import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/format
 import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
-import { calcularValorTotalInventario, LineaValorInventario, EstadoStock, resolverEstadoStock } from './inventory-calculations';
+import { calcularValorTotalInventario, LineaValorInventario, EstadoStock, resolverEstadoStock, sugerirMinimoStock } from './inventory-calculations';
 
 @Component({
   selector: 'app-inventory-list',
@@ -91,6 +91,18 @@ export class InventoryListPage {
     }));
     return '$' + formatCurrencyCOP(calcularValorTotalInventario(lineas));
   }
+  prellenarMinimo() {
+    const yaEscribio = this.minimo_stock !== null && String(this.minimo_stock).trim() !== '';
+    if (yaEscribio) {
+      return;
+    }
+    const cantidad = Number(this.cantidad_inicial);
+    const sugerido = sugerirMinimoStock(cantidad);
+    if (sugerido > 0) {
+      this.minimo_stock = sugerido;
+    }
+  }
+
   async crearProducto() {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
