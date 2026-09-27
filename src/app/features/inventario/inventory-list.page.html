@@ -9,7 +9,15 @@
 
 <ion-content class="ion-padding inventory-page">
   <section class="inventory-card">
-    <h2>Nuevo producto</h2>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 style="margin: 0;">Nuevo producto</h2>
+      <ion-button fill="clear" size="small" (click)="irAImportador()">
+        
+        Subir Excel
+      </ion-button>
+    </div>
+
 
     <ion-list lines="full" class="inventory-form">
       <ion-item>

@@ -14,7 +14,7 @@ import { downloadOutline, documentTextOutline } from "ionicons/icons";
 <ion-header>
   <ion-toolbar color="primary">
     <ion-buttons slot="start">
-      <ion-back-button defaultHref="/tabs/inventario"></ion-back-button>
+      <ion-back-button defaultHref="/inventario"></ion-back-button>
     </ion-buttons>
     <ion-title>Importar Inventario</ion-title>
   </ion-toolbar>

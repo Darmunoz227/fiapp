@@ -1,3 +1,4 @@
+import { Router } from "@angular/router";
 import { Component, ViewChild } from "@angular/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -42,6 +43,7 @@ export class InventoryListPage {
   @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
+    private router: Router,
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
     private seguridadService: SeguridadService,
@@ -294,5 +296,9 @@ export class InventoryListPage {
     });
 
     await toast.present();
+  }
+
+  irAImportador() {
+    this.router.navigate(["/importador-csv"]);
   }
 }

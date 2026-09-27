@@ -47,4 +47,8 @@ export const routes: Routes = [
     path: 'reportes',
     loadComponent: () => import('./features/reportes/reportes.page').then(m => m.ReportesPage)
   },
+  {
+    path: "importador-csv",
+    loadComponent: () => import("./features/inventario/importador-csv/importador-csv.page").then(m => m.ImportadorCsvPage)
+  },
 ];
