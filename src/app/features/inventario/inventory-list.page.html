@@ -32,7 +32,7 @@
 
       <ion-item>
         <ion-label position="stacked">¿Cuántos tienes hoy?</ion-label>
-        <ion-input type="number" inputmode="numeric" placeholder="Ej. 20" [(ngModel)]="cantidad_inicial"></ion-input>
+        <ion-input type="number" inputmode="numeric" placeholder="Ej. 20" [(ngModel)]="cantidad_inicial" (ionBlur)="prellenarMinimo()"></ion-input>
       </ion-item>
 
       <ion-item>
@@ -40,8 +40,8 @@
         <ion-input type="text" inputmode="numeric" placeholder="Ej. 3.500" [(ngModel)]="costo_inicial"></ion-input>
       </ion-item>
       <ion-item>
-        <ion-label position="stacked">Stock mínimo (opcional)</ion-label>
-        <ion-input type="number" inputmode="numeric" placeholder="Ej. 5 (opcional)" [(ngModel)]="minimo_stock"></ion-input>
+        <ion-label position="stacked">Avísame cuando queden (opcional)</ion-label>
+        <ion-input type="number" inputmode="numeric" placeholder="Ej. 5" [(ngModel)]="minimo_stock"></ion-input>
       </ion-item>
     </ion-list>
 
@@ -66,7 +66,9 @@
             <p>Venta: {{ producto.tipo_venta }} · Mínimo: {{ producto.minimo_stock }}</p>
            <p>Stock actual: {{ stockActual(producto.id) }}</p>
 <p>Valor a costo: {{ valorInventarioTexto(producto) }}</p>
-<p *ngIf="esStockBajo(producto.id)" class="stock-bajo-badge">Stock bajo</p>
+<p *ngIf="estadoStock(producto) === 'AGOTADO'" class="pill-agotado">Agotado</p>
+<p *ngIf="estadoStock(producto) === 'POR_AGOTARSE'" class="pill-pocos">Quedan {{ stockActual(producto.id) }} · repón pronto</p>
+<p *ngIf="estadoStock(producto) === 'SIN_MINIMO'" class="pill-configurar">Sin aviso configurado</p>
           </ion-label>
           <ion-label slot="end" class="price-label">
             {{ producto.precio_venta | currency:'COP':'symbol':'1.0-0' }}

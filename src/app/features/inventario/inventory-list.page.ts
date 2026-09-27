@@ -17,7 +17,7 @@ import { formatCurrencyCOP, parseCurrencyInput } from '../../shared/utils/format
 import { EditarProductoComponent } from '../../shared/modals/editar-producto/editar-producto.component';
 import { calcularPosicionCursor } from '../../shared/utils/caret-position';
 import { v4 as uuidv4 } from 'uuid';
-import { calcularValorTotalInventario, LineaValorInventario } from './inventory-calculations';
+import { calcularValorTotalInventario, LineaValorInventario, EstadoStock, resolverEstadoStock, sugerirMinimoStock } from './inventory-calculations';
 
 @Component({
   selector: 'app-inventory-list',
@@ -59,6 +59,11 @@ export class InventoryListPage {
     this.resumenPorProducto = new Map(resumenes.map((resumen) => [resumen.producto_id, resumen]));
   }
 
+  estadoStock(producto: Producto): EstadoStock {
+    const stock = this.resumenPorProducto.get(producto.id)?.stock_derivado ?? 0;
+    return resolverEstadoStock(stock, producto.minimo_stock);
+  }
+
   esStockBajo(productoId: string): boolean {
     return this.resumenPorProducto.get(productoId)?.stock_bajo ?? false;
   }
@@ -86,6 +91,18 @@ export class InventoryListPage {
     }));
     return '$' + formatCurrencyCOP(calcularValorTotalInventario(lineas));
   }
+  prellenarMinimo() {
+    const yaEscribio = this.minimo_stock !== null && String(this.minimo_stock).trim() !== '';
+    if (yaEscribio) {
+      return;
+    }
+    const cantidad = Number(this.cantidad_inicial);
+    const sugerido = sugerirMinimoStock(cantidad);
+    if (sugerido > 0) {
+      this.minimo_stock = sugerido;
+    }
+  }
+
   async crearProducto() {
     const puedeEscribir = await this.freemiumService.puedeEscribir();
     if (!puedeEscribir) {
