@@ -1998,3 +1998,160 @@ TestFlight; es decision de negocio, no tecnica, y queda abierta.
 vieja y la de auditoria de la Decision 048), y el nombre del cliente se guardo
 como "Arnulfo Castro " con espacio final: falta `trim()` al guardar, que
 ensucia busqueda y orden.
+
+---
+
+## Decision 059 - El costo se declara donde ya esta el comerciante: el AJUSTE lo REEMPLAZA, la COMPRA lo pondera
+
+**La Feature 036 quito el bloqueo de entrada y abrio uno de salida.** El
+producto ya nacia con stock, pero SIN costo: el AJUSTE de "Inventario inicial"
+mandaba costo_unitario 0 y el costo promedio solo se recalculaba con COMPRA o
+PRODUCCION. Reportado 2026-09-26 despues de mostrar la app a un tercero.
+
+El comerciante que queria registrar lo que le costo su mercancia tenia dos
+caminos y los dos estaban mal: registrar una COMPRA -el unico movimiento con
+campo de costo-, que SUMA y le dejaba 20 unidades cuando tenia 10; o no
+registrarla, y quedarse en costo 0 para siempre.
+
+**Peor que un stock mal contado: la app no falla, IMPRIME NUMEROS FALSOS.**
+Con costo 0 el valor total del inventario (Feature 023) cuenta 0 con mercancia
+real en la tienda; la ganancia de cada venta se calcula contra costo cero, o
+sea ganancia igual al precio completo; y el punto de equilibrio (Feature 032)
+hereda ese margen inflado. Mismo patron que la Decision 056: el dato falso se
+muestra en verde y nadie sospecha. La magnitud quedo medida en el respaldo del
+device test: OCHO de NUEVE productos con costo_promedio en 0.
+
+**Y no se corregia solo.** Un producto con stock 10 a costo 0 que despues
+recibe una compra real de 5 a 3.500 queda en (10*0 + 5*3500)/15 = 1.166.
+Subvalorado PARA SIEMPRE, no solo hoy.
+
+**Causa raiz: la operacion que el comerciante queria hacer NO EXISTIA.** Las
+disponibles eran COMPRA (suma), MERMA (resta) y AJUSTE (fija el conteo fisico,
+sin costo). "Decir cuanto me costo lo que ya tengo" no estaba. Hizo lo correcto
+con las herramientas que le dimos: le dimos el martillo equivocado.
+
+**Decision: el AJUSTE acepta costo unitario OPCIONAL.** Vacio no toca el costo
+promedio (comportamiento actual intacto); con valor lo REEMPLAZA, no lo
+pondera.
+
+Por que reemplaza: en una COMPRA el costo se pondera porque la mercancia SE
+SUMA a la que habia. En un AJUSTE el conteo fisico REEMPLAZA el stock, no lo
+suma. "Tengo 10 y me costaron 3.500 cada uno" es una DECLARACION del costo, no
+un aporte a un promedio; ponderar ahi daria un numero que no corresponde a
+nada real. Mismo espiritu del costo declarado de la Decision 052.
+
+Por que OPCIONAL: si fuera obligatorio, quien ajusta el conteo porque se le
+perdieron 2 unidades tendria que escribir un costo y resetearia el costo
+promedio sin querer. Vacio significa "no vengo a hablar de costos", que es el
+caso mas comun del AJUSTE.
+
+**Un solo mecanismo resuelve los dos problemas:** el producto que nace hoy (el
+alta manda el costo en su AJUSTE inicial) y el que ya nacio en cero (se corrige
+desde Movimientos, sin pantalla nueva). Se mantiene el AJUSTE y NO se emite
+COMPRA desde el alta, asi no choca con la regla de que las COMPRAS se corrigen
+con un AJUSTE y nunca se anulan.
+
+**La logica salio a funciones puras, no a un if dentro del servicio.** La suite
+corre SOLO la rama web: una funcion pura es lo unico que puede defender de
+verdad. resolverCostoPromedio decide por tipo y delega en
+calcularCostoPromedioPonderado, que NO se toca -es el corazon financiero, ya
+tiene tests, y un AC de regresion lo protege.
+
+**El umbral es costoUnitario > 0, no != null.** El AJUSTE ya escribia 0 en esa
+columna: con un chequeo de nulidad, cada ajuste de conteo existente habria
+borrado el costo del producto. Un bug silencioso a escala de toda la base.
+
+**Riesgo descartado CON EVIDENCIA, no por intuicion.** Se sospecho una cuarta
+aparicion del patron de transaccion anidada (Decision 028), porque el alta iba
+a disparar la escritura del costo dentro de su transaccion. Se verifico:
+actualizarCostoPromedioProducto ya llamaba a ejecutarRun(sql, values, true).
+No habia bug. Deuda anotada: ese true esta FIJO, no es parametro; funciona
+porque crearMovimientoInterno siempre corre dentro de una transaccion, pero es
+una suposicion implicita que ningun test defiende.
+
+**UI: el numero no alcanzaba, faltaba el VERBO.** El modal YA mostraba "Stock
+derivado actual" y "Costo promedio actual" y aun asi hubo confusion. La
+etiqueta "Cantidad" se leia como "cuanto tengo". Ahora es dinamica por tipo
+("Cuantas unidades entraron?" / "se perdieron?" / "vendiste?") y gana una nota
+VIVA calculada mientras escribe: "Se suman a las 10 que ya tienes -> quedaran
+30". Tambien salio a funcion pura: un {{ stock + cantidad }} inline en el
+template no lo defiende ningun test.
+
+**Nota, no Alert, para avisar que un costo se va a pisar.** El Alert llega
+tarde -cuando ya escribio y ya decidio- y entrena a tocar "Si" sin leer. El
+Alert queda reservado a lo destructivo de verdad (PIN, reinicio de inventario,
+Decision 049). La nota aparece solo si el costo previo es mayor que cero, asi
+el caso comun no molesta a nadie.
+
+## Verificacion
+
+**Por artefacto, con la cifra PREDICHA por escrito antes de correr.** Se
+anuncio que el costo promedio final seria 3.800 y el respaldo exportado del
+Pixel_8 lo confirmo exacto. La cadena completa, leida del JSON:
+
+- AJUSTE costo 3500, motivo "Inventario inicial", fisica 10 -> el costo viajo
+  desde el alta (AC-01).
+- Panela: AJUSTE costo 0, fisica 7, costo_promedio 0 -> la Feature 036 intacta
+  (AC-02).
+- AJUSTE costo 4000 con diferencia_calculada 0 -> REEMPLAZO 3.500 por 4.000
+  SIN mover el stock. Esa es, literalmente, la operacion que no existia (AC-04).
+- COMPRA cantidad 20 costo 3700 -> (10*4000 + 20*3700)/30 = 3800 (AC-05).
+
+Arroz Diana quedo como el UNICO producto de los nueve con costo distinto de
+cero: la foto exacta del problema y la prueba de que sin el arreglo el valor
+del inventario y la ganancia mentian en los ocho restantes.
+
+310 tests green (300 base + 10 nuevos). Schema v9 sin tocar: la columna
+costo_unitario ya existia NOT NULL en movim_inventario.
+
+**El AC-04 afirma el numero incorrecto a proposito.** El test exige 4.000 y
+deja escrito que ponderar daria 3.750. Si alguien "optimiza" la funcion
+ponderando, el test lo caza con el numero exacto en pantalla.
+
+## Lo que costo caro, todo de metodo
+
+**Una corrida sin linea TOTAL: no es "paso" ni "fallo" - es "NO CORRIO".** La
+suite arrancaba con un error de arranque del runner y la salida terminaba en
+"bundle generation complete". La ausencia de rojo se leyo como exito. Misma
+familia que el gate por tuberia de la Decision 056: lo que no se ve no es lo
+que no existe. El gate es la linea TOTAL:, no la falta de error.
+
+**tail sobre la salida de tests ESCONDE el error real.** La pila de llamadas
+ocupa el final; el mensaje que importa esta arriba. Con head -20 aparecio en
+la primera linea: TS2551, un metodo que no existe.
+
+**Se invento el nombre de un metodo sin verificarlo contra el archivo.** Se
+escribio component.guardarProducto() cuando el metodo real era crearProducto.
+RED invalido por error de compilacion, no por asercion. Misma familia que el
+describe mal insertado de la Decision 057: un identificador que no se verifico
+contra el archivo NO es una suposicion menor, es un RED muerto. Se verifica con
+grep ANTES, igual que el describe.
+
+**Se diagnostico EADDRINUSE sin evidencia y se mato un proceso inocente.** El
+puerto no era el problema; el codigo no compilaba. Dos senales ignoradas: el
+error nunca dijo EADDRINUSE, y liberar el puerto no cambio nada. Un diagnostico
+sin artefacto que lo respalde cuesta mas que no diagnosticar.
+
+**Los bloques python3 largos SE TRUNCAN al pegar.** Tres veces: una abrio el
+REPL interactivo y se comio el script en silencio, otra dejo el heredoc abierto
+en heredoc>, otra corto el medio y dio SyntaxError. Regla: ediciones cortas,
+una por vez, con formato compacto, y verificar el OK: de cada una antes de
+seguir. Un bloque de 40 lineas no es mas eficiente si no llega entero.
+
+**El intermitente "Failed to construct URL: Invalid base URL" ya cuesta
+tiempo real.** Provoco un 1 FAILED que interrumpio el diagnostico y obligo a
+una segunda corrida para descartarlo. Sube de prioridad en el backlog: un test
+intermitente ensena a desconfiar del gate, que es exactamente lo contrario de
+lo que el metodo necesita.
+
+**Un verde no anticipado es indistinguible de un falso verde.** Dos tests de
+no-regresion nacieron verdes contra el andamiaje, y eso es correcto; el error
+fue no anunciarlo antes de correr en uno de los dos casos. Si se anticipa, es
+evidencia; si se descubre, es sospecha.
+
+**Fuera de alcance, anotado:** avisar en la lista que productos tienen costo 0
+(abre el tema de la alerta de stock bajo, siguiente item del backlog); editar
+el costo promedio a mano en Editar producto (saltaria el historial, que es la
+fuente de verdad); las nueve pantallas con ionViewWillEnter sin manejo de
+error; la columna duplicada fecha_creacion / created_at y el trim() faltante
+en el nombre del cliente (Decision 058).
