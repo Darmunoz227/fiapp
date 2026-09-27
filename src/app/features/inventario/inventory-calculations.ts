@@ -126,3 +126,25 @@ export function describirStockResultante(
 
   return '';
 }
+
+export type EstadoStock = 'AGOTADO' | 'POR_AGOTARSE' | 'SIN_MINIMO' | 'OK';
+
+export function resolverEstadoStock(stockDerivado: number, minimoStock: number): EstadoStock {
+  if (stockDerivado <= 0) {
+    return 'AGOTADO';
+  }
+  if (minimoStock > 0 && stockDerivado <= minimoStock) {
+    return 'POR_AGOTARSE';
+  }
+  if (minimoStock <= 0) {
+    return 'SIN_MINIMO';
+  }
+  return 'OK';
+}
+
+export function sugerirMinimoStock(cantidadInicial: number): number {
+  if (!Number.isFinite(cantidadInicial) || cantidadInicial <= 0) {
+    return 0;
+  }
+  return Math.max(1, Math.floor(cantidadInicial * 0.25));
+}

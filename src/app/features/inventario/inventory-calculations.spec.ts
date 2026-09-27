@@ -1,4 +1,4 @@
-import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado , resolverCostoPromedio, etiquetaCantidadPorTipo, describirStockResultante} from './inventory-calculations';
+import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado , resolverCostoPromedio, etiquetaCantidadPorTipo, describirStockResultante, resolverEstadoStock, sugerirMinimoStock} from './inventory-calculations';
 
 describe('inventory-calculations', () => {
   describe('esStockBajo', () => {
@@ -121,5 +121,44 @@ describe('etiquetas y nota viva del modal - Feature 037', () => {
 
   it('AC-06: sin cantidad escrita no muestra nota', () => {
     expect(describirStockResultante('COMPRA', 10, null)).toBe('');
+  });
+});
+
+describe('resolverEstadoStock - Feature 038', () => {
+  it('AC-01: sin existencias y sin minimo es AGOTADO, no SIN_MINIMO', () => {
+    expect(resolverEstadoStock(0, 0)).toBe('AGOTADO');
+  });
+
+  it('AC-02: sin existencias gana sobre el minimo definido', () => {
+    expect(resolverEstadoStock(0, 5)).toBe('AGOTADO');
+  });
+
+  it('AC-03: por debajo del minimo avisa ANTES de agotarse', () => {
+    expect(resolverEstadoStock(2, 3)).toBe('POR_AGOTARSE');
+  });
+
+  it('AC-04: el limite INCLUYE, igual que esStockBajo hoy', () => {
+    expect(resolverEstadoStock(3, 3)).toBe('POR_AGOTARSE');
+  });
+
+  it('AC-05: con existencias y sin minimo no hay alarma, hay invitacion', () => {
+    expect(resolverEstadoStock(12, 0)).toBe('SIN_MINIMO');
+  });
+
+  it('AC-06: por encima del minimo no muestra nada', () => {
+    expect(resolverEstadoStock(12, 3)).toBe('OK');
+  });
+});
+
+describe('sugerirMinimoStock - Feature 038', () => {
+  it('AC-07: sugiere el 25% redondeado hacia abajo, con piso de 1', () => {
+    expect(sugerirMinimoStock(20)).toBe(5);
+    expect(sugerirMinimoStock(10)).toBe(2);
+    expect(sugerirMinimoStock(4)).toBe(1);
+    expect(sugerirMinimoStock(1)).toBe(1);
+  });
+
+  it('AC-07: sin cantidad no sugiere nada', () => {
+    expect(sugerirMinimoStock(0)).toBe(0);
   });
 });
