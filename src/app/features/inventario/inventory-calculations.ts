@@ -93,3 +93,36 @@ export function resolverCostoPromedio(
 
   return costoPromedioActual;
 }
+
+export function etiquetaCantidadPorTipo(tipo: MovimInventario['tipo']): string {
+  if (tipo === 'COMPRA') {
+    return '¿Cuántas unidades entraron?';
+  }
+  if (tipo === 'MERMA') {
+    return '¿Cuántas unidades se perdieron?';
+  }
+  if (tipo === 'VENTA') {
+    return '¿Cuántas unidades vendiste?';
+  }
+  return 'Cantidad';
+}
+
+export function describirStockResultante(
+  tipo: MovimInventario['tipo'],
+  stockActual: number,
+  cantidad: number | null,
+): string {
+  if (cantidad == null || Number.isNaN(cantidad) || cantidad <= 0) {
+    return '';
+  }
+
+  if (tipo === 'COMPRA' || tipo === 'PRODUCCION') {
+    return `Se suman a las ${stockActual} que ya tienes → quedarán ${stockActual + cantidad}`;
+  }
+
+  if (tipo === 'MERMA' || tipo === 'VENTA') {
+    return `Se restan de las ${stockActual} que ya tienes → quedarán ${stockActual - cantidad}`;
+  }
+
+  return '';
+}

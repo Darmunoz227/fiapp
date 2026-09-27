@@ -1,4 +1,4 @@
-import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado , resolverCostoPromedio} from './inventory-calculations';
+import { esStockBajo, calcularValorTotalInventario, LineaValorInventario, calcularStockDerivado , resolverCostoPromedio, etiquetaCantidadPorTipo, describirStockResultante} from './inventory-calculations';
 
 describe('inventory-calculations', () => {
   describe('esStockBajo', () => {
@@ -100,5 +100,26 @@ describe('resolverCostoPromedio - Feature 037', () => {
   it('AC-05 REGRESION: una COMPRA sigue ponderando igual que hoy', () => {
     const resultado = resolverCostoPromedio('COMPRA', 3500, 10, 20, 3700);
     expect(resultado).toBeCloseTo(3633.33, 2);
+  });
+});
+
+
+describe('etiquetas y nota viva del modal - Feature 037', () => {
+  it('AC-06: la etiqueta de cantidad nombra lo que de verdad ocurre', () => {
+    expect(etiquetaCantidadPorTipo('COMPRA')).toBe('¿Cuántas unidades entraron?');
+    expect(etiquetaCantidadPorTipo('MERMA')).toBe('¿Cuántas unidades se perdieron?');
+    expect(etiquetaCantidadPorTipo('VENTA')).toBe('¿Cuántas unidades vendiste?');
+  });
+
+  it('AC-06: la COMPRA dice que SUMA y calcula el stock resultante', () => {
+    expect(describirStockResultante('COMPRA', 10, 20)).toBe('Se suman a las 10 que ya tienes → quedarán 30');
+  });
+
+  it('AC-06: la MERMA dice que RESTA y calcula el stock resultante', () => {
+    expect(describirStockResultante('MERMA', 10, 3)).toBe('Se restan de las 10 que ya tienes → quedarán 7');
+  });
+
+  it('AC-06: sin cantidad escrita no muestra nota', () => {
+    expect(describirStockResultante('COMPRA', 10, null)).toBe('');
   });
 });
