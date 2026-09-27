@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototipo - Importador CSV</title>
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
+  <style>
+    :root { --ion-color-primary: #0054e9; }
+    .instrucciones { background: var(--ion-color-light); padding: 16px; border-radius: 8px; }
+    .paso { display: flex; align-items: flex-start; margin-bottom: 12px; }
+    .paso-numero { background: var(--ion-color-primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; margin-right: 12px; flex-shrink: 0; }
+    .resumen-tabla { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+    .resumen-tabla th, .resumen-tabla td { border-bottom: 1px solid var(--ion-color-step-150, #ccc); padding: 8px; text-align: left; }
+  </style>
+</head>
+<body>
+  <ion-app>
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>Importar Inventario</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <div class="instrucciones">
+        <div class="paso">
+          <div class="paso-numero">1</div>
+          <div>
+            <strong>Descarga la plantilla</strong>
+            <p class="ion-no-margin" style="font-size: 14px; color: var(--ion-color-medium);">Un archivo CSV con las columnas requeridas.</p>
+            <ion-button fill="outline" size="small" class="ion-margin-top">Plantilla.csv</ion-button>
+          </div>
+        </div>
+        <div class="paso" style="margin-top: 16px;">
+          <div class="paso-numero">2</div>
+          <div>
+            <strong>Sube tu archivo lleno</strong>
+            <p class="ion-no-margin" style="font-size: 14px; color: var(--ion-color-medium);">Asegúrate de guardarlo como .CSV</p>
+            <ion-button size="small" class="ion-margin-top">Seleccionar archivo</ion-button>
+          </div>
+        </div>
+      </div>
+      <ion-card class="ion-no-margin ion-margin-top">
+        <ion-card-header>
+          <ion-card-title style="font-size: 16px;">Vista Previa (3 productos detectados)</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <table class="resumen-tabla">
+            <thead>
+              <tr><th>Nombre</th><th>Precio</th><th>Cant.</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Buzo Nike Talla M</td><td>$ 85.000</td><td>12</td></tr>
+              <tr><td>Camiseta Puma L</td><td>$ 45.000</td><td>5</td></tr>
+              <tr><td>Gorra Adidas Negra</td><td>$ 30.000</td><td>20</td></tr>
+            </tbody>
+          </table>
+          <ion-button expand="block" color="success" class="ion-margin-top">
+            Importar 3 productos
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  </ion-app>
+</body>
+</html>
