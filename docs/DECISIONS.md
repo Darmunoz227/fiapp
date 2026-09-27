@@ -2155,3 +2155,133 @@ el costo promedio a mano en Editar producto (saltaria el historial, que es la
 fuente de verdad); las nueve pantallas con ionViewWillEnter sin manejo de
 error; la columna duplicada fecha_creacion / created_at y el trim() faltante
 en el nombre del cliente (Decision 058).
+
+---
+
+## Decision 060 - La alerta debe avisar ANTES, y decir cual de tres cosas pasa
+
+**La alerta de stock bajo existia, se calculaba en cada carga y NO SERVIA.**
+Dos defectos, no uno.
+
+(A) No avisaba: informaba un hecho consumado. `esStockBajo` es
+`stock <= minimo`, y con minimo 0 solo es cierto cuando el stock YA llego a
+cero. No decia "se te esta acabando": decia "ya se acabo".
+
+(B) El texto mentia. Un producto con CERO unidades no tiene "stock bajo":
+esta AGOTADO. Dos estados con urgencia distinta, mostrados identicos.
+
+Y era el caso POR DEFECTO desde la Feature 036, que hizo el minimo opcional:
+todo producto nuevo nace con minimo 0. Sin querer dejamos la alerta inservible
+para todos los productos nuevos. Medido en el respaldo del 27: NUEVE productos,
+CERO con minimo mayor que 0. Ninguno podia recibir un aviso anticipado.
+
+**Decision de producto de Diego:** "que se les avise cuando ya se les esta
+agotando, pero la app debe ser clara para que el merchant lo sepa".
+
+**Decision: tres estados donde habia uno, y el ORDEN de evaluacion es parte
+de la decision.**
+
+1. `stock <= 0`                     -> AGOTADO       (rojo)
+2. `minimo > 0 && stock <= minimo`  -> POR_AGOTARSE  (ambar)
+3. `minimo <= 0`                    -> SIN_MINIMO    (neutro)
+4. resto                            -> OK, sin aviso
+
+AGOTADO se evalua PRIMERO: un producto en 0 sin minimo debe decir "Agotado",
+no "configura un aviso". Lo urgente es que ya no puede vender. Un AC lo fija
+con stock 0 y minimo 5, para que reordenar los if rompa el test.
+
+`esStockBajo` NO se toca: conserva sus tests y sus consumidores. El estado es
+una funcion nueva ENCIMA, no en su lugar.
+
+**El minimo se SUGIERE, nunca se exige.** Un campo obligatorio fue lo que
+expulso a la merchant de ropa; uno vacio deja la alerta muerta. Al escribir la
+cantidad inicial, el minimo se PRELLENA con 25% redondeado hacia abajo, piso
+de 1 (20 -> 5, 10 -> 2, 4 -> 1). Editable y borrable, y NUNCA pisa lo que el
+comerciante ya escribio. Es una HEURISTICA documentada como tal: escala con el
+negocio, porque la panaderia mueve cientos y la tienda de ropa unidades.
+
+**La etiqueta cambio de "Stock minimo (opcional)" a "Avisame cuando queden".**
+No es cosmetica. Nadie sabe que numero va en un campo llamado "stock minimo",
+y ese desconocimiento EXACTO fue el origen del abandono: la merchant escribio
+ahi su existencia fisica. La etiqueta ahora explica que HACE el numero, no
+como se llama el campo.
+
+## El bug que esta feature INTRODUJO y como se encontro
+
+**Un (click) dentro de un ion-item con routerLink dispara AMBOS.** La pildora
+de SIN_MINIMO se diseno tocable, para configurar el aviso en dos toques desde
+donde el comerciante ya esta mirando. Se le puso
+`(click)="definirMinimo(producto); $event.stopPropagation()"`.
+
+`stopPropagation()` NO lo evita: Ionic maneja la navegacion del `ion-item` por
+fuera del flujo de eventos de Angular. Al tocar la pildora, la app abrio el
+modal Y navego a la pantalla de movimiento al mismo tiempo. El resultado no fue
+un click perdido: fue un MODAL HUERFANO sobre una pagina destruida, que dejo la
+app inutilizable hasta reiniciarla. La pantalla de movimiento mostro "PRODUCTO
+NO ENCONTRADO" con stock 0.
+
+**Se arreglo retirando el tap.** La pildora queda INFORMATIVA y dice "Sin aviso
+configurado" en vez de "Avisame cuando queden pocos": el segundo texto invita a
+tocar, y ya no se toca. El minimo se define desde Editar producto, que existe y
+funciona. Menos ambicioso, cero riesgo.
+
+**Y esto SOLO aparece en device.** La suite tenia 318 tests en verde y el build
+en EXIT 0 con el bug dentro. Ningun test renderiza un `ion-item` con
+`routerLink` y le hace tap a un hijo. Es el limite que la Decision 052
+documento -la suite corre solo la rama web- pero aplicado a la UI, no a SQLite.
+Regla: toda interaccion NUEVA dentro de un item navegable se prueba en device
+ANTES de darla por buena, sin importar cuantos tests esten verdes.
+
+**La Feature 034 se valido sola, sin haberlo planeado.** Cuando la app quedo
+rota, el Inicio mostro "No se pudieron cargar tus datos - Reintentar" en vez de
+una lista vacia con cartera en $0. Sin la Decision 056, Diego habria visto
+"Al dia $0" y habria creido que perdio todo. El manejo de error que se
+construyo para un caso hipotetico atrapo un caso real que nosotros mismos
+causamos.
+
+## Verificacion
+
+**Los cuatro estados verificados en device, POR CAPTURA y no por JSON.** El
+respaldo se exporto correctamente pero el envio por correo quedo en cola: el
+emulador estaba sin red. Fallo el ENVIO, no la exportacion. Se documenta la
+excepcion en vez de declarar una evidencia que no se tuvo.
+
+Lo que las capturas muestran, producto por producto:
+
+- Panela, stock 7 minimo 8 -> "Quedan 7 - repon pronto" en ambar. ESTE es el
+  arco completo de la feature: ayer ese producto no avisaba nada, y hoy avisa
+  MIENTRAS TODAVIA PUEDE VENDER.
+- Panatalon M, buzo azul y camistea S, stock 0 -> "Agotado" en rojo.
+- Prueba de cantidad, stock 20 minimo 0 -> "Sin aviso configurado" en gris.
+- Sal, stock 20 minimo 9 -> SIN pildora, y ese 9 prueba el AC-08: la
+  sugerencia se prellena, se borra, se escribe otro numero y NO lo pisa.
+
+El contraste entre Panela y Prueba de cantidad -ambos sin costo registrado,
+uno avisa y el otro no- hace visible POR PRIMERA VEZ para que sirve ese
+numero, que era justo lo que nadie entendia.
+
+318 tests green (310 base + 8 nuevos). Sin cambio de schema: `minimo_stock` ya
+existia en `productos`.
+
+**Hallazgos previos cerrados con evidencia, ANTES de disenar.** El hallazgo
+abierto de la Decision 057 -"un producto en 0 no enciende la alerta"- se
+verifico y quedo CERRADO: la alerta SI funciona y la pildora SI renderiza. Dos
+hipotesis propias se descartaron por evidencia: que los estilos de `ion-label`
+le ganaban a la clase del badge (falso), y que el producto "Prueba de cantidad"
+estaba en stock 0 (falso, tiene 20 - por eso no mostraba aviso, correctamente).
+Diagnosticar sobre el codigo real antes de escribir el spec evito construir una
+feature sobre una suposicion equivocada.
+
+**Fuera de alcance, anotado:** el aviso en el Inicio, porque el Home acaba de
+redisenarse dos veces (Decisions 054 y 056) y meterle un bloque reabre ese
+trabajo; notificaciones push, que romperian offline-first y ninguna evidencia
+pide; reordenar la lista por estado, que rompe la memoria espacial (principio
+de la Decision 054: no mover nada de sitio); y el `?? false` de
+`inventory-list.page.ts`, deuda real que se verifico NO ser la causa de este
+defecto.
+
+**Deuda nueva:** la pildora informativa resuelve el aviso pero deja la
+configuracion del minimo escondida detras de swipe -> Editar. Si la evidencia
+de campo muestra que los nueve productos siguen sin minimo dentro de un mes,
+hace falta una via de configuracion que no dependa del swipe, que la Decision
+044 ya declaro prohibido como interaccion primaria para el publico mayor.
