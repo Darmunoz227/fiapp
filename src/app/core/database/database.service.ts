@@ -1596,7 +1596,7 @@ export class DatabaseService {
           producto_id: idProducto,
           tipo: "AJUSTE",
           cantidad: prodCSV.cantidad_actual,
-          costo_unitario: prodCSV.costo_unitario > 0 ? prodCSV.costo_unitario : null,
+          costo_unitario: prodCSV.costo_unitario > 0 ? prodCSV.costo_unitario : 0,
           motivo: "Inventario inicial (CSV)",
           fecha: ahora,
           deleted_at: null

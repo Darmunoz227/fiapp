@@ -28,7 +28,7 @@ export class CsvParserService {
       const linea = lineas[i].trim();
       if (!linea) continue;
 
-      const columnas = linea.split(",");
+      const columnas = linea.split(";");
       const nombre = (columnas[0] || "").trim();
 
       if (!nombre) {

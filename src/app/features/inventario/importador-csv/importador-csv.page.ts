@@ -40,7 +40,7 @@ import { downloadOutline, documentTextOutline } from "ionicons/icons";
       <div style="width: 100%;">
         <strong>Sube tu archivo lleno</strong>
         <p class="ion-no-margin" style="font-size: 14px; color: var(--ion-color-medium);">Asegúrate de guardarlo como .CSV</p>
-        <input type="file" accept=".csv" id="fileInput" style="display: none;" (change)="onArchivoSeleccionado($event)" #fileInput>
+        <input type="file" accept=".csv, text/csv, application/vnd.ms-excel, application/csv, text/x-csv, application/x-csv, text/comma-separated-values, text/x-comma-separated-values" id="fileInput" style="display: none;" (change)="onArchivoSeleccionado($event)" #fileInput>
         <ion-button size="small" class="ion-margin-top" (click)="fileInput.click()">
           <ion-icon name="document-text-outline" slot="start"></ion-icon>
           Seleccionar archivo
@@ -111,7 +111,7 @@ export class ImportadorCsvPage {
   }
 
   async descargarPlantilla() {
-    const csvContent = "Nombre,Precio,Cantidad_Actual,Costo_Unitario,Stock_Minimo\nEjemplo Zapatos,80000,10,40000,5\nEjemplo Camiseta,35000,0,0,0";
+    const csvContent = "Nombre;Precio;Cantidad_Actual;Costo_Unitario;Stock_Minimo\nEjemplo Zapatos;80000;10;40000;5\nEjemplo Camiseta;35000;0;0;0";
     const fileName = "Plantilla_Inventario_FiApp.csv";
 
     try {
@@ -161,6 +161,7 @@ export class ImportadorCsvPage {
       await this.mostrarToast(`Exito: Se importaron ${this.resultado.validos.length} productos.`);
       this.resetear();
     } catch (error) {
+      alert("Error BD: " + ((error as any)?.message || JSON.stringify(error)));
       await this.mostrarToast("Error guardando en la base de datos.");
       this.estado = "VISTA_PREVIA";
     }
