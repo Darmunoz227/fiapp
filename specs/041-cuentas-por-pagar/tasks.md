@@ -1,6 +1,6 @@
 # Tareas - Feature 041
 
-- [ ] Definir spec, plan y tasks iniciales.
+- [x] Definir spec, plan y tasks iniciales.
 - [ ] TDD: Test y modelo de MovimientoDeuda.
 - [ ] SQLite: Migración para `movimientos_deuda` y `proveedores.saldo_deuda`.
 - [ ] TDD: Implementar `MovimientoDeudaRepository.registrarAbono()`.
