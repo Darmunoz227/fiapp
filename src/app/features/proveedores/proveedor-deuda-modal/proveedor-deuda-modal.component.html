@@ -17,13 +17,25 @@
     <ion-label>Historial de Movimientos</ion-label>
   </ion-list-header>
 
-  <ion-list inset="true">
-    <ion-item>
+    <ion-list inset="true">
+    <ion-item *ngIf="movimientos.length === 0">
       <ion-icon name="time-outline" slot="start" color="medium"></ion-icon>
       <ion-label>
         <h2>Aún no hay registros</h2>
         <p>Los abonos y cargos aparecerán aquí</p>
       </ion-label>
+    </ion-item>
+    
+    <ion-item *ngFor="let m of movimientos">
+      <ion-icon [name]="m.tipo === 'ABONO' ? 'arrow-up-circle-outline' : 'arrow-down-circle-outline'" 
+                [color]="m.tipo === 'ABONO' ? 'success' : 'danger'" slot="start"></ion-icon>
+      <ion-label>
+        <h2>{{ m.tipo === 'ABONO' ? 'Abono registrado' : 'Nuevo cargo' }}</h2>
+        <p>{{ m.fecha | date:'shortDate' }} <span *ngIf="m.notas">- {{ m.notas }}</span></p>
+      </ion-label>
+      <ion-note slot="end" [color]="m.tipo === 'ABONO' ? 'success' : 'danger'" style="font-weight: bold;">
+        {{ m.tipo === 'ABONO' ? '-' : '+' }}{{ m.monto | currency:'COP':'symbol-narrow':'1.0-0' }}
+      </ion-note>
     </ion-item>
   </ion-list>
 </ion-content>

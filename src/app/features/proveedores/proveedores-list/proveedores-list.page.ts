@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { ModalController } from '@ionic/angular';
+import { ProveedorDeudaModalComponent } from '../proveedor-deuda-modal/proveedor-deuda-modal.component';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
@@ -17,7 +19,22 @@ export class ProveedoresListPage implements OnInit {
   
   nuevo: any = { id: null, nombre: '', telefono: '', contacto: '', notas: '' };
 
-  constructor(private proveedorRepo: ProveedorRepository) {}
+  constructor(private proveedorRepo: ProveedorRepository, private modalCtrl: ModalController) {}
+
+  
+  async abrirModalDeuda(proveedor: any) {
+    const modal = await this.modalCtrl.create({
+      component: ProveedorDeudaModalComponent,
+      componentProps: {
+        proveedorId: proveedor.id,
+        proveedorNombre: proveedor.nombre,
+        saldoActual: proveedor.saldo_deuda || 0
+      },
+      initialBreakpoint: 0.8,
+      breakpoints: [0, 0.5, 0.8, 1]
+    });
+    return await modal.present();
+  }
 
   ngOnInit() {
     this.cargarProveedores();

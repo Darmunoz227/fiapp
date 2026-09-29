@@ -7,6 +7,19 @@ import { DatabaseService } from '../database/database.service';
 export class MovimientoDeudaRepository {
   constructor(private dbService: DatabaseService) {}
 
+  
+  async obtenerMovimientos(proveedorId: string): Promise<any[]> {
+    const db = (this.dbService as any).db || this.dbService;
+    const sql = 'SELECT * FROM movimientos_deuda WHERE proveedor_id = ? ORDER BY fecha DESC';
+    try {
+      const res = await db.query(sql, [proveedorId]);
+      return res?.values || [];
+    } catch (e) {
+      console.error('Error leyendo historial', e);
+      return [];
+    }
+  }
+
   async registrarAbono(proveedorId: string, monto: number, notas: string = ''): Promise<void> {
     const id = Date.now().toString() + '-' + Math.floor(Math.random() * 1000);
     const fecha = new Date().toISOString();
