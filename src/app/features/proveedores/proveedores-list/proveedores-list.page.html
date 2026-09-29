@@ -22,6 +22,10 @@
             <ion-icon name="document-text-outline" style="vertical-align: middle;"></ion-icon> {{ p.notas }}
           </p>
         </ion-label>
+        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+          <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
+          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </ion-note>
       </ion-item>
       
       <!-- Opciones al deslizar (Editar y Eliminar idéntico a Clientes) -->
@@ -65,21 +69,37 @@
       <ion-content class="ion-padding">
         <ion-item>
           <ion-label position="stacked">Nombre / Empresa *</ion-label>
+        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+          <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
+          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </ion-note>
           <ion-input [(ngModel)]="nuevo.nombre" placeholder="Ej. Distribuidora El Valle"></ion-input>
         </ion-item>
         
         <ion-item>
           <ion-label position="stacked">Nombre del Contacto</ion-label>
+        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+          <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
+          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </ion-note>
           <ion-input [(ngModel)]="nuevo.contacto" placeholder="Ej. Juan Pérez"></ion-input>
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">Teléfono</ion-label>
+        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+          <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
+          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </ion-note>
           <ion-input [(ngModel)]="nuevo.telefono" type="tel" placeholder="Ej. 3001234567"></ion-input>
         </ion-item>
 
         <ion-item>
           <ion-label position="stacked">Notas</ion-label>
+        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+          <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
+          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+        </ion-note>
           <ion-textarea [(ngModel)]="nuevo.notas" placeholder="Ej. Pasan los días martes a tomar pedido"></ion-textarea>
         </ion-item>
 
