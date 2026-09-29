@@ -15,10 +15,11 @@ import { MovimientoDeudaRepository } from '../../../core/repositories/movimiento
 export class ProveedorDeudaModalComponent implements OnInit {
   @Input() proveedorId!: string;
   @Input() proveedorNombre!: string;
-  @Input() saldoActual: number = 0;
-
+  
+  saldoActual: number = 0;
   movimientos: any[] = [];
   vistaActual: 'HISTORIAL' | 'FORMULARIO' = 'HISTORIAL';
+  
   tipoMovimiento: 'ABONO' | 'CARGO' = 'ABONO';
   formMontoStr: string = '';
   formMontoNum: number = 0;
@@ -34,6 +35,18 @@ export class ProveedorDeudaModalComponent implements OnInit {
 
   async cargarHistorial() {
     this.movimientos = await this.movRepo.obtenerMovimientos(this.proveedorId);
+    
+    // Calcular saldo exacto y saldo progresivo para mostrar junto a la nota
+    let saldoAcumulado = 0;
+    const movsInvertidos = [...this.movimientos].reverse(); // Recorremos de antiguo a nuevo
+    
+    for (const m of movsInvertidos) {
+      if (m.tipo === 'CARGO') saldoAcumulado += m.monto;
+      else if (m.tipo === 'ABONO') saldoAcumulado -= m.monto;
+      m.saldoMomentaneo = saldoAcumulado; // Guardamos cómo quedó la deuda tras este movimiento
+    }
+    
+    this.saldoActual = saldoAcumulado; // El saldo final
   }
 
   onMontoChange(valor: string | number) {
@@ -58,10 +71,7 @@ export class ProveedorDeudaModalComponent implements OnInit {
   async guardarMovimiento() {
     if (this.formMontoNum > 0) {
       await this.movRepo.registrarMovimiento(this.proveedorId, this.tipoMovimiento, this.formMontoNum, this.formNotas);
-      this.saldoActual = this.tipoMovimiento === 'CARGO' 
-        ? (this.saldoActual || 0) + this.formMontoNum 
-        : (this.saldoActual || 0) - this.formMontoNum;
-      await this.cargarHistorial();
+      await this.cargarHistorial(); // Esto recalcula todo mágicamente
       this.vistaActual = 'HISTORIAL';
     }
   }

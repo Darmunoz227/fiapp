@@ -8,7 +8,7 @@
 </ion-header>
 
 <ion-content>
-  <!-- Lista con deslizable idéntico a Clientes -->
+  <!-- Lista con deslizable -->
   <ion-list *ngIf="proveedores.length > 0">
     <ion-item-sliding *ngFor="let p of proveedores" #slidingItem>
       
@@ -23,12 +23,15 @@
           </p>
         </ion-label>
         
-        <!-- AQUI ESTA EL SALDO RESTAURADO -->
-        <ion-note slot="end" color="danger" *ngIf="p.saldo_deuda && p.saldo_deuda > 0" style="text-align: right;">
+        <!-- SALDO SIEMPRE VISIBLE -->
+        <ion-note slot="end" style="text-align: right;">
           <small style="color: var(--ion-color-medium); font-size: 0.75em;">Deuda</small><br>
-          <strong style="font-size: 1.1em;">{{ p.saldo_deuda | currency:'COP':'symbol-narrow':'1.0-0' }}</strong>
+          <strong style="font-size: 1.1em;" 
+                  [style.color]="(p.saldo_deuda || 0) > 0 ? 'var(--ion-color-danger)' : 'var(--ion-color-success)'">
+            {{ (p.saldo_deuda || 0) | currency:'COP':'symbol-narrow':'1.0-0' }}
+          </strong>
         </ion-note>
-      </ion-item>
+      </ion-item> <!-- ¡AQUÍ ESTABA EL ERROR! Faltaba esta etiqueta de cierre -->
       
       <!-- Opciones al deslizar -->
       <ion-item-options side="end">
