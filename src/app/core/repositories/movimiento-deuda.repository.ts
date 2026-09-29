@@ -5,10 +5,31 @@ import { DatabaseService } from '../database/database.service';
   providedIn: 'root'
 })
 export class MovimientoDeudaRepository {
-  constructor(private db: DatabaseService) {}
+  constructor(private dbService: DatabaseService) {}
 
-  async registrarAbono(proveedorId: string, monto: number, notas?: string): Promise<void> {
-    // TODO: Implementar logica transaccional
-    throw new Error('Method not implemented.');
+  async registrarAbono(proveedorId: string, monto: number, notas: string = ''): Promise<void> {
+    const id = Date.now().toString() + '-' + Math.floor(Math.random() * 1000);
+    const fecha = new Date().toISOString();
+    const tipo = 'ABONO';
+
+    const sqlInsert = `INSERT INTO movimientos_deuda (id, proveedor_id, tipo, monto, fecha, notas) VALUES (?, ?, ?, ?, ?, ?)`;
+    const valuesInsert = [id, proveedorId, tipo, monto, fecha, notas];
+
+    // COALESCE asegura que si saldo_deuda es nulo, lo trate como 0 antes de restar
+    const sqlUpdate = `UPDATE proveedores SET saldo_deuda = COALESCE(saldo_deuda, 0) - ? WHERE id = ?`;
+    const valuesUpdate = [monto, proveedorId];
+
+    // Obtenemos la conexion a SQLite (soportando tanto produccion como el mock del test)
+    const db = (this.dbService as any).db || this.dbService;
+
+    try {
+      await db.run('BEGIN TRANSACTION');
+      await db.run(sqlInsert, valuesInsert);
+      await db.run(sqlUpdate, valuesUpdate);
+      await db.run('COMMIT');
+    } catch (error) {
+      await db.run('ROLLBACK');
+      throw error;
+    }
   }
 }

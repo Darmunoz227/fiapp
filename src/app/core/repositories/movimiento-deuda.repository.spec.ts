@@ -4,11 +4,12 @@ import { MovimientoDeudaRepository } from './movimiento-deuda.repository';
 
 describe('MovimientoDeudaRepository', () => {
   let repository: MovimientoDeudaRepository;
-  let dbSpy: jasmine.SpyObj<DatabaseService>;
+  let dbSpy: any;
 
   beforeEach(() => {
-    // Espiamos el DatabaseService para verificar qué sentencias SQL se ejecutan
-    const spy = jasmine.createSpyObj('DatabaseService', ['run', 'query']);
+    const spy = jasmine.createSpyObj('DatabaseService', ['query', 'ejecutarSQL', 'run']);
+    spy.db = jasmine.createSpyObj('SQLiteDB', ['run', 'query']);
+    
     TestBed.configureTestingModule({
       providers: [
         MovimientoDeudaRepository,
@@ -16,35 +17,37 @@ describe('MovimientoDeudaRepository', () => {
       ]
     });
     repository = TestBed.inject(MovimientoDeudaRepository);
-    dbSpy = TestBed.inject(DatabaseService) as jasmine.SpyObj<DatabaseService>;
+    dbSpy = TestBed.inject(DatabaseService);
   });
 
   it('deberia crearse', () => {
     expect(repository).toBeTruthy();
   });
 
-  it('deberia registrar un abono actualizando el saldo y guardando el movimiento', async () => {
-    // Arrange
+  it('deberia registrar un abono actualizando el saldo y guardando el movimiento de forma transaccional', async () => {
     const proveedorId = 'prov-123';
     const montoAbono = 50000;
-    dbSpy.run.and.returnValue(Promise.resolve({ changes: 1 } as any));
+    
+    // Arrange
+    if (dbSpy.run) dbSpy.run.and.returnValue(Promise.resolve({ changes: 1 }));
+    if (dbSpy.query) dbSpy.query.and.returnValue(Promise.resolve({ changes: 1 }));
+    if (dbSpy.db && dbSpy.db.run) dbSpy.db.run.and.returnValue(Promise.resolve({ changes: 1 }));
 
-    // Act
-    try {
-        await repository.registrarAbono(proveedorId, montoAbono, 'Abono parcial');
-    } catch (e) {
-        // Capturamos el error intencional del esqueleto para evaluar las llamadas a BD
-    }
+    // Act (Ahora esperamos éxito total, sin try-catch)
+    await repository.registrarAbono(proveedorId, montoAbono, 'Abono parcial');
 
     // Assert
-    expect(dbSpy.run).toHaveBeenCalled();
-    const llamadas = dbSpy.run.calls.allArgs();
+    const llamadas = (dbSpy.run?.calls.allArgs() || [])
+      .concat(dbSpy.query?.calls.allArgs() || [])
+      .concat(dbSpy.db?.run?.calls.allArgs() || []);
     
-    // Verificamos que exista una insercion del movimiento y una actualizacion del saldo
-    const huboInsert = llamadas.some(args => args[0].toLowerCase().includes('insert into movimientos_deuda'));
-    const huboUpdate = llamadas.some(args => args[0].toLowerCase().includes('update proveedores set saldo_deuda'));
+    // Verificamos transaccionalidad y consultas
+    const huboInsert = llamadas.some((args: any[]) => args[0] && args[0].toLowerCase().includes('insert into movimientos_deuda'));
+    const huboUpdate = llamadas.some((args: any[]) => args[0] && args[0].toLowerCase().includes('update proveedores set saldo_deuda'));
+    const huboCommit = llamadas.some((args: any[]) => args[0] && args[0].toUpperCase().includes('COMMIT'));
     
     expect(huboInsert).withContext('Falta el INSERT del movimiento').toBeTrue();
     expect(huboUpdate).withContext('Falta el UPDATE del saldo del proveedor').toBeTrue();
+    expect(huboCommit).withContext('Falta el COMMIT de la transaccion').toBeTrue();
   });
 });
