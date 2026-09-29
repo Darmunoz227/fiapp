@@ -2,7 +2,7 @@
 
 - [x] Definir spec, plan y tasks iniciales.
 - [x] TDD: Test y modelo de MovimientoDeuda.
-- [ ] SQLite: Migración para `movimientos_deuda` y `proveedores.saldo_deuda`.
+- [x] SQLite: Migración para `movimientos_deuda` y `proveedores.saldo_deuda`.
 - [x] TDD: Implementar `MovimientoDeudaRepository.registrarAbono()`.
 - [ ] UI: Actualizar lista de proveedores con saldo visible.
 - [ ] UI: Construir vista de historial de cuenta por pagar.
