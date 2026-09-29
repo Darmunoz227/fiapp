@@ -7,7 +7,7 @@
       {{ saldoActual | currency:'COP':'symbol-narrow':'1.0-0' }}
     </h1>
     
-    <ion-button color="success" expand="block" class="ion-margin-top" style="font-weight: bold;">
+    <ion-button color="success" (click)="registrarAbonoPrompt()" expand="block" class="ion-margin-top" style="font-weight: bold;">
       <ion-icon name="cash-outline" slot="start"></ion-icon>
       Registrar Abono
     </ion-button>
