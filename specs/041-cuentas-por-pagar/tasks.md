@@ -4,7 +4,7 @@
 - [x] TDD: Test y modelo de MovimientoDeuda.
 - [x] SQLite: Migración para `movimientos_deuda` y `proveedores.saldo_deuda`.
 - [x] TDD: Implementar `MovimientoDeudaRepository.registrarAbono()`.
-- [ ] UI: Actualizar lista de proveedores con saldo visible.
+- [x] UI: Actualizar lista de proveedores con saldo visible.
 - [ ] UI: Construir vista de historial de cuenta por pagar.
 - [ ] UI: Construir formulario de registro de abono.
 - [ ] Integración: Enviar notificación de pago vía WhatsApp.
