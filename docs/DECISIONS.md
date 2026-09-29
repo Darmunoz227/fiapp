@@ -2308,3 +2308,27 @@ Esta feature se implemento sin documentacion en el momento. Se perdio el motivo 
 
 **6. Fuera de alcance**
 No se soporta carga directa de archivos binarios (.xlsx ni .xls), ni la actualizacion de stock de productos ya existentes mediante CSV (solo insercion de productos nuevos).
+
+## Decision 062 - Modulo de Proveedores y asociacion al inventario
+
+**1. Contexto y Problema**
+Los comerciantes necesitan tener a la mano el contacto de sus proveedores para reabastecer inventario de forma agil. Antes, esta informacion vivia en un cuaderno fisico o mezclada en la agenda del telefono, totalmente desvinculada del stock real.
+
+**2. Decision**
+Se creo la entidad "Proveedor" (nombre, telefono, notas) gestionada mediante un "ProveedorRepository", iniciando formalmente la extraccion de logica del "DatabaseService" hacia el patron Repositorio.
+Se altero la tabla de productos añadiendo la columna opcional "proveedor_id".
+En la vista de inventario, se implemento un boton dinamico ("Pedir por WhatsApp") que arma un mensaje de pedido automatico usando el nombre del producto y enviandolo al numero del proveedor (forzando temporalmente el codigo +57 de Colombia).
+
+
+**3. Verificacion**
+La feature se verifico visualmente en el navegador usando los mocks en memoria. Se valido que el formulario de inventario muestra el selector, que la tarjeta del producto renderiza el nombre del proveedor y que el boton dinámico abre exitosamente la URL de WhatsApp (wa.me) con el mensaje y el indicativo de pais correctos.
+
+**4. Lo que costo caro**
+La inyeccion automatizada de codigo "a ciegas". Rompimos el compilador de TypeScript al inyectar codigo JS dentro de un *template literal* de SQL, y generamos multiples errores `NG8001` y `TS2339` al usar componentes de Ionic (`ion-icon`, `ion-select`) sin declarar sus dependencias en la arquitectura Standalone.
+
+**5. NO RECUPERABLE (Deuda Documental)**
+Toda la feature se construyo en modo "rafaga" sin diseño de tareas previo. Se omitio por completo la fase de testing (no hay RED ni GREEN). La discusion sobre el modelo de Cuentas por Pagar (Saldo vs Facturas) ocurrio de forma verbal/post-facto y no guio el diseño inicial. Se perdieron los mensajes de error originales que detonaron las refactorizaciones.
+
+**6. Fuera de alcance**
+El modulo de Cuentas por Pagar (saldos, abonos, historial de deuda a proveedores) se extrae a una feature posterior. Soporte multi-pais para codigos de WhatsApp (YAGNI, se hardcodea +57 para MVP).
+

@@ -453,3 +453,5 @@ The android platform exists, builds and runs. AVD used: Pixel_8.
   quedo sin red y el correo del respaldo quedo en cola). Sin schema. 318 tests.
 
 - DONE: Feature 039 - Importacion masiva CSV.
+
+- DONE: Feature 040 - Proveedores.
