@@ -11,6 +11,7 @@ import { Gasto } from './gasto.model';
 import { GastoRecurrente } from './gasto-recurrente.model';
 
 export interface RespaldoData {
+  proveedores?: any[];
   clientes: Cliente[];
   transacciones: Transaccion[];
   productos: Producto[];

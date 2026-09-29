@@ -28,7 +28,15 @@
       </ion-button>
     </ion-item>
 
-  </ion-list>
+  
+    <ion-item button (click)="irAProveedores()" detail="true">
+      <ion-icon name="storefront-outline" slot="start" color="primary"></ion-icon>
+      <ion-label>
+        <h2>Proveedores</h2>
+        <p>Gestiona tus distribuidores</p>
+      </ion-label>
+    </ion-item>
+</ion-list>
 
   <ion-toast
     [isOpen]="mostrarToastGuardado"

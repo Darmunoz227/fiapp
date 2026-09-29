@@ -33,6 +33,9 @@
     <ion-input type="number" inputmode="numeric" [(ngModel)]="minimo_stock"></ion-input>
   </ion-item>
 
+  
+
+
   <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 20px;">
     <ion-label position="stacked">Tipo de venta</ion-label>
     <ion-note slot="end">{{ producto.tipo_venta }}</ion-note>
@@ -52,7 +55,20 @@
       <ion-button expand="block" fill="outline" color="medium" (click)="cerrarModal()">Cancelar</ion-button>
     </ion-col>
     <ion-col>
-      <ion-button expand="block" color="primary" (click)="guardar()">Guardar</ion-button>
+      
+  
+
+  <ion-button expand="block" color="primary" (click)="guardar()">Guardar</ion-button>
     </ion-col>
   </ion-row>
+
+  <!-- Selector de Proveedor -->
+  <ion-item lines="none" style="--border-radius: 12px; margin-bottom: 24px;">
+    <ion-label position="stacked">Proveedor (Opcional)</ion-label>
+    <ion-select [(ngModel)]="proveedor_id" interface="action-sheet" placeholder="Seleccionar distribuidor">
+      <ion-select-option [value]="null">Ninguno</ion-select-option>
+      <ion-select-option *ngFor="let p of proveedores" [value]="p.id">{{ p.nombre }}</ion-select-option>
+    </ion-select>
+  </ion-item>
+
 </ion-content>

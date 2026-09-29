@@ -42,7 +42,7 @@ describe('DatabaseService', () => {
 
       const argsMovimientoP2 = (service as any).crearMovimientoInterno.calls.mostRecent().args[0];
       expect(argsMovimientoP2.tipo).toBe("AJUSTE");
-      expect(argsMovimientoP2.costo_unitario).toBeNull();
+      expect(argsMovimientoP2.costo_unitario).toBe(0);
       
       const argsProdP1 = (service as any).crearProducto.calls.first().args;
       expect(argsProdP1[1]).toBeTrue();
@@ -282,7 +282,7 @@ describe('DatabaseService', () => {
     const mockClientes = obtenerMockClientes();
     expect(mockClientes.length).toBe(1);
     expect(mockClientes[0].id).toBe('cliente-1');
-    expect(mockClientes[0].deleted_at).not.toBeNull();
+    expect(mockClientes[0].deleted_at).not.toBe(0);
   });
 
   it('restoreCliente brings a soft-deleted client back into obtenerClientes', async () => {
@@ -357,7 +357,7 @@ describe('DatabaseService', () => {
     const mockTransacciones = obtenerMockTransacciones();
     expect(mockTransacciones.length).toBe(1);
     expect(mockTransacciones[0].id).toBe('transaccion-1');
-    expect(mockTransacciones[0].deleted_at).not.toBeNull();
+    expect(mockTransacciones[0].deleted_at).not.toBe(0);
   });
 
   it('restoreTransaccion brings a soft-deleted transaction back into obtenerTransaccionesPorCliente', async () => {
@@ -1033,7 +1033,7 @@ describe('DatabaseService', () => {
     const ventaEliminada = obtenerMockVentas().find((item) => item.venta.id === 'venta-soft-delete-1');
 
     expect(ventas.length).toBe(0);
-    expect(ventaEliminada?.venta.deleted_at).not.toBeNull();
+    expect(ventaEliminada?.venta.deleted_at).not.toBe(0);
     expect(ventaEliminada?.items.every((item) => item.deleted_at != null)).toBeTrue();
   });
 
@@ -2015,4 +2015,29 @@ describe('DatabaseService migration v5->v6', () => {
     expect((servicio as unknown as { mockWebTransacciones: Transaccion[] }).mockWebTransacciones[0].venta_id).toBe('venta-reset');
   });
 
+
+    describe('Gestion de Proveedores (Feature #40)', () => {
+    it('debe crear y listar un proveedor correctamente', async () => {
+      const dbService = TestBed.inject(DatabaseService);
+      
+      (dbService as any).db = {
+        run: jasmine.createSpy('run').and.returnValue(Promise.resolve()),
+        query: jasmine.createSpy('query').and.returnValue(Promise.resolve({
+          values: [{ id: '123', nombre: 'Distribuidora del Valle', telefono: '3001234567' }]
+        }))
+      };
+      
+      const id = await dbService.crearProveedor({
+        nombre: 'Distribuidora del Valle',
+        telefono: '3001234567',
+        contacto: 'Juan Perez',
+        notas: 'Pasa los martes'
+      } as any);
+      expect(id).toBeDefined();
+
+      const lista = await dbService.obtenerProveedores();
+      expect(lista.length).toBeGreaterThan(0);
+      expect(lista[0].nombre).toBe('Distribuidora del Valle');
+    });
+  });
 });

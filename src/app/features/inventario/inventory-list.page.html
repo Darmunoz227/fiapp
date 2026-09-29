@@ -21,17 +21,20 @@
 
     <ion-list lines="full" class="inventory-form">
       <ion-item>
-        <ion-label position="stacked">Nombre</ion-label>
+        <ion-label position="stacked">Nombre
+          </ion-label>
         <ion-input [(ngModel)]="nombre" placeholder="Ej. Carne molida"></ion-input>
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Precio de venta</ion-label>
+        <ion-label position="stacked">Precio de venta
+          </ion-label>
         <ion-input #precioVentaInput type="text" inputmode="numeric" placeholder="Ej. 12.000" [(ngModel)]="precio_venta" (ionInput)="onPrecioVentaInput()" (ionBlur)="onPrecioVentaBlur()"></ion-input>
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Tipo de venta</ion-label>
+        <ion-label position="stacked">Tipo de venta
+          </ion-label>
         <ion-select [(ngModel)]="tipo_venta" interface="popover">
           <ion-select-option value="UNIDAD">UNIDAD</ion-select-option>
           <ion-select-option value="PESO">PESO</ion-select-option>
@@ -39,18 +42,32 @@
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">¿Cuántos tienes hoy?</ion-label>
+        <ion-label position="stacked">¿Cuántos tienes hoy?
+          </ion-label>
         <ion-input type="number" inputmode="numeric" placeholder="Ej. 20" [(ngModel)]="cantidad_inicial" (ionBlur)="prellenarMinimo()"></ion-input>
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">¿A cuánto te costó cada uno? (opcional)</ion-label>
+        <ion-label position="stacked">¿A cuánto te costó cada uno? (opcional)
+          </ion-label>
         <ion-input type="text" inputmode="numeric" placeholder="Ej. 3.500" [(ngModel)]="costo_inicial"></ion-input>
       </ion-item>
       <ion-item>
-        <ion-label position="stacked">Avísame cuando queden (opcional)</ion-label>
+        <ion-label position="stacked">Avísame cuando queden (opcional)
+          </ion-label>
         <ion-input type="number" inputmode="numeric" placeholder="Ej. 5" [(ngModel)]="minimo_stock"></ion-input>
       </ion-item>
+
+        <!-- Selector de Proveedor -->
+        <ion-item lines="none" style="--border-radius: 8px; margin-bottom: 24px; border-bottom: 1px solid #eee;">
+          <ion-label position="stacked" style="font-size: 14px; color: #333;">Proveedor (opcional)
+          </ion-label>
+          <ion-select [(ngModel)]="proveedor_id" interface="action-sheet" placeholder="Seleccionar distribuidor">
+            <ion-select-option [value]="null">Ninguno</ion-select-option>
+            <ion-select-option *ngFor="let p of proveedores" [value]="p.id">{{ p.nombre }}</ion-select-option>
+          </ion-select>
+        </ion-item>
+
     </ion-list>
 
     <ion-button expand="block" class="save-button" (click)="crearProducto()">
@@ -77,7 +94,9 @@
 <p *ngIf="estadoStock(producto) === 'AGOTADO'" class="pill-agotado">Agotado</p>
 <p *ngIf="estadoStock(producto) === 'POR_AGOTARSE'" class="pill-pocos">Quedan {{ stockActual(producto.id) }} · repón pronto</p>
 <p *ngIf="estadoStock(producto) === 'SIN_MINIMO'" class="pill-configurar">Sin aviso configurado</p>
-          </ion-label>
+          
+          <p *ngIf="producto.proveedor_id" style="font-size: 0.85em; color: #666; margin-top: 4px; font-weight: 500;">🚚 Prov: {{ getNombreProveedor(producto.proveedor_id) }}</p>
+          <ion-button *ngIf="producto.proveedor_id" fill="clear" size="small" (click)="pedirPorWhatsApp(producto)" style="margin-top: 0px; --padding-start: 0; color: #2dd36f; font-weight: bold; text-transform: none; font-size: 0.85em;">💬 Pedir por WhatsApp</ion-button></ion-label>
           <ion-label slot="end" class="price-label">
             {{ producto.precio_venta | currency:'COP':'symbol':'1.0-0' }}
           </ion-label>

@@ -51,4 +51,8 @@ export const routes: Routes = [
     path: "importador-csv",
     loadComponent: () => import("./features/inventario/importador-csv/importador-csv.page").then(m => m.ImportadorCsvPage)
   },
+  {
+    path: 'proveedores-list',
+    loadComponent: () => import('./features/proveedores/proveedores-list/proveedores-list.page').then( m => m.ProveedoresListPage)
+  },
 ];

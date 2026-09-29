@@ -1,13 +1,29 @@
+import { ProveedorRepository } from '../../core/repositories/proveedor.repository';
 import { Router } from "@angular/router";
 import { Component, ViewChild } from "@angular/core";
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
-  IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-  IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption,
-  ToastController, ModalController, IonItemSliding, IonItemOptions, IonItemOption
-} from '@ionic/angular/standalone';
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonButtons,
+  IonBackButton,
+  IonList,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonButton,
+  IonSelect,
+  IonSelectOption,
+  ToastController,
+  ModalController,
+  IonItemSliding,
+  IonItemOptions,
+  IonItemOption
+} from '@ionic/angular/standalone';;
 import { DatabaseService } from '../../core/database/database.service';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { SeguridadService } from '../../core/seguridad/seguridad.service';
@@ -25,13 +41,11 @@ import { calcularValorTotalInventario, LineaValorInventario, EstadoStock, resolv
   templateUrl: './inventory-list.page.html',
   styleUrls: ['./inventory-list.page.scss'],
   standalone: true,
-  imports: [
-    CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton,
-    IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink,
-    IonItemSliding, IonItemOptions, IonItemOption
-  ]
+  imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonList, IonItem, IonLabel, IonInput, IonButton, IonSelect, IonSelectOption, RouterLink, IonItemSliding, IonItemOptions, IonItemOption]
 })
 export class InventoryListPage {
+  proveedores: any[] = [];
+  proveedor_id: string | null = null;
   productos: Producto[] = [];
   resumenPorProducto = new Map<string, ResumenInventario>();
   nombre = '';
@@ -43,6 +57,7 @@ export class InventoryListPage {
   @ViewChild("precioVentaInput") precioVentaInput?: IonInput;
 
   constructor(
+    private proveedorRepo: ProveedorRepository,
     private router: Router,
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
@@ -51,7 +66,8 @@ export class InventoryListPage {
     private modalCtrl: ModalController
   ) {}
 
-  ionViewWillEnter() {
+  async ionViewWillEnter() {
+    this.proveedores = await this.proveedorRepo.obtenerTodos();
     void this.cargarProductos();
   }
 
@@ -103,6 +119,36 @@ export class InventoryListPage {
     if (sugerido > 0) {
       this.minimo_stock = sugerido;
     }
+  }
+
+  getNombreProveedor(id: string | undefined | null): string {
+    if (!id) return '';
+    const prov = this.proveedores.find((p: any) => p.id === id);
+    return prov ? prov.nombre : '';
+  }
+
+  
+  getTelefonoProveedor(id: string | undefined | null): string {
+    if (!id) return '';
+    const prov = this.proveedores.find((p: any) => p.id === id);
+    return prov ? (prov.telefono || '') : '';
+  }
+
+  pedirPorWhatsApp(producto: any) {
+    const telefono = this.getTelefonoProveedor(producto.proveedor_id);
+    if (!telefono) {
+      alert('Este proveedor no tiene un número de teléfono guardado. Edítalo en la sección de Proveedores.');
+      return;
+    }
+    
+    // Limpiar el número y asegurar el indicativo de Colombia (+57)
+    let numeroLimpio = telefono.replace(/\D/g, '');
+    if (!numeroLimpio.startsWith('57') && numeroLimpio.length === 10) {
+      numeroLimpio = '57' + numeroLimpio;
+    }
+    
+    const mensaje = `Hola, necesito hacer un pedido de: *${producto.nombre}*. ¿Me confirmas disponibilidad y precio?`;
+    window.open(`https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`, '_blank');
   }
 
   async crearProducto() {
@@ -159,6 +205,7 @@ export class InventoryListPage {
       precio_venta: precioVenta,
       tipo_venta: this.tipo_venta,
       minimo_stock: minimoStock,
+      proveedor_id: this.proveedor_id || null,
       costo_promedio: 0,
       created_at: Date.now(),
       updated_at: null,
@@ -270,6 +317,7 @@ export class InventoryListPage {
     this.cantidad_inicial = null;
     this.costo_inicial = null;
     this.minimo_stock = null;
+    this.proveedor_id = null;
   }
 
   private esTipoVentaValido(tipoVenta: string): tipoVenta is 'UNIDAD' | 'PESO' {

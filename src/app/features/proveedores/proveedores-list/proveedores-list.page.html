@@ -1,0 +1,92 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Mis Proveedores</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Lista con deslizable idéntico a Clientes -->
+  <ion-list *ngIf="proveedores.length > 0">
+    <ion-item-sliding *ngFor="let p of proveedores" #slidingItem>
+      
+      <ion-item button (click)="editarProveedor(p)" detail="false">
+        <ion-icon name="storefront-outline" slot="start" color="medium"></ion-icon>
+        <ion-label>
+          <h2>{{ p.nombre }}</h2>
+          <p *ngIf="p.contacto">Contacto: {{ p.contacto }}</p>
+          <p *ngIf="p.telefono">Tel: {{ p.telefono }}</p>
+          <p *ngIf="p.notas" class="ion-text-wrap" style="margin-top: 4px; font-style: italic; color: #666; font-size: 0.9em;">
+            <ion-icon name="document-text-outline" style="vertical-align: middle;"></ion-icon> {{ p.notas }}
+          </p>
+        </ion-label>
+      </ion-item>
+      
+      <!-- Opciones al deslizar (Editar y Eliminar idéntico a Clientes) -->
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="editarProveedor(p); slidingItem.close()">
+          EDITAR
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="eliminarProveedor(p.id); slidingItem.close()">
+          <ion-icon slot="icon-only" name="trash"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+      
+    </ion-item-sliding>
+  </ion-list>
+
+  <!-- Estado Vacío -->
+  <div class="empty-state" *ngIf="proveedores.length === 0" style="text-align: center; margin-top: 50px; color: gray;">
+    <ion-icon name="cube-outline" style="font-size: 64px; opacity: 0.5;"></ion-icon>
+    <h2>Sin proveedores</h2>
+    <p>Registra a tus distribuidores para gestionar tus compras de inventario.</p>
+  </div>
+
+  <!-- Botón Flotante para Agregar -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed" style="margin-bottom: 60px; margin-right: 10px;">
+    <ion-fab-button (click)="setModalOpen(true)">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- Modal Inferior (Bottom Sheet) -->
+  <ion-modal [isOpen]="isModalOpen" [initialBreakpoint]="0.75" [breakpoints]="[0, 0.75, 1]" (didDismiss)="setModalOpen(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ nuevo.id ? 'Editar Proveedor' : 'Nuevo Proveedor' }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="setModalOpen(false)">Cerrar</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-item>
+          <ion-label position="stacked">Nombre / Empresa *</ion-label>
+          <ion-input [(ngModel)]="nuevo.nombre" placeholder="Ej. Distribuidora El Valle"></ion-input>
+        </ion-item>
+        
+        <ion-item>
+          <ion-label position="stacked">Nombre del Contacto</ion-label>
+          <ion-input [(ngModel)]="nuevo.contacto" placeholder="Ej. Juan Pérez"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Teléfono</ion-label>
+          <ion-input [(ngModel)]="nuevo.telefono" type="tel" placeholder="Ej. 3001234567"></ion-input>
+        </ion-item>
+
+        <ion-item>
+          <ion-label position="stacked">Notas</ion-label>
+          <ion-textarea [(ngModel)]="nuevo.notas" placeholder="Ej. Pasan los días martes a tomar pedido"></ion-textarea>
+        </ion-item>
+
+        <ion-button expand="block" class="ion-margin-top" (click)="guardarProveedor()" [disabled]="!nuevo.nombre">
+          {{ nuevo.id ? 'Actualizar Proveedor' : 'Guardar Proveedor' }}
+        </ion-button>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

@@ -6,6 +6,7 @@ export function construirRespaldo(data: RespaldoData, exportadoEn: string, confi
     schema_version: SCHEMA_VERSION,
     exported_at: exportadoEn,
     data: {
+      proveedores: data.proveedores || [],
       clientes: data.clientes,
       transacciones: data.transacciones,
       productos: data.productos,

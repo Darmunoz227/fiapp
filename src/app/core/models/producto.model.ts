@@ -1,6 +1,7 @@
 export type TipoVenta = 'UNIDAD' | 'PESO';
 
 export interface Producto {
+  proveedor_id?: string | null;
   id: string;
   nombre: string;
   precio_venta: number;

@@ -124,6 +124,21 @@ export class DatabaseService {
 
   private async crearTablasSiFaltan(): Promise<void> {
     await this.db.execute(`
+CREATE TABLE IF NOT EXISTS proveedores (
+        id TEXT PRIMARY KEY NOT NULL,
+        nombre TEXT NOT NULL,
+        telefono TEXT,
+        contacto TEXT,
+        notas TEXT,
+        created_at TEXT NOT NULL,
+        deleted_at TEXT,
+        proveedor_id TEXT DEFAULT NULL
+      );
+
+
+    `);
+
+    await this.db.execute(`
       CREATE TABLE IF NOT EXISTS clientes (
         id TEXT PRIMARY KEY NOT NULL,
         nombre TEXT NOT NULL,
@@ -1606,4 +1621,94 @@ export class DatabaseService {
       }
     });
   }
+
+  // --- FEATURE #40: GESTION DE PROVEEDORES ---
+  mockWebProveedores: any[] = [];
+
+  async crearProveedor(proveedor: any): Promise<string> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+    const nuevo = { ...proveedor, id, created_at: now, deleted_at: null };
+
+    // 1. Soporte en Memoria para pruebas Web (ng serve)
+    if (Capacitor.getPlatform() === 'web') {
+      this.mockWebProveedores.push(nuevo);
+      return id;
+    }
+
+    // 2. Soporte Nativo en SQLite (iOS / Android)
+    if (!this.isInitialized) await this.initializePlugin();
+
+    const query = `
+      INSERT INTO proveedores (id, nombre, telefono, contacto, notas, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+      id,
+      nuevo.nombre,
+      nuevo.telefono || null,
+      nuevo.contacto || null,
+      nuevo.notas || null,
+      now
+    ];
+    await this.db.run(query, values);
+    return id;
+  }
+
+  async obtenerProveedores(): Promise<any[]> {
+    // 1. Soporte en Memoria para pruebas Web
+    if (Capacitor.getPlatform() === 'web') {
+      return this.mockWebProveedores.filter(p => !p.deleted_at);
+    }
+
+    // 2. Soporte Nativo en SQLite
+    if (!this.isInitialized) await this.initializePlugin();
+
+    const query = `SELECT * FROM proveedores WHERE deleted_at IS NULL ORDER BY nombre ASC`;
+    const result = await this.db.query(query);
+    return (result.values as any[]) || [];
+  }
+
+
+  async actualizarProveedor(proveedor: any): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') {
+      const index = this.mockWebProveedores.findIndex((p: any) => p.id === proveedor.id);
+      if (index !== -1) {
+        this.mockWebProveedores[index] = { ...this.mockWebProveedores[index], ...proveedor };
+      }
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const query = `
+      UPDATE proveedores 
+      SET nombre = ?, telefono = ?, contacto = ?, notas = ?
+      WHERE id = ?
+    `;
+    const values = [
+      proveedor.nombre,
+      proveedor.telefono || null,
+      proveedor.contacto || null,
+      proveedor.notas || null,
+      proveedor.id
+    ];
+    await this.db.run(query, values);
+  }
+
+
+  async eliminarProveedor(id: string): Promise<void> {
+    const now = new Date().toISOString();
+    if (Capacitor.getPlatform() === 'web') {
+      const index = this.mockWebProveedores.findIndex((p: any) => p.id === id);
+      if (index !== -1) {
+        this.mockWebProveedores[index].deleted_at = now;
+      }
+      return;
+    }
+
+    if (!this.isInitialized) await this.initializePlugin();
+    const query = `UPDATE proveedores SET deleted_at = ? WHERE id = ?`;
+    await this.db.run(query, [now, id]);
+  }
+
 }

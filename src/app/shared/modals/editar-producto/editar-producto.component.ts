@@ -1,10 +1,24 @@
+import { ProveedorRepository } from '../../../core/repositories/proveedor.repository';
 import { Component, OnInit, ViewChild, Input } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
-  ModalController, IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-  IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
-} from "@ionic/angular/standalone";
+  ModalController,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonContent,
+  IonItem,
+  IonLabel,
+  IonInput,
+  IonRow,
+  IonCol,
+  IonButton,
+  IonNote,
+  IonToggle,
+  IonSelect,
+  IonSelectOption
+} from "@ionic/angular/standalone";;
 
 import { DatabaseService } from "../../../core/database/database.service";
 import { FreemiumService } from "../../../core/freemium/freemium.service";
@@ -18,12 +32,7 @@ import { v4 as uuidv4 } from "uuid";
   selector: "app-editar-producto",
   templateUrl: "./editar-producto.component.html",
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    IonHeader, IonToolbar, IonTitle, IonContent, IonItem,
-    IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle
-  ]
+  imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonInput, IonRow, IonCol, IonButton, IonNote, IonToggle, IonSelect, IonSelectOption]
 })
 export class EditarProductoComponent implements OnInit {
   producto!: Producto;
@@ -34,20 +43,29 @@ export class EditarProductoComponent implements OnInit {
   minimo_stock: number | null = null;
   cantidad_inicial: number | null = null;
   modoProduccion = false;
+  proveedor_id: string | null = null;
+  proveedores: any[] = [];
 
   @ViewChild("precioInput") precioInput?: IonInput;
 
   constructor(
+    private proveedorRepo: ProveedorRepository,
     private modalCtrl: ModalController,
     private dbService: DatabaseService,
     private freemiumService: FreemiumService
   ) {}
+
+  async cargarProveedores() {
+    this.proveedores = await this.proveedorRepo.obtenerTodos();
+  }
 
   ngOnInit() {
     this.nombre = this.producto.nombre;
     this.precio_venta = formatCurrencyCOP(this.producto.precio_venta);
     this.minimo_stock = this.producto.minimo_stock;
     this.modoProduccion = this.producto.modo_produccion ?? false;
+    this.proveedor_id = this.producto.proveedor_id || null;
+    this.cargarProveedores();
   }
 
   cerrarModal() {

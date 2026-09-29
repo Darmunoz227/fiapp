@@ -1,3 +1,5 @@
+import { ProveedorRepository } from '../../core/repositories/proveedor.repository';
+import { Router } from '@angular/router';
 import { Component, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -34,7 +36,7 @@ export class ConfiguracionesPage {
   private tapsEnCreditos = 0;
   private timerResetTaps: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(
+  constructor(private proveedorRepo: ProveedorRepository, private router: Router, 
     private dbService: DatabaseService,
     private prefs: PreferencesService,
     private freemiumService: FreemiumService,
@@ -328,7 +330,7 @@ export class ConfiguracionesPage {
       produccion_items: await this.dbService.leerCrudoProduccionItems(),
       gastos: await this.dbService.leerCrudoGastos(),
       gastos_recurrentes: await this.dbService.leerCrudoGastosRecurrentes(),
-    };
+      proveedores: await this.proveedorRepo.obtenerTodos(),};
 
     const config = {
       catalogo_fiado: await this.prefs.getCatalogoFiado(),
@@ -539,5 +541,9 @@ export class ConfiguracionesPage {
       ],
     });
     await alert.present();
+  }
+
+  irAProveedores() {
+    this.router.navigate(['/proveedores-list']);
   }
 }
