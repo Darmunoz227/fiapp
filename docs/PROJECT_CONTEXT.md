@@ -451,3 +451,5 @@ The android platform exists, builds and runs. AVD used: Pixel_8.
   se valido sola: el Inicio mostro "No se pudieron cargar tus datos" en vez de
   una cartera falsa en $0. Verificado por CAPTURA, no por JSON (el emulador
   quedo sin red y el correo del respaldo quedo en cola). Sin schema. 318 tests.
+
+- DONE: Feature 039 - Importacion masiva CSV.

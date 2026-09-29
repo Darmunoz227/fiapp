@@ -2285,3 +2285,26 @@ configuracion del minimo escondida detras de swipe -> Editar. Si la evidencia
 de campo muestra que los nueve productos siguen sin minimo dentro de un mes,
 hace falta una via de configuracion que no dependa del swipe, que la Decision
 044 ya declaro prohibido como interaccion primaria para el publico mayor.
+
+## Decision 061 - Importacion masiva de inventario mediante CSV con separador de punto y coma
+
+**1. Contexto y Problema**
+La carga manual de productos uno por uno representa una barrera de entrada (friccion) para nuevos comerciantes que ya tienen su inventario en Excel. Se requeria una solucion masiva (Feature 039), pero los archivos CSV generados por Excel en nuestra region tienen comportamientos de codificacion y delimitadores especificos.
+
+**2. Decision**
+Se construyo un modulo de importacion masiva de CSV.
+Se decidio forzar el separador por punto y coma (;) en la logica de parseo para garantizar la compatibilidad directa con los archivos exportados nativamente por Microsoft Excel en configuraciones regionales latinas, evitando que el usuario deba configurar delimitadores.
+La insercion en base de datos se maneja mediante un bloque transaccional en SQLite (`this.db.run`) para asegurar que, o se guardan todos los productos del lote, o no se guarda ninguno (evitando estados inconsistentes).
+
+
+**3. Verificacion**
+La importacion procesa los registros creando un ID unico para cada uno y asignando 'UNIDAD' como tipo de venta por defecto. Se verifico que el modulo advierte al usuario sobre el limite de productos de la version Freemium antes de importar.
+
+**4. Lo que costo caro**
+El descubrimiento tardio del comportamiento de Excel en español, que usa punto y coma en lugar de coma. Esto rompio el parseador inicial y obligo a ajustar la logica de split.
+
+**5. NO RECUPERABLE (Deuda Documental)**
+Esta feature se implemento sin documentacion en el momento. Se perdio el motivo exacto por el cual fallo el test inicial (no hay evidencia de ciclo RED/GREEN), por que se eligio ";" sobre "," antes de fallar en produccion, y cualquier alternativa de libreria externa CSV que se haya descartado en favor del parseo manual.
+
+**6. Fuera de alcance**
+No se soporta carga directa de archivos binarios (.xlsx ni .xls), ni la actualizacion de stock de productos ya existentes mediante CSV (solo insercion de productos nuevos).
