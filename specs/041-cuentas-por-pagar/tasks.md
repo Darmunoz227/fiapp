@@ -1,9 +1,9 @@
 # Tareas - Feature 041
 
 - [x] Definir spec, plan y tasks iniciales.
-- [ ] TDD: Test y modelo de MovimientoDeuda.
+- [x] TDD: Test y modelo de MovimientoDeuda.
 - [ ] SQLite: Migración para `movimientos_deuda` y `proveedores.saldo_deuda`.
-- [ ] TDD: Implementar `MovimientoDeudaRepository.registrarAbono()`.
+- [x] TDD: Implementar `MovimientoDeudaRepository.registrarAbono()`.
 - [ ] UI: Actualizar lista de proveedores con saldo visible.
 - [ ] UI: Construir vista de historial de cuenta por pagar.
 - [ ] UI: Construir formulario de registro de abono.
