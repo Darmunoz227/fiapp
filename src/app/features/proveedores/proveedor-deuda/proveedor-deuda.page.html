@@ -1,0 +1,39 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/proveedores"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Historial de Pagos</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div class="ion-padding" style="text-align: center; background: white;">
+    <ion-text color="medium"><p style="margin: 0;">Deuda Total</p></ion-text>
+    <h1 style="margin: 5px 0; color: var(--ion-color-danger); font-weight: bold;">
+      <!-- TODO: Mostrar saldo real -->
+      $0
+    </h1>
+  </div>
+
+  <ion-list-header>
+    <ion-label>Movimientos</ion-label>
+  </ion-list-header>
+
+  <ion-list inset="true">
+    <ion-item>
+      <ion-icon name="time-outline" slot="start" color="medium"></ion-icon>
+      <ion-label>
+        <h2>Aún no hay registros</h2>
+        <p>Los abonos y cargos aparecerán aquí</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+
+  <!-- FAB para registrar nuevo abono -->
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button color="success">
+      <ion-icon name="cash-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
