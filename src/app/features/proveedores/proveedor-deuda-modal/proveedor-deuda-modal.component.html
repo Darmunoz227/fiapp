@@ -1,0 +1,29 @@
+<ion-content color="light">
+  <div class="ion-padding" style="text-align: center; background: white; border-bottom: 1px solid #eee;">
+    <ion-text color="medium">
+      <p style="margin: 0; font-size: 0.9em;">Deuda Actual: {{ proveedorNombre }}</p>
+    </ion-text>
+    <h1 style="margin: 10px 0; color: var(--ion-color-danger); font-weight: bold; font-size: 2.5em;">
+      {{ saldoActual | currency:'COP':'symbol-narrow':'1.0-0' }}
+    </h1>
+    
+    <ion-button color="success" expand="block" class="ion-margin-top" style="font-weight: bold;">
+      <ion-icon name="cash-outline" slot="start"></ion-icon>
+      Registrar Abono
+    </ion-button>
+  </div>
+
+  <ion-list-header>
+    <ion-label>Historial de Movimientos</ion-label>
+  </ion-list-header>
+
+  <ion-list inset="true">
+    <ion-item>
+      <ion-icon name="time-outline" slot="start" color="medium"></ion-icon>
+      <ion-label>
+        <h2>Aún no hay registros</h2>
+        <p>Los abonos y cargos aparecerán aquí</p>
+      </ion-label>
+    </ion-item>
+  </ion-list>
+</ion-content>
