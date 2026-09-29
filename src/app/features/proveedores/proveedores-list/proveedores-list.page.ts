@@ -33,7 +33,15 @@ export class ProveedoresListPage implements OnInit {
       initialBreakpoint: 0.8,
       breakpoints: [0, 0.5, 0.8, 1]
     });
-    return await modal.present();
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if (data?.actualizado) {
+      if ((this as any).cargarProveedores) {
+        (this as any).cargarProveedores();
+      } else {
+        this.ngOnInit();
+      }
+    }
   }
 
   ngOnInit() {
