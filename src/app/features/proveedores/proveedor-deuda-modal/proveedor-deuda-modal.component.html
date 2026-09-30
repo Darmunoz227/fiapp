@@ -75,19 +75,6 @@
         <ion-input [(ngModel)]="formNotas" placeholder="Ej. Factura Mercancia"></ion-input>
       </ion-item>
 
-      <div class="ion-margin-top" style="text-align: center;">
-        <ion-button fill="outline" color="medium" expand="block" (click)="tomarFotoFactura()">
-          <ion-icon name="camera-outline" slot="start"></ion-icon>
-          {{ formFotoUrl ? 'Cambiar Foto de Factura' : 'Tomar Foto de Factura' }}
-        </ion-button>
-        <div *ngIf="formFotoUrl" style="margin-top: 10px; position: relative; display: inline-block;">
-          <img [src]="formFotoUrl" style="max-height: 120px; border-radius: 8px; border: 1px solid #ccc;" alt="Factura" />
-          <ion-button color="danger" size="small" shape="round" style="position: absolute; top: -10px; right: -10px;" (click)="formFotoUrl = null">
-            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-          </ion-button>
-        </div>
-      </div>
-
       <ion-row class="ion-margin-top">
         <ion-col><ion-button color="medium" expand="block" fill="outline" (click)="vistaActual = 'HISTORIAL'">Cancelar</ion-button></ion-col>
         <ion-col><ion-button [color]="tipoMovimiento === 'ABONO' ? 'success' : 'danger'" expand="block" (click)="guardarMovimiento()" [disabled]="formMontoNum <= 0">Guardar</ion-button></ion-col>
