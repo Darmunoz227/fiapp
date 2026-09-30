@@ -1241,12 +1241,13 @@ CREATE TABLE IF NOT EXISTS proveedores (
     }
 
     if (!this.isInitialized) await this.initializePlugin();
-    const sql = 'INSERT INTO gastos (id, categoria, valor, fecha, observacion, tipo_gasto, recurrente_id, created_at, updated_at, deleted_at, store_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+    const sql = 'INSERT INTO gastos (id, categoria, valor, fecha, observacion, tipo_gasto, recurrente_id, created_at, updated_at, deleted_at, store_id, created_by, metodo_pago) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
     await this.ejecutarRun(sql, [
       gasto.id, gasto.categoria, gasto.valor, gasto.fecha,
       gasto.observacion ?? null, gasto.tipo_gasto, gasto.recurrente_id ?? null,
       createdAt, gasto.updated_at ?? null, gasto.deleted_at ?? null,
       gasto.store_id ?? null, gasto.created_by ?? null,
+      (gasto as any).metodo_pago ?? 'EFECTIVO',
     ], dentroDeTx);
   }
 

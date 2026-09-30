@@ -5,8 +5,13 @@ import { Capacitor } from '@capacitor/core';
 @Injectable({ providedIn: 'root' })
 export class CajaRepository {
   // Mock en memoria para pruebas en Web (ng serve)
-  private mockWebCajas: any[] = [];
-  private mockWebMovimientos: any[] = [];
+  private mockWebCajas: any[] = JSON.parse(localStorage.getItem('mockWebCajas') || '[]');
+  private mockWebMovimientos: any[] = JSON.parse(localStorage.getItem('mockWebMovimientos') || '[]');
+
+  private guardarMockWeb() {
+    localStorage.setItem('mockWebCajas', JSON.stringify(this.mockWebCajas));
+    localStorage.setItem('mockWebMovimientos', JSON.stringify(this.mockWebMovimientos));
+  }
 
   constructor(private dbService: DatabaseService) {}
 
@@ -80,6 +85,7 @@ export class CajaRepository {
 
     if (Capacitor.getPlatform() === 'web') {
       this.mockWebMovimientos.push({ id, sesion_id: sesion.id, tipo, categoria, monto, descripcion, fecha });
+      this.guardarMockWeb();
       console.log(`[Web Mock] Movimiento: ${tipo} ${monto}`);
       return;
     }
@@ -107,7 +113,14 @@ export class CajaRepository {
   }
 
   async cerrarCaja(sesionId: string, saldoEsperado: number, saldoFisico: number, diferencia: number, nota: string): Promise<void> {
-    if (Capacitor.getPlatform() === 'web') return;
+    if (Capacitor.getPlatform() === 'web') {
+      const idx = this.mockWebCajas.findIndex(c => c.id === sesionId);
+      if (idx !== -1) {
+        this.mockWebCajas[idx] = { ...this.mockWebCajas[idx], estado: 'CERRADA', fecha_cierre: new Date().toISOString(), saldo_esperado: saldoEsperado, saldo_fisico: saldoFisico, diferencia, nota_cierre: nota };
+        this.guardarMockWeb();
+      }
+      return;
+    }
     const fecha = new Date().toISOString();
     const db = this.getDbInstance();
     const sql = `UPDATE sesiones_caja SET estado = 'CERRADA', fecha_cierre = ?, saldo_esperado = ?, saldo_fisico = ?, diferencia = ?, nota_cierre = ? WHERE id = ?`;
@@ -118,5 +131,17 @@ export class CajaRepository {
         await db.query(sql, [fecha, saldoEsperado, saldoFisico, diferencia, nota, sesionId]);
       }
     } catch (e) { console.error(e); throw e; }
+  }
+
+  async obtenerHistorialCajas(): Promise<any[]> {
+    if (Capacitor.getPlatform() === 'web') {
+      return this.mockWebCajas.filter(c => c.estado === 'CERRADA').sort((a, b) => b.fecha_cierre > a.fecha_cierre ? 1 : -1);
+    }
+    const db = this.getDbInstance();
+    try {
+      const sql = "SELECT * FROM sesiones_caja WHERE estado = 'CERRADA' ORDER BY fecha_cierre DESC LIMIT 30";
+      const res = await db.query(sql, []);
+      return res.values ?? [];
+    } catch (e) { console.error(e); return []; }
   }
 }

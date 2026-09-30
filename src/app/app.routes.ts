@@ -55,4 +55,8 @@ export const routes: Routes = [
     path: 'proveedores-list',
     loadComponent: () => import('./features/proveedores/proveedores-list/proveedores-list.page').then( m => m.ProveedoresListPage)
   },
+  {
+    path: 'caja',
+    loadComponent: () => import('./features/caja/caja.page').then( m => m.CajaPage)
+  },
 ];

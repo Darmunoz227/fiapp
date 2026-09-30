@@ -57,7 +57,7 @@ export class InventoryMovementPage {
   movimientos: MovimInventario[] = [];
   stockDerivado = 0;
 
-  tipo: 'COMPRA' | 'VENTA' | 'MERMA' | 'AJUSTE' = 'COMPRA';
+  tipo: 'COMPRA' | 'MERMA' | 'AJUSTE' = 'COMPRA';
   cantidad: number | null = null;
   costo_unitario = '';
   conteo_fisico: number | null = null;

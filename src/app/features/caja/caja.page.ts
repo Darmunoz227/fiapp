@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { IonicModule, ToastController, AlertController } from '@ionic/angular';
+import { IonicModule, ToastController, AlertController, ModalController } from '@ionic/angular';
 import { CajaRepository } from '../../core/repositories/caja.repository';
+import { HistorialCajasComponent } from './historial-cajas.component';
 import { addIcons } from 'ionicons';
-import { cashOutline, lockOpenOutline, walletOutline, lockClosedOutline, calculatorOutline, checkmarkCircleOutline, closeCircleOutline, addCircleOutline } from 'ionicons/icons';
+import { cashOutline, lockOpenOutline, walletOutline, lockClosedOutline, calculatorOutline, checkmarkCircleOutline, closeCircleOutline, addCircleOutline, documentTextOutline } from 'ionicons/icons';
 
 @Component({
   selector: 'app-caja',
@@ -29,9 +30,10 @@ export class CajaPage implements OnInit {
   constructor(
     private cajaRepo: CajaRepository,
     private toastCtrl: ToastController,
-    private alertCtrl: AlertController
+    private alertCtrl: AlertController,
+    private modalCtrl: ModalController
   ) {
-    addIcons({ cashOutline, lockOpenOutline, walletOutline, lockClosedOutline, calculatorOutline, checkmarkCircleOutline, closeCircleOutline, addCircleOutline });
+    addIcons({ cashOutline, lockOpenOutline, walletOutline, lockClosedOutline, calculatorOutline, checkmarkCircleOutline, closeCircleOutline, addCircleOutline, documentTextOutline });
   }
 
   async ngOnInit() { await this.cargarEstadoCaja(); }
@@ -111,5 +113,12 @@ export class CajaPage implements OnInit {
   private async mostrarToast(mensaje: string, color: 'success' | 'danger') {
     const toast = await this.toastCtrl.create({ message: mensaje, duration: 2500, color, position: 'top' });
     await toast.present();
+  }
+
+  async abrirHistorial() {
+    const modal = await this.modalCtrl.create({
+      component: HistorialCajasComponent
+    });
+    await modal.present();
   }
 }

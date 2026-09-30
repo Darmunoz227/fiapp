@@ -3,10 +3,11 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import {
   ModalController, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButton, IonInput, IonNote, IonLabel, IonItem
+  IonButton, IonInput, IonNote, IonLabel, IonItem, IonSelect, IonSelectOption
 } from "@ionic/angular/standalone";
 import { DatabaseService } from "../../../core/database/database.service";
 import { FreemiumService } from "../../../core/freemium/freemium.service";
+import { CajaRepository } from "../../../core/repositories/caja.repository";
 import { TipoGasto } from "../../../core/models/gasto.model";
 import { GastoRecurrente } from "../../../core/models/gasto-recurrente.model";
 import { CATEGORIAS_GASTO, sugerirTipoGasto } from "../../../core/gastos/gastos";
@@ -18,7 +19,7 @@ import { v4 as uuidv4 } from "uuid";
   styleUrls: ["./registrar-gasto.component.scss"],
   standalone: true,
   imports: [CommonModule, FormsModule, IonHeader, IonToolbar, IonTitle, IonContent,
-            IonButton, IonInput, IonNote, IonLabel, IonItem]
+            IonButton, IonInput, IonNote, IonLabel, IonItem, IonSelect, IonSelectOption]
 })
 export class RegistrarGastoComponent implements OnInit {
   @Input() origen: GastoRecurrente | null = null;
@@ -29,15 +30,19 @@ export class RegistrarGastoComponent implements OnInit {
   valor: number | null = null;
   tipo: TipoGasto = "VARIABLE";
   observacion = "";
+  metodo_pago = "EFECTIVO";
   fechaTexto = "";
   error = "";
 
+  constructor(
+    private modalCtrl: ModalController,
+    private dbService: DatabaseService,
+    private freemiumService: FreemiumService,
+    private cajaRepo: CajaRepository
+  ) {}
+
   ngOnInit() {
     if (this.origen) {
-      // Una plantilla creada con texto libre puede traer una categoria
-      // que no esta entre los chips (vigilancia, agua). En ese caso se
-      // preselecciona Otro y su nombre viaja en el campo, en vez de
-      // dejar los seis chips en blanco.
       this.aplicarCategoriaInicial(this.origen.categoria);
       this.valor = this.origen.valor_estimado;
       this.tipo = this.origen.tipo_gasto;
@@ -45,21 +50,10 @@ export class RegistrarGastoComponent implements OnInit {
     this.fechaTexto = this.hoyISO();
   }
 
-  constructor(
-    private modalCtrl: ModalController,
-    private dbService: DatabaseService,
-    private freemiumService: FreemiumService
-  ) {}
-
   get titulo(): string {
     return this.origen ? "Pago de " + this.origen.categoria : "Registrar un gasto";
   }
 
-  // La categoria PRECARGA el tipo pero nunca lo impone: el merchant
-  // puede corregirlo siempre (AC-07c). Si el gasto viene de plantilla,
-  // el tipo inicial es el de la plantilla y tambien es editable: AC-04
-  // protege contra cambios POSTERIORES de la plantilla, no contra lo que
-  // el merchant decide en el momento de registrar.
   elegirCategoria(c: string) {
     this.categoria = c;
     if (c !== "Otro") {
@@ -74,14 +68,10 @@ export class RegistrarGastoComponent implements OnInit {
       this.nombreOtro = "";
       return;
     }
-    this.categoria = "Otro";
-    this.nombreOtro = c;
+      this.categoria = "Otro";
+      this.nombreOtro = c;
   }
 
-  // El chip Otro guarda el nombre que escribio el merchant, no la
-  // palabra "Otro": la columna categoria es texto libre y aplanar todo
-  // a "Otro" perderia el detalle (vigilancia, agua, almuerzos). Si lo
-  // deja vacio se guarda "Otro" y no se le exige nada.
   get categoriaFinal(): string {
     if (this.categoria !== "Otro") {
       return this.categoria;
@@ -101,8 +91,6 @@ export class RegistrarGastoComponent implements OnInit {
     return d.getFullYear() + "-" + mes + "-" + dia;
   }
 
-  // Se ancla al MEDIODIA local: a medianoche un corrimiento de zona
-  // horaria puede mover el gasto al mes anterior y sacarlo del total.
   private fechaEnMilis(): number {
     const partes = this.fechaTexto.split("-").map(Number);
     if (partes.length !== 3 || partes.some((n) => !Number.isFinite(n))) {
@@ -136,7 +124,18 @@ export class RegistrarGastoComponent implements OnInit {
         observacion: nota === "" ? null : nota,
         tipo_gasto: this.tipo,
         recurrente_id: this.origen ? this.origen.id : null,
-      });
+        metodo_pago: this.metodo_pago
+      } as any);
+
+      // --- CONEXIÓN CON CAJA ---
+      if (this.metodo_pago === 'EFECTIVO') {
+        try {
+          await this.cajaRepo.registrarMovimientoCaja('EGRESO', 'Gastos', valor, `Pago de ${categoria}`);
+        } catch (e) {
+          console.warn('La caja no está abierta', e);
+        }
+      }
+
       this.modalCtrl.dismiss({ guardado: true, tipo: this.tipo });
     } catch (error) {
       console.error("No se pudo guardar el gasto:", error);

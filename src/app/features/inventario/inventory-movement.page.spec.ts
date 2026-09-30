@@ -171,7 +171,7 @@ describe('InventoryMovementPage', () => {
       crearMovimientoParcial({ id: 'mov-1', tipo: 'COMPRA', cantidad: 10, costo_unitario: 1000 }),
     ];
 
-    component.tipo = 'VENTA';
+    component.tipo = 'MERMA';
     component.cantidad = 3;
     component.costo_unitario = '999';
     component.motivo = 'Venta mostrador';
@@ -247,7 +247,7 @@ describe('InventoryMovementPage', () => {
   it('shows the service error and keeps the form when stock is blocked', async () => {
     databaseServiceMock.crearMovimiento.and.rejectWith(new Error('Stock insuficiente para registrar el movimiento'));
 
-    component.tipo = 'VENTA';
+    component.tipo = 'MERMA';
     component.cantidad = 99;
     component.costo_unitario = '';
     component.motivo = 'Venta sin stock';
@@ -261,7 +261,7 @@ describe('InventoryMovementPage', () => {
     }));
     expect(component.cantidad).toBe(99);
     expect(component.motivo).toBe('Venta sin stock');
-    expect(component.tipo).toBe('VENTA');
+    expect(component.tipo).toBe('MERMA');
   });
 
   it('anular a VENTA calls softDeleteMovimiento and reloads', async () => {

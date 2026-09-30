@@ -61,6 +61,17 @@
                [(ngModel)]="observacion"></ion-input>
   </ion-item>
 
+    <ion-item lines="full" class="ion-margin-top">
+      <ion-label position="stacked">Medio de Pago</ion-label>
+      <ion-select [(ngModel)]="metodo_pago" interface="action-sheet" okText="Aceptar" cancelText="Cancelar">
+        <ion-select-option value="EFECTIVO">💵 Efectivo (Caja Física)</ion-select-option>
+        <ion-select-option value="NEQUI">📱 Nequi</ion-select-option>
+        <ion-select-option value="DAVIPLATA">📱 DaviPlata</ion-select-option>
+        <ion-select-option value="BREB">🔄 Breb</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+
   <p class="aviso-inventario">
     ¿Compraste algo para vender? Eso no es un gasto: regístralo en Inventario.
   </p>

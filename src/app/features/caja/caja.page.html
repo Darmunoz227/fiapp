@@ -26,9 +26,15 @@
         </ion-item>
         <ion-button expand="block" class="ion-margin-top" (click)="abrirCaja()" [disabled]="formBaseNum < 0">
           <ion-icon name="lock-open-outline" slot="start"></ion-icon> Abrir Caja
+        
         </ion-button>
       </ion-card-content>
     </ion-card>
+
+    <ion-button fill="clear" expand="block" color="medium" class="ion-margin-top" (click)="abrirHistorial()">
+      <ion-icon name="document-text-outline" slot="start"></ion-icon> Ver historial de cierres
+    </ion-button>
+
   </div>
 
   <!-- VISTA: CAJA ABIERTA (CORTE Z) -->
@@ -87,8 +93,14 @@
 
         <ion-button expand="block" color="danger" class="ion-margin-top" (click)="confirmarCierre()" [disabled]="formSaldoFisicoNum <= 0 && formSaldoFisicoStr !== '0'">
           <ion-icon name="calculator-outline" slot="start"></ion-icon> Cerrar Turno (Corte Z)
+        
         </ion-button>
       </ion-card-content>
     </ion-card>
+
+    <ion-button fill="clear" expand="block" color="medium" class="ion-margin-top" (click)="abrirHistorial()">
+      <ion-icon name="document-text-outline" slot="start"></ion-icon> Ver historial de cierres
+    </ion-button>
+
   </div>
 </ion-content>
