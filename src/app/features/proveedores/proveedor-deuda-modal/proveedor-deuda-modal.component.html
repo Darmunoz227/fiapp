@@ -1,6 +1,4 @@
 <ion-content color="light">
-  
-  <!-- === VISTA 1: HISTORIAL (POR DEFECTO) === -->
   <div *ngIf="vistaActual === 'HISTORIAL'">
     <div class="ion-padding" style="text-align: center; background: white; border-bottom: 1px solid #eee;">
       <ion-text color="medium">
@@ -15,14 +13,12 @@
       <ion-row>
         <ion-col>
           <ion-button color="danger" expand="block" (click)="abrirFormulario('CARGO')">
-            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-            CARGO
+            <ion-icon name="add-circle-outline" slot="start"></ion-icon> CARGO
           </ion-button>
         </ion-col>
         <ion-col>
           <ion-button color="success" expand="block" (click)="abrirFormulario('ABONO')" [disabled]="(saldoActual || 0) <= 0">
-            <ion-icon name="cash-outline" slot="start"></ion-icon>
-            ABONAR
+            <ion-icon name="cash-outline" slot="start"></ion-icon> ABONAR
           </ion-button>
         </ion-col>
       </ion-row>
@@ -32,10 +28,7 @@
     <ion-list inset="true">
       <ion-item *ngIf="movimientos.length === 0">
         <ion-icon name="time-outline" slot="start" color="medium"></ion-icon>
-        <ion-label>
-          <h2>Aún no hay registros</h2>
-          <p>Los abonos y cargos aparecerán aquí</p>
-        </ion-label>
+        <ion-label><h2>Aún no hay registros</h2></ion-label>
       </ion-item>
       
       <ion-item *ngFor="let m of movimientos">
@@ -44,26 +37,27 @@
         <ion-label>
           <h2>{{ m.tipo === 'ABONO' ? 'Abono registrado' : 'Nuevo cargo' }}</h2>
           <p>
-            {{ m.fecha | date:'shortDate' }} 
-            <span *ngIf="m.notas">- {{ m.notas }}</span>
-            <br>
-            <!-- AQUI MOSTRAMOS CUANTO SE LE DEBIA TRAS ESE MOVIMIENTO -->
+            {{ m.fecha | date:'shortDate' }} <span *ngIf="m.notas">- {{ m.notas }}</span><br>
             <span style="color: var(--ion-color-medium); font-size: 0.9em;">
-              Quedó debiendo: 
-              <strong [style.color]="(m.saldoMomentaneo || 0) > 0 ? 'var(--ion-color-danger)' : 'var(--ion-color-success)'">
+              Quedó debiendo: <strong [style.color]="(m.saldoMomentaneo || 0) > 0 ? 'var(--ion-color-danger)' : 'var(--ion-color-success)'">
                 {{ m.saldoMomentaneo | currency:'COP':'symbol-narrow':'1.0-0' }}
               </strong>
             </span>
           </p>
         </ion-label>
-        <ion-note slot="end" [color]="m.tipo === 'ABONO' ? 'success' : 'danger'" style="font-weight: bold;">
-          {{ m.tipo === 'ABONO' ? '-' : '+' }}{{ m.monto | currency:'COP':'symbol-narrow':'1.0-0' }}
+        
+        <ion-note slot="end" style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center;">
+          <span [style.color]="m.tipo === 'ABONO' ? 'var(--ion-color-success)' : 'var(--ion-color-danger)'" style="font-weight: bold; font-size: 1.1em;">
+            {{ m.tipo === 'ABONO' ? '-' : '+' }}{{ m.monto | currency:'COP':'symbol-narrow':'1.0-0' }}
+          </span>
+          <ion-button fill="clear" color="success" size="small" (click)="enviarWhatsApp(m)" title="Notificar por WhatsApp" style="margin-top: 5px; height: 30px;">
+            <ion-icon name="logo-whatsapp" style="font-size: 1.6em;"></ion-icon>
+          </ion-button>
         </ion-note>
       </ion-item>
     </ion-list>
   </div>
 
-  <!-- === VISTA 2: FORMULARIO === -->
   <div *ngIf="vistaActual === 'FORMULARIO'">
     <div class="ion-padding" style="background: white; min-height: 100%;">
       <h2 style="text-align: center; font-weight: bold;" 
@@ -73,8 +67,7 @@
       
       <ion-item class="ion-margin-top">
         <ion-label position="stacked">Monto ($) *</ion-label>
-        <ion-input type="tel" [ngModel]="formMontoStr" (ngModelChange)="onMontoChange($event)" 
-                   placeholder="Ej. 150.000" style="font-size: 1.5em; font-weight: bold;"></ion-input>
+        <ion-input type="tel" [ngModel]="formMontoStr" (ngModelChange)="onMontoChange($event)" placeholder="Ej. 150.000" style="font-size: 1.5em; font-weight: bold;"></ion-input>
       </ion-item>
 
       <ion-item class="ion-margin-top">
@@ -82,14 +75,22 @@
         <ion-input [(ngModel)]="formNotas" placeholder="Ej. Factura Mercancia"></ion-input>
       </ion-item>
 
+      <div class="ion-margin-top" style="text-align: center;">
+        <ion-button fill="outline" color="medium" expand="block" (click)="tomarFotoFactura()">
+          <ion-icon name="camera-outline" slot="start"></ion-icon>
+          {{ formFotoUrl ? 'Cambiar Foto de Factura' : 'Tomar Foto de Factura' }}
+        </ion-button>
+        <div *ngIf="formFotoUrl" style="margin-top: 10px; position: relative; display: inline-block;">
+          <img [src]="formFotoUrl" style="max-height: 120px; border-radius: 8px; border: 1px solid #ccc;" alt="Factura" />
+          <ion-button color="danger" size="small" shape="round" style="position: absolute; top: -10px; right: -10px;" (click)="formFotoUrl = null">
+            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+
       <ion-row class="ion-margin-top">
-        <ion-col>
-          <ion-button color="medium" expand="block" fill="outline" (click)="vistaActual = 'HISTORIAL'">Cancelar</ion-button>
-        </ion-col>
-        <ion-col>
-          <ion-button [color]="tipoMovimiento === 'ABONO' ? 'success' : 'danger'" expand="block" 
-                      (click)="guardarMovimiento()" [disabled]="formMontoNum <= 0">Guardar</ion-button>
-        </ion-col>
+        <ion-col><ion-button color="medium" expand="block" fill="outline" (click)="vistaActual = 'HISTORIAL'">Cancelar</ion-button></ion-col>
+        <ion-col><ion-button [color]="tipoMovimiento === 'ABONO' ? 'success' : 'danger'" expand="block" (click)="guardarMovimiento()" [disabled]="formMontoNum <= 0">Guardar</ion-button></ion-col>
       </ion-row>
     </div>
   </div>
