@@ -124,6 +124,30 @@ export class DatabaseService {
 
   private async crearTablasSiFaltan(): Promise<void> {
     await this.db.execute(`
+      CREATE TABLE IF NOT EXISTS sesiones_caja (
+        id TEXT PRIMARY KEY,
+        fecha_apertura TEXT NOT NULL,
+        fecha_cierre TEXT,
+        base_inicial REAL NOT NULL,
+        saldo_final_esperado REAL,
+        saldo_final_real REAL,
+        descuadre REAL,
+        estado TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS movimientos_caja (
+        id TEXT PRIMARY KEY,
+        sesion_id TEXT NOT NULL,
+        tipo TEXT NOT NULL, 
+        categoria TEXT NOT NULL, 
+        monto REAL NOT NULL,
+        descripcion TEXT,
+        fecha TEXT NOT NULL,
+        FOREIGN KEY(sesion_id) REFERENCES sesiones_caja(id)
+      );
+    `);
+
+    await this.db.execute(`
 CREATE TABLE IF NOT EXISTS proveedores (
         id TEXT PRIMARY KEY NOT NULL,
         nombre TEXT NOT NULL,
