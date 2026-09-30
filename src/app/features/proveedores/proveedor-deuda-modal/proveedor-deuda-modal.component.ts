@@ -112,7 +112,7 @@ export class ProveedorDeudaModalComponent implements OnInit {
 
   async guardarMovimiento() {
     if (this.formMontoNum > 0) {
-      const notasFinal = this.formFotoUrl ? `${this.formNotas} [FOTO_ADJUNTA]` : this.formNotas;
+      const notasFinal = this.formNotas;
       await this.movRepo.registrarMovimiento(this.proveedorId, this.tipoMovimiento, this.formMontoNum, notasFinal);
       await this.cargarHistorial();
       this.vistaActual = 'HISTORIAL';
