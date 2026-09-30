@@ -6,6 +6,7 @@ import { Capacitor } from '@capacitor/core';
 export class CajaRepository {
   // Mock en memoria para pruebas en Web (ng serve)
   private mockWebCajas: any[] = [];
+  private mockWebMovimientos: any[] = [];
 
   constructor(private dbService: DatabaseService) {}
 
@@ -78,6 +79,7 @@ export class CajaRepository {
     const fecha = new Date().toISOString();
 
     if (Capacitor.getPlatform() === 'web') {
+      this.mockWebMovimientos.push({ id, sesion_id: sesion.id, tipo, categoria, monto, descripcion, fecha });
       console.log(`[Web Mock] Movimiento: ${tipo} ${monto}`);
       return;
     }
@@ -93,5 +95,28 @@ export class CajaRepository {
     } catch (e) {
       console.error(e);
     }
+  }
+
+  async obtenerMovimientosPorSesion(sesionId: string): Promise<any[]> {
+    if (Capacitor.getPlatform() === 'web') return this.mockWebMovimientos.filter(m => m.sesion_id === sesionId);
+    const db = this.getDbInstance();
+    try {
+      const res = await db.query('SELECT * FROM movimientos_caja WHERE sesion_id = ? ORDER BY fecha DESC', [sesionId]);
+      return res.values ?? [];
+    } catch (e) { console.error(e); return []; }
+  }
+
+  async cerrarCaja(sesionId: string, saldoEsperado: number, saldoFisico: number, diferencia: number, nota: string): Promise<void> {
+    if (Capacitor.getPlatform() === 'web') return;
+    const fecha = new Date().toISOString();
+    const db = this.getDbInstance();
+    const sql = `UPDATE sesiones_caja SET estado = 'CERRADA', fecha_cierre = ?, saldo_esperado = ?, saldo_fisico = ?, diferencia = ?, nota_cierre = ? WHERE id = ?`;
+    try {
+      if (db.executeSql) {
+        await db.executeSql(sql, [fecha, saldoEsperado, saldoFisico, diferencia, nota, sesionId]);
+      } else {
+        await db.query(sql, [fecha, saldoEsperado, saldoFisico, diferencia, nota, sesionId]);
+      }
+    } catch (e) { console.error(e); throw e; }
   }
 }

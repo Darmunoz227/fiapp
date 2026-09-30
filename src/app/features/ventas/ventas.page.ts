@@ -203,6 +203,9 @@ export class VentasPage {
     this.carrito = [...this.carrito, linea];
     await this.revalidarCarrito();
     this.cantidad = 1;
+    this.productoId = '';
+    this.precio = '';
+    await this.mostrarToast('✅ Producto agregado', 'success');
   }
 
   async onCantidadLineaChange(linea: LineaCarritoVenta, valor: number | string) {

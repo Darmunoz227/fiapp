@@ -8,60 +8,87 @@
 </ion-header>
 
 <ion-content class="ion-padding" color="light">
-  
-  <!-- === VISTA 1: CAJA CERRADA === -->
-  <div *ngIf="!sesionActiva" style="text-align: center; margin-top: 2rem;">
-    <ion-icon name="wallet-outline" style="font-size: 5em; color: var(--ion-color-medium);"></ion-icon>
-    <h2 style="font-weight: bold; color: var(--ion-color-dark);">Caja Cerrada</h2>
-    <p style="color: var(--ion-color-medium);">Ingresa la base en efectivo con la que inicias el turno de hoy para poder registrar movimientos.</p>
+  <!-- VISTA: CAJA CERRADA -->
+  <div *ngIf="!sesionActiva" class="ion-text-center">
+    <ion-icon name="lock-closed-outline" style="font-size: 80px; color: var(--ion-color-medium); margin-top: 2rem;"></ion-icon>
+    <h2 style="color: var(--ion-color-dark);">Caja Cerrada</h2>
+    <p style="color: var(--ion-color-medium);">Abre tu turno para registrar movimientos en efectivo.</p>
 
     <ion-card class="ion-margin-top">
+      <ion-card-header>
+        <ion-card-title>Apertura de Turno</ion-card-title>
+      </ion-card-header>
       <ion-card-content>
-        <ion-item lines="none" style="border-bottom: 2px solid var(--ion-color-success);">
-          <ion-label position="stacked">Base Inicial ($) *</ion-label>
-          <ion-input type="tel" [ngModel]="formBaseStr" (ngModelChange)="onBaseChange($event)" placeholder="Ej. 50.000" style="font-size: 2em; font-weight: bold; text-align: center;"></ion-input>
+        <ion-item lines="full">
+          <ion-icon name="cash-outline" slot="start" color="success"></ion-icon>
+          <ion-label position="stacked">Base (Efectivo inicial para vueltas)</ion-label>
+          <ion-input type="tel" [ngModel]="formBaseStr" (ngModelChange)="onBaseChange($event)" placeholder="$ 0"></ion-input>
         </ion-item>
-        
-        <ion-button expand="block" color="success" class="ion-margin-top" size="large" (click)="abrirCaja()">
-          <ion-icon name="lock-open-outline" slot="start"></ion-icon>
-          Abrir Turno
+        <ion-button expand="block" class="ion-margin-top" (click)="abrirCaja()" [disabled]="formBaseNum < 0">
+          <ion-icon name="lock-open-outline" slot="start"></ion-icon> Abrir Caja
         </ion-button>
       </ion-card-content>
     </ion-card>
   </div>
 
-  <!-- === VISTA 2: CAJA ABIERTA (Resumen) === -->
+  <!-- VISTA: CAJA ABIERTA (CORTE Z) -->
   <div *ngIf="sesionActiva">
-    <ion-card>
-      <ion-card-header style="text-align: center;">
-        <ion-card-subtitle>Estado actual del turno</ion-card-subtitle>
-        <ion-card-title color="success" style="font-size: 2em; font-weight: bold;">Caja Abierta</ion-card-title>
+    <ion-card class="ion-text-center">
+      <ion-card-header>
+        <ion-card-subtitle>DEBES TENER EN EL CAJÓN</ion-card-subtitle>
+        <ion-card-title style="font-size: 2.2rem; font-weight: bold; color: var(--ion-color-dark);">
+          $ {{ saldoEsperado | number:'1.0-0' }}
+        </ion-card-title>
       </ion-card-header>
-      
+    </ion-card>
+
+    <ion-list inset="true">
+      <ion-item>
+        <ion-label color="medium">Base Inicial</ion-label>
+        <ion-note slot="end" color="dark">$ {{ sesionActiva.base_inicial | number:'1.0-0' }}</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label color="medium">Ventas en Efectivo</ion-label>
+        <ion-note slot="end" color="success">+ $ {{ totalIngresos | number:'1.0-0' }}</ion-note>
+      </ion-item>
+      <ion-item>
+        <ion-label color="medium">Gastos en Efectivo</ion-label>
+        <ion-note slot="end" color="danger">- $ {{ totalEgresos | number:'1.0-0' }}</ion-note>
+      </ion-item>
+    </ion-list>
+
+    <h3 class="ion-padding-start" style="color: var(--ion-color-medium); font-size: 14px; text-transform: uppercase;">Realizar Corte Z</h3>
+    <ion-card>
       <ion-card-content>
-        <ion-item>
-          <ion-icon name="time-outline" slot="start" color="medium"></ion-icon>
-          <ion-label>
-            <h3>Apertura</h3>
-            <p>{{ sesionActiva.fecha_apertura | date:'short' }}</p>
-          </ion-label>
+        <ion-item lines="full">
+          <ion-icon name="wallet-outline" slot="start" color="primary"></ion-icon>
+          <ion-label position="stacked">¿Cuánto dinero físico contaste?</ion-label>
+          <ion-input type="tel" [ngModel]="formSaldoFisicoStr" (ngModelChange)="onSaldoFisicoChange($event)" placeholder="$ 0" style="font-size: 1.5rem; font-weight: bold;"></ion-input>
         </ion-item>
-        
-        <ion-item>
-          <ion-icon name="cash-outline" slot="start" color="medium"></ion-icon>
+
+        <ion-item lines="none" *ngIf="formSaldoFisicoNum > 0">
           <ion-label>
-            <h3>Base Inicial</h3>
-            <p style="font-size: 1.2em; font-weight: bold;">{{ sesionActiva.base_inicial | currency:'COP':'symbol-narrow':'1.0-0' }}</p>
+            <h3 *ngIf="diferencia === 0" style="color: var(--ion-color-success); font-weight: bold;">
+              <ion-icon name="checkmark-circle-outline"></ion-icon> ¡Cuadre Perfecto!
+            </h3>
+            <h3 *ngIf="diferencia > 0" style="color: var(--ion-color-tertiary); font-weight: bold;">
+              <ion-icon name="add-circle-outline"></ion-icon> Sobran: $ {{ diferencia | number:'1.0-0' }}
+            </h3>
+            <h3 *ngIf="diferencia < 0" style="color: var(--ion-color-danger); font-weight: bold;">
+              <ion-icon name="close-circle-outline"></ion-icon> Faltan: $ {{ (diferencia * -1) | number:'1.0-0' }}
+            </h3>
           </ion-label>
         </ion-item>
 
-        <div style="text-align: center; margin-top: 20px; padding: 15px; background: #f4f5f8; border-radius: 8px;">
-          <p style="color: var(--ion-color-medium); margin: 0; font-size: 0.9em;">
-            El registro de ingresos y el botón de <strong>Corte Z</strong> se habilitarán en el próximo paso.
-          </p>
-        </div>
+        <ion-item lines="full" class="ion-margin-top">
+          <ion-label position="stacked">Nota / Observación (Opcional)</ion-label>
+          <ion-input type="text" [(ngModel)]="notaCierre" placeholder="Ej. Dejé $50.000 para mañana"></ion-input>
+        </ion-item>
+
+        <ion-button expand="block" color="danger" class="ion-margin-top" (click)="confirmarCierre()" [disabled]="formSaldoFisicoNum <= 0 && formSaldoFisicoStr !== '0'">
+          <ion-icon name="calculator-outline" slot="start"></ion-icon> Cerrar Turno (Corte Z)
+        </ion-button>
       </ion-card-content>
     </ion-card>
   </div>
-
 </ion-content>
