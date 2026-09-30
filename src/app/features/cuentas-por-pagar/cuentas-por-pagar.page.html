@@ -1,0 +1,53 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Proveedores</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="light">
+  <div *ngIf="proveedores.length === 0" class="ion-padding ion-text-center" style="margin-top: 40px;">
+    <ion-icon name="business-outline" style="font-size: 64px; color: var(--ion-color-medium)"></ion-icon>
+    <h3 style="color: var(--ion-color-dark);">Sin Proveedores</h3>
+    <p style="color: var(--ion-color-medium)">Aquí aparecerán las empresas o distribuidores a los que les debes dinero por mercancía.</p>
+  </div>
+
+  <ion-list *ngIf="proveedores.length > 0" inset="true">
+    <!-- Envoltura de Swipe -->
+    <ion-item-sliding *ngFor="let p of proveedores" #slidingItem>
+      
+      <!-- ITEM PRINCIPAL (Acción de Tocar para dinero) -->
+      <ion-item button (click)="abrirOpciones(p)" detail="false">
+        <ion-icon name="business-outline" slot="start" color="medium"></ion-icon>
+        <ion-label>
+          <h2><strong>{{ p.nombre }}</strong></h2>
+          <p *ngIf="p.telefono">{{ p.telefono }}</p>
+        </ion-label>
+        <ion-note slot="end" [color]="p.saldo_pendiente > 0 ? 'danger' : 'success'">
+          <strong style="font-size: 1.1em;">
+            $ {{ p.saldo_pendiente | number:'1.0-0' }}
+          </strong>
+        </ion-note>
+      </ion-item>
+
+      <!-- OPCIONES OCULTAS (Acción de Deslizar hacia la izquierda para CRUD) -->
+      <ion-item-options side="end">
+        <ion-item-option color="primary" (click)="editarProveedor(p); slidingItem.close()">
+          <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+        </ion-item-option>
+        <ion-item-option color="danger" (click)="eliminarProveedor(p); slidingItem.close()">
+          <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+        </ion-item-option>
+      </ion-item-options>
+
+    </ion-item-sliding>
+  </ion-list>
+
+  <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+    <ion-fab-button (click)="crearProveedor()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

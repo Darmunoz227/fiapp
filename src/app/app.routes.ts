@@ -59,4 +59,8 @@ export const routes: Routes = [
     path: 'caja',
     loadComponent: () => import('./features/caja/caja.page').then( m => m.CajaPage)
   },
+  {
+    path: 'cuentas-por-pagar',
+    loadComponent: () => import('./features/cuentas-por-pagar/cuentas-por-pagar.page').then( m => m.CuentasPorPagarPage)
+  },
 ];

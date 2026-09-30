@@ -1,12 +1,8 @@
+import { RouterModule } from '@angular/router';
 import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import {
-  IonHeader, IonToolbar, IonContent, IonCard,
-  IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
-  IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
-  ModalController, AlertController, IonButton, IonButtons, IonItemSliding, IonItemOptions, IonItemOption, ToastController
-} from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonContent, IonCard, IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel, IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon, ModalController, AlertController, IonButton, IonButtons, IonItemSliding, IonItemOptions, IonItemOption, ToastController, IonCardHeader, IonCardTitle } from '@ionic/angular/standalone';
 import { App } from '@capacitor/app';
 import { addIcons } from 'ionicons';
 import { add, cartOutline, cubeOutline, settingsOutline, statsChartOutline, trash, receiptOutline, walletOutline } from 'ionicons/icons'; 
@@ -25,12 +21,31 @@ import { ClienteDeleteUndoService } from './cliente-delete-undo.service';
   styleUrls: ['home.page.scss'],
   standalone: true,
   imports: [
+    RouterModule,
     CommonModule,
-    IonHeader, IonToolbar, IonContent, IonCard,
-    IonCardContent, IonText, IonSearchbar, IonListHeader, IonLabel,
-    IonList, IonItem, IonAvatar, IonNote, IonFab, IonFabButton, IonIcon,
-    IonItemSliding, IonItemOptions, IonItemOption,
-    IonButton, IonButtons,
+    IonHeader,
+    IonToolbar,
+    IonContent,
+    IonCard,
+    IonCardContent,
+    IonText,
+    IonSearchbar,
+    IonListHeader,
+    IonLabel,
+    IonList,
+    IonItem,
+    IonAvatar,
+    IonNote,
+    IonFab,
+    IonFabButton,
+    IonIcon,
+    IonItemSliding,
+    IonItemOptions,
+    IonItemOption,
+    IonButton,
+    IonButtons,
+    IonCardHeader,
+    IonCardTitle
   ],
   providers: [ClienteDeleteUndoService],
 })
