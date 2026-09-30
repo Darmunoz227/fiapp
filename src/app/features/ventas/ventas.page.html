@@ -44,6 +44,18 @@
         </ion-select>
       </ion-item>
 
+        <ion-item *ngIf="tipo_pago === 'CONTADO' || abono" class="ion-margin-top">
+          <ion-label position="stacked">Medio de Recepción</ion-label>
+          <ion-select [(ngModel)]="metodo_pago" interface="action-sheet" okText="Aceptar" cancelText="Cancelar">
+            <ion-select-option value="EFECTIVO">💵 Efectivo (Caja Física)</ion-select-option>
+            <ion-select-option value="NEQUI">📱 Nequi</ion-select-option>
+            <ion-select-option value="DAVIPLATA">📱 DaviPlata</ion-select-option>
+            <ion-select-option value="BREB">🔄 Breb (Banco Rep.)</ion-select-option>
+            <ion-select-option value="DATAFONO">💳 Datáfono</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+
       <ion-item *ngIf="tipo_pago === 'MIXTO'">
         <ion-label position="stacked">Abono recibido</ion-label>
         <ion-input #abonoInput type="text" inputmode="numeric" placeholder="Ej. 5.000" [(ngModel)]="abono" (ionInput)="onAbonoInput()" (ionBlur)="onAbonoBlur()"></ion-input>

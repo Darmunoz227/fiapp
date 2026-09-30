@@ -147,6 +147,13 @@ export class DatabaseService {
       );
     `);
 
+    // --- MIGRACIONES: Soporte para Nequi, Daviplata, Breb, Datafono ---
+    // Usamos try-catch porque si la columna ya existe, SQLite arrojara un error que podemos ignorar
+    try { await this.db.execute("ALTER TABLE ventas ADD COLUMN metodo_pago TEXT DEFAULT 'EFECTIVO'"); } catch (e) {}
+    try { await this.db.execute("ALTER TABLE gastos ADD COLUMN metodo_pago TEXT DEFAULT 'EFECTIVO'"); } catch (e) {}
+    try { await this.db.execute("ALTER TABLE movimientos_deuda ADD COLUMN metodo_pago TEXT DEFAULT 'EFECTIVO'"); } catch (e) {}
+
+
     await this.db.execute(`
 CREATE TABLE IF NOT EXISTS proveedores (
         id TEXT PRIMARY KEY NOT NULL,
@@ -1060,8 +1067,8 @@ CREATE TABLE IF NOT EXISTS proveedores (
     if (!this.isInitialized) await this.initializePlugin();
     const sql = `
       INSERT INTO ventas (
-        id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, tipo_pago, monto_contado, monto_fiado, cliente_id, fecha, created_at, updated_at, deleted_at, store_id, created_by, metodo_pago
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     const values = [
       venta.id,
@@ -1075,6 +1082,7 @@ CREATE TABLE IF NOT EXISTS proveedores (
       venta.deleted_at ?? null,
       venta.store_id ?? null,
       venta.created_by ?? null,
+      (venta as any).metodo_pago ?? 'EFECTIVO',
     ];
     await this.ejecutarRun(sql, values, true);
   }

@@ -19,6 +19,7 @@ import {
 } from '@ionic/angular/standalone';
 import { v4 as uuidv4 } from 'uuid';
 import { DatabaseService } from '../../core/database/database.service';
+import { CajaRepository } from '../../core/repositories/caja.repository';
 import { FreemiumService } from '../../core/freemium/freemium.service';
 import { Cliente } from '../../core/models/cliente.model';
 import { MovimInventario } from '../../core/models/movim-inventario.model';
@@ -78,6 +79,7 @@ export class VentasPage {
   cantidad = 1;
   precio = '';
   tipo_pago: TipoPago = 'CONTADO';
+  metodo_pago: string = 'EFECTIVO';
   abono = '';
   stockDerivado = 0;
   @ViewChild("precioInput") precioInput?: IonInput;
@@ -87,6 +89,7 @@ export class VentasPage {
     private dbService: DatabaseService,
     private freemiumService: FreemiumService,
     private toastCtrl: ToastController,
+  private cajaRepo: CajaRepository,
   ) {}
 
   ionViewWillEnter() {
@@ -245,7 +248,7 @@ export class VentasPage {
     const montoContado = this.montoContadoCalculado;
     const montoFiado = this.montoFiadoCalculado;
 
-    const venta: Venta = {
+    const venta: any = {
       id: uuidv4(),
       tipo_pago: derivarTipoPago(montoContado, montoFiado),
       monto_contado: montoContado,
@@ -257,6 +260,7 @@ export class VentasPage {
       deleted_at: null,
       store_id: null,
       created_by: null,
+      metodo_pago: this.metodo_pago,
     };
 
     const items: VentaItem[] = this.carrito.map((linea) => ({
@@ -321,6 +325,15 @@ export class VentasPage {
       } else {
         await this.dbService.registrarVenta(venta, items, movimientos);
       }
+      // --- CONEXIÓN CON CAJA ---
+      if (montoContado > 0 && this.metodo_pago === 'EFECTIVO') {
+        try {
+          await this.cajaRepo.registrarMovimientoCaja('INGRESO', 'Ventas', montoContado, 'Venta en efectivo');
+        } catch (e) {
+          console.warn('La caja no está abierta', e);
+        }
+      }
+
 
       const valorGanancia = new Intl.NumberFormat('es-CO', {
         style: 'currency',
@@ -345,6 +358,7 @@ export class VentasPage {
     this.cantidad = 1;
     this.precio = '';
     this.tipo_pago = 'CONTADO';
+    this.metodo_pago = 'EFECTIVO';
     this.abono = '';
     this.stockDerivado = 0;
   }

@@ -69,4 +69,29 @@ export class CajaRepository {
       throw error;
     }
   }
+
+  async registrarMovimientoCaja(tipo: 'INGRESO' | 'EGRESO', categoria: string, monto: number, descripcion: string = ''): Promise<void> {
+    const sesion = await this.obtenerSesionAbierta();
+    if (!sesion) return;
+
+    const id = Date.now().toString();
+    const fecha = new Date().toISOString();
+
+    if (Capacitor.getPlatform() === 'web') {
+      console.log(`[Web Mock] Movimiento: ${tipo} ${monto}`);
+      return;
+    }
+
+    const sql = `INSERT INTO movimientos_caja (id, sesion_id, tipo, categoria, monto, descripcion, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)`;
+    const db = this.getDbInstance();
+    try {
+      if (db && typeof db.executeSql === 'function') {
+        await db.executeSql(sql, [id, sesion.id, tipo, categoria, monto, descripcion, fecha]);
+      } else if (db && typeof db.query === 'function') {
+        await db.query(sql, [id, sesion.id, tipo, categoria, monto, descripcion, fecha]);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
 }
